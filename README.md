@@ -2,8 +2,10 @@
 
 Can open netCDF4, hdf5 and hdf4 files. For hdf4 files, it tries to remove the vdata that only represents sd variable attributes or dimensions.
 
+Download for example a h5/ hdf/ nc file from here: https://hdfeos.org/zoo/index_openNSIDC_Examples.php  
+
 call as 
-  python3.7 -m NetCDF4viewer test.nc
+  python3.7 -m NetCDF4viewer whatever_is_your_test_filename.nc_or_hdf_or_h5_or_hdf4
   
   In the file representation that opens, a click on the triangle infront of a group (or main file level), open the group.
   The following keys are activated on the tree:
