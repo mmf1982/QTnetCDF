@@ -6,10 +6,8 @@ from PyQt5.QtWidgets import (QApplication, QLabel, QWidget, QVBoxLayout, QPushBu
                              QDesktopWidget, QMainWindow, qApp, QSlider)
 try:
     from . import add_interactivity as ai
-    print("from here")
 except (ModuleNotFoundError, ImportError):
     try:
-        print("sexond")
         from add_interactivity import add_interactivity as ai
     except (ModuleNotFoundError, ImportError):
         print("add_interactivity is not loaded. This reduces the interactivity"
