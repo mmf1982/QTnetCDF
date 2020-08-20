@@ -5,10 +5,13 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QApplication, QLabel, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QMessageBox,
                              QDesktopWidget, QMainWindow, qApp, QSlider)
 try:
-    from add_interactivity import add_interactivity
+    from .add_interactivity import add_interactivity
 except (ModuleNotFoundError, ImportError):
-    print("add_interactivity is not loaded. This reduces the interactivity"
-          "for 1D plots. Check if add_interactivity.py is in the current python path")
+    try:
+        from add_interactivity import add_interactivity
+    except (ModuleNotFoundError, ImportError):
+        print("add_interactivity is not loaded. This reduces the interactivity"
+              "for 1D plots. Check if add_interactivity.py is in the current python path")
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 from matplotlib.colors import LogNorm, Normalize
