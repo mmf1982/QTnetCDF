@@ -53,7 +53,7 @@ call as
  
  For 3D plots, you can slice along x, y or z and use the "+" and "-" buttons to go forward or backward in the file.
  
- ## Chrashes
+ ## Crashes
  
  Currently, the program is a bit debil, it crashes:
  * when a group is double clicked
