@@ -15,7 +15,10 @@ from matplotlib.colors import LogNorm, Normalize
 from matplotlib.backend_bases import key_press_handler
 import matplotlib.projections as proj
 import matplotlib.axes._subplots as axs
-from Menues import center, HelpWindow
+try:
+    from .Menues import center, HelpWindow
+except (ImportError, ModuleNotFoundError):
+    from Menues import center, HelpWindow
 
 class Easyerrorbar(axs.Axes):
     """ Circumvent problem with normal matplotlib errorbar():

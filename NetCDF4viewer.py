@@ -1,4 +1,7 @@
+
 import os
+print(os.path.dirname(os.path.abspath(__file__)))
+import pathlib
 import sys
 import netCDF4
 import yaml
@@ -7,9 +10,18 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont
 from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWindow, QDockWidget,
                              QTableView, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
                              QSlider, QLabel, QStatusBar, QHeaderView)
-from Fastplot import Fast3D, Fast2D, Fast1D
-from Menues import FileMenu
-from Converters import hdf4_object
+try:
+    from .Fastplot import Fast3D, Fast2D, Fast1D
+except (ImportError, ModuleNotFoundError):
+    from Fastplot import Fast3D, Fast2D, Fast1D
+try:
+    from .Menues import FileMenu
+except (ImportError, ModuleNotFoundError):
+    from Menues import FileMenu
+try:
+    from .Converters import hdf4_object
+except (ImportError, ModuleNotFoundError):
+    from Converters import hdf4_object
 from numpy import array, arange
 
 
@@ -316,7 +328,8 @@ class App(QMainWindow):
         self.mdata = Data()
         self.holdon = False
         self.active1D = None
-        with open("config.yml") as fid:
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here,"config.yml")) as fid:
             self.config = yaml.load(fid, yaml.Loader)
         self.holdbutton = None
         self.load_file(this_file)
