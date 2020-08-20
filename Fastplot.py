@@ -5,10 +5,12 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QApplication, QLabel, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QMessageBox,
                              QDesktopWidget, QMainWindow, qApp, QSlider)
 try:
-    from .add_interactivity import add_interactivity
+    from . import add_interactivity as ai
+    print("from here")
 except (ModuleNotFoundError, ImportError):
     try:
-        from add_interactivity import add_interactivity
+        print("sexond")
+        from add_interactivity import add_interactivity as ai
     except (ModuleNotFoundError, ImportError):
         print("add_interactivity is not loaded. This reduces the interactivity"
               "for 1D plots. Check if add_interactivity.py is in the current python path")
@@ -291,7 +293,7 @@ class Fast1D(QMainWindow):
             self.myfigure.axes.errorbar(mydata.x.datavalue, mydata.y.datavalue, yerr=mydata.yerr.datavalue,
                                         xerr=mydata.xerr.datavalue, label=label)
         try:
-            add_interactivity(fig=self.myfigure.fig, ax=self.myfigure.axes, nodrag=False, legsize=7)
+            ai.add_interactivity(fig=self.myfigure.fig, ax=self.myfigure.axes, nodrag=False, legsize=7)
         except:
             print("it seems that add_interactivity is not loaded. Check if the file is in pythonpath")
         self.myfigure.draw()
