@@ -3,10 +3,7 @@ import pyhdf.SD
 import pyhdf.HDF
 import pyhdf.VS
 import pyhdf.V
-import sys
 import numpy
-sys.path.append("/home/martinaf/my_remote/martina_tests/python/")
-import profiling.yaml_netcdf4 as yn
 
 HDFTYPE = {pyhdf.HDF.HC.DFTAG_NDG: "HDF SDS",
            pyhdf.HDF.HC.DFTAG_VH: "HDF Vdata",
@@ -135,7 +132,6 @@ class hdf4_object(object):
         _, allrefs = self.all_v_ids(-1, [])
         mydict = MyDict()
         skipkeys = []
-        self.to_delete = []
         newallrefs = []
         self.done = []
         for ref in allrefs:
@@ -145,13 +141,11 @@ class hdf4_object(object):
                 skipkeys.extend(to_extend)
                 newallrefs.append(ref)
         self.remove_fakedim(mydict)  # remove fakedims and empty dicts
-        self.to_delete = []# self.simplify(mydict)
         self.allrefs = newallrefs
         self.done = []
         for ref in newallrefs:
-            if ref not in self.to_delete:
-                name = Text(Representative(ref, pyhdf.HDF.HC.DFTAG_VG, self))
-                mydict[name], to_extend = self.get_nested_struct(ref)
+            name = Text(Representative(ref, pyhdf.HDF.HC.DFTAG_VG, self))
+            mydict[name], to_extend = self.get_nested_struct(ref)
         self.remove_fakedim(mydict)
         return mydict
 
@@ -168,22 +162,6 @@ class hdf4_object(object):
                 return sd_var
         return False
 
-    def simplify(self, mydict):
-        newkeys = yn.collapse_keys(mydict)
-        delrefs = []
-        for k in newkeys:
-            if newkeys[k].type == "vdata":
-                if len(k.split("/")) > 2:
-                    partkey = "/".join(k.split("/")[1:])
-                else:
-                    partkey = k
-                for k2 in newkeys:
-                    if partkey in k2 and newkeys[k2].type != "vdata":
-                        if newkeys[k2].type == "sd_dataset":
-                            delrefs.append(newkeys[k].myref)
-                        if newkeys[k2].type is None:
-                            delrefs.append(newkeys[k2].myref)
-        return delrefs
 
     def remove_fakedim(self, mydict):
         if isinstance(mydict, dict):
@@ -215,7 +193,7 @@ class hdf4_object(object):
             else:
                 return mydict, refsdone
         for tag, ref in elements:
-            if ref not in self.to_delete and ref not in self.ref_for_dims and ref not in self.ref_for_attrs:
+            if  ref not in self.ref_for_dims and ref not in self.ref_for_attrs:
                 try:
                     name = Text(Representative(ref, tag, self))
                     mydict[name], to_extend = self.get_nested_struct(ref)
@@ -323,6 +301,8 @@ class Representative():
                 except:
                     print(self.myref, self.tag)
                     data = None
+        else:
+            data = None
         return data
 
     @property
