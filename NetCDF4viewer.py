@@ -192,9 +192,13 @@ class MyTable(QWidget):
         name = self.name
         if self.all_data.ndim == 3:
             name += " slice " + str(self.c_idx) +  " in dim " + str(self.c_dim)
-        model = TableModel(data[:], name)
+        header = self.all_data.header
+        model = TableModel(data[:], name, header)
         self.table.setModel(model)
-
+        #for idx, hdr in enumerate(header):
+        #    #ee = model.headerData(idx, QtCore.Qt.Horizontal, 0, name=hdr)
+        #    ee = model.setHeaderData(idx, QtCore.Qt.Horizontal, hdr, 0)
+        #    print("settings: ", idx, hdr, ee)
 
 class MyQTableView(QTableView):
     """
@@ -261,10 +265,19 @@ class TableModel(QtCore.QAbstractTableModel):
     """
     Model of the data displayed in MyQTableView.
     """
-    def __init__(self, data, name):
+    def __init__(self, data, name, header):
         super(TableModel, self).__init__()
         self._data = data
         self.name = name
+        self.header = header
+
+    def headerData(self, column, orientation, role=QtCore.Qt.DisplayRole):
+        if role==QtCore.Qt.DisplayRole:
+            if orientation==QtCore.Qt.Horizontal and self.header is not None:
+                name = self.header[column]
+                return QtCore.QVariant(name)
+            else:
+                return QtCore.QVariant(str(column))
 
     def data(self, index, role):
         if role == QtCore.Qt.DisplayRole:
@@ -426,9 +439,9 @@ class App(QMainWindow):
             print("dimensionality of data is too big. Not yet implemented.")
             return
         if thisdata.ndim == 3:
-            Fast3D(thisdata[:], parent=self, **self.config["Startingsize"]["3Dplot"])
+            Fast3D(thisdata[:], parent=self, **self.config["Startingsize"]["3Dplot"], mname=thisdata.name)
         elif thisdata.ndim == 2:
-            Fast2D(thisdata[:], **self.config["Startingsize"]["2Dplot"])
+            Fast2D(thisdata[:], **self.config["Startingsize"]["2Dplot"], mname=thisdata.name)
         elif thisdata.ndim == 1:
             mdata = Data()
             mdata.x.set(arange(len(thisdata[:])), "index")
@@ -436,7 +449,7 @@ class App(QMainWindow):
             if self.holdon:
                 self.active1D.update_plot(mdata)
             else:
-                self.active1D = Fast1D(mdata, **self.config["Startingsize"]["1Dplot"])
+                self.active1D = Fast1D(mdata, **self.config["Startingsize"]["1Dplot"], mname=thisdata.name)
         else:
             print("nothing to plot, it seems to be a scalar")
 

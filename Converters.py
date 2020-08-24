@@ -214,14 +214,18 @@ class Representative():
         self.myfile = myfile
 
     def __getitem__(self, key):
-        #if isinstance(key, slice):
         return self.data[key]
 
 
     def getstuff(self):
+        header = None
         name = rank = dims = stype = nattrs = ""
         if self.tag == pyhdf.HDF.HC.DFTAG_VH:
            dims, rank, header, bytes, name = (self.myfile.vs.attach(self.myref).inquire())
+           if isinstance(self.data, Table):
+               rank = self.data.data.ndim
+               dims = self.data.data.shape
+               header = self.data.header
         elif self.tag == pyhdf.HDF.HC.DFTAG_NDG:
            name, ndims, dims, stype, _ = (self.myfile.sd.select(self.myfile.sd.reftoindex(self.myref)).info())
            sdo = self.myfile.sd.select(self.myfile.sd.reftoindex(self.myref))
@@ -236,7 +240,7 @@ class Representative():
                 nattrs = self.get_info()[0]
             except:
                 pass
-        return name, rank, dims, stype, nattrs
+        return name, rank, dims, stype, nattrs, header
 
     def get_info(self):
         try:
@@ -264,23 +268,28 @@ class Representative():
 
     @property
     def name(self):
-        name, rank, dims, stype, nattrs = self.getstuff()
+        name, rank, dims, stype, nattrs, header = self.getstuff()
         return name
 
     @property
     def ndim(self):
-        name, rank, dims, stype, nattrs = self.getstuff()
+        name, rank, dims, stype, nattrs, header = self.getstuff()
         return rank
 
     @property
     def dims(self):
-        name, rank, dims, stype, nattrs = self.getstuff()
+        name, rank, dims, stype, nattrs, header = self.getstuff()
         return dims
 
     @property
     def stype(self):
-        name, rank, dims, stype, nattrs = self.getstuff()
+        name, rank, dims, stype, nattrs, header = self.getstuff()
         return stype
+
+    @property
+    def header(self):
+        name, rank, dims, stype, nattrs, header = self.getstuff()
+        return header
 
     def getValue(self):
         return numpy.array(self.data[:])
@@ -307,8 +316,11 @@ class Representative():
 
     @property
     def dimensions(self):
-        dimensions = self.data.dimensions()
-        return dimensions.keys()
+        try:
+            dimensions = self.data.dimensions()
+            return dimensions.keys()
+        except AttributeError:
+            return []
 
     @property
     def type(self):

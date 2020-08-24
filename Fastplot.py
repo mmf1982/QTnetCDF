@@ -217,9 +217,11 @@ class DataChooser(QWidget):
 
 
 class Fast2D(QMainWindow):
-    def __init__(self, mydata, **kwargs):
+    def __init__(self, mydata, mname=None, **kwargs):
         super().__init__()
-        self.setWindowTitle('2D Viewer')
+        if mname is None:
+            mname = '2D Viewer'
+        self.setWindowTitle(mname)
         self.setWindowIcon(QIcon("web.png"))
         self.myfigure = MplCanvas(self, **kwargs)
         my_slider = DataChooser(self, False)
@@ -250,9 +252,11 @@ class Fast2D(QMainWindow):
 
 
 class Fast1D(QMainWindow):
-    def __init__(self, mydata, **kwargs):
+    def __init__(self, mydata, mname=None, **kwargs):
         super().__init__()
-        self.setWindowTitle('1D Viewer')
+        if mname is None:
+            mname = '1D Viewer'
+        self.setWindowTitle(mname)
         self.setWindowIcon(QIcon("web.png"))
         self.myfigure = MplCanvas(self, **kwargs)
         mainwindow = QWidget()
@@ -293,9 +297,11 @@ class Fast1D(QMainWindow):
 
 
 class Fast3D(QMainWindow):
-    def __init__(self, mydata, parent=None, **kwargs):
+    def __init__(self, mydata, parent=None, mname=None, **kwargs):
         super(Fast3D, self).__init__(parent)
-        self.setWindowTitle('3D Viewer')
+        if mname is None:
+            mname = '3D Viewer'
+        self.setWindowTitle(mname)
         self.setWindowIcon(QIcon("web.png"))
         if mydata.ndim == 3:
             self.mydata = mydata
