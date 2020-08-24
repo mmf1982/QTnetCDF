@@ -21,7 +21,7 @@ try:
     from .Converters import hdf4_object, Table
 except (ImportError, ModuleNotFoundError):
     from Converters import hdf4_object, Table
-from numpy import array, arange
+from numpy import array, arange, squeeze
 
 
 class Pointer(QStandardItem):
@@ -78,13 +78,13 @@ class MyQTreeView(QTreeView):
             # open tableview
             self.open_table(current_pointer)
         elif event.text() == "x":
-            self.master.mdata.x.set(current_pointer.mdata[:], current_pointer.mdata.name)
+            self.master.mdata.x.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
         elif event.text() == "y":
-            self.master.mdata.y.set(current_pointer.mdata[:], current_pointer.mdata.name)
+            self.master.mdata.y.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
         elif event.text() == "u":
-            self.master.mdata.yerr.set(current_pointer.mdata[:], current_pointer.mdata.name)
+            self.master.mdata.yerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
         elif event.text() == "e":
-            self.master.mdata.xerr.set(current_pointer.mdata[:], current_pointer.mdata.name)
+            self.master.mdata.xerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
         #elif event.text() == "m":
         #    self.master.mdata.mask.set(current_pointer.mdata[:], current_pointer.mdata.name)
 
@@ -265,13 +265,16 @@ class MyQTableView(QTableView):
         cols = {cols.column() for cols in self.selectedIndexes()}
 
         if len(cols) > 1:
-            self.currentData = array([self.model()._data[:, col] for col in cols])
+            self.currentData = array([squeeze(self.model()._data[:, col]) for col in cols])
             self.curridx = "cols. " + str(min(cols)) + " - " + str(max(cols))
             print("selected columns " + str(min(cols)) + " - " + str(max(cols)))
         else:
             self.curridx = "col " + str(index)
-            self.currentData = self.model()._data[:, index]
-            print("selected column " + str(index))
+            self.currentData = squeeze(self.model()._data[:, index])
+        try:
+            self.currentData = self.currentData.astype(float)
+        except:
+            pass
 
     def vheader_selected(self, index):
         """
@@ -287,6 +290,10 @@ class MyQTableView(QTableView):
             self.curridx = "row " + str(index)
             self.currentData = self.model()._data[index, :]
             print("selected row " + str(index))
+        try:
+            self.currentData = self.currentData.astype(float)
+        except:
+            pass
 
 
 class TableModel(QtCore.QAbstractTableModel):
@@ -390,6 +397,7 @@ class App(QMainWindow):
 
     def plotit(self):
         self.fix1d_data()
+        # print(type(self.mdata.x.datavalue))
         if self.holdon:
             self.active1D.update_plot(self.mdata)
         else:
