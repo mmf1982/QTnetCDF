@@ -1,7 +1,6 @@
 
 import os
 print(os.path.dirname(os.path.abspath(__file__)))
-import pathlib
 import sys
 import netCDF4
 import yaml
@@ -9,7 +8,7 @@ from PyQt5 import QtCore
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont
 from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWindow, QDockWidget,
                              QTableView, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
-                             QSlider, QLabel, QStatusBar, QHeaderView)
+                             QSlider, QLabel, QStatusBar)
 try:
     from .Fastplot import Fast3D, Fast2D, Fast1D
 except (ImportError, ModuleNotFoundError):
@@ -19,9 +18,9 @@ try:
 except (ImportError, ModuleNotFoundError):
     from Menues import FileMenu
 try:
-    from .Converters import hdf4_object
+    from .Converters import hdf4_object, Table
 except (ImportError, ModuleNotFoundError):
-    from Converters import hdf4_object
+    from Converters import hdf4_object, Table
 from numpy import array, arange
 
 
@@ -37,6 +36,7 @@ class Pointer(QStandardItem):
         """
         super(Pointer, self).__init__(name)
         self.mdata = mdata
+        self.name = name
 
 
 class MyQTreeView(QTreeView):
@@ -49,15 +49,31 @@ class MyQTreeView(QTreeView):
         self.master = master
         super().__init__(*args, **kwargs)
 
+
     def keyPressEvent(self, event):
         idx = self.currentIndex()
         current_pointer = self.model().itemFromIndex(idx)
         if event.text() == "d":
-            # this prints the details of the current selection
-            try:
-                current_pointer.mdata.print_info()
-            except:
-                print(current_pointer.mdata)
+                if self.master.filetype == "netcdf4":
+                    print(current_pointer.mdata)
+                    attributes = {key: current_pointer.mdata.getncattr(key) for key in
+                                  current_pointer.mdata.ncattrs()}
+                else:
+                    try:
+                        attributes = current_pointer.name.data.attributes
+                    except AttributeError:
+                        attributes = current_pointer.mdata.attributes
+                for attr in attributes:
+                    if hasattr(attributes[attr], '__len__') and (len(attributes[attr])>10)\
+                            and not isinstance(attributes[attr], str):
+                        mdata = Table(attributes[attr], None, attr)
+                        interm_pointer = Pointer(mdata, attr)
+                        self.open_table(interm_pointer)
+                    elif isinstance(attributes[attr], str) and len(attributes[attr])>100:
+                        print(attr, ":      is currently not displayed. It is a very long string, "
+                                    "likely describing the structure.")
+                    else:
+                        print(attr, ": ", attributes[attr])
         elif event.text() == "s":
             # open tableview
             self.open_table(current_pointer)
@@ -73,10 +89,11 @@ class MyQTreeView(QTreeView):
         #    self.master.mdata.mask.set(current_pointer.mdata[:], current_pointer.mdata.name)
 
     def open_table(self, current_p):
-        dock_widget = QDockWidget(current_p.mdata.name)
-        table_widget = MyTable(self.master, current_p.mdata)
+        dock_widget = QDockWidget(current_p.name)
+        table_widget = MyTable(self.master, current_p)
         dock_widget.setWidget(table_widget)
-        self.master.addDockWidget(QtCore.Qt.BottomDockWidgetArea, dock_widget)
+        self.master.addDockWidget(QtCore.Qt.BottomDockWidgetArea, dock_widget, QtCore.Qt.Vertical)
+        return
 
 
 class MyTable(QWidget):
@@ -98,10 +115,13 @@ class MyTable(QWidget):
         self.table = MyQTableView(self.master)
         self.c_idx = 0
         self.c_dim = 0
-        self.maxidxs = data[:].shape
+        try:
+            self.maxidxs = data.mdata[:].shape
+        except (AttributeError, IndexError):
+            self.maxidxs = 1
         self.diminfo = None
         self.sliceinfo = None
-        self.all_data = data
+        self.all_data = data.mdata
         self.make_design()
         self.update_table()
 
@@ -111,7 +131,11 @@ class MyTable(QWidget):
         """
         table_layout = QHBoxLayout()
         table_layout.addWidget(self.table)
-        if self.all_data.ndim == 3:
+        try:
+            ndim = self.all_data.ndim
+        except AttributeError:
+            ndim = 1
+        if ndim == 3:
             data_selection = QWidget()
             data_selection_layout = QVBoxLayout()
             slicer_area = QWidget()
@@ -176,29 +200,33 @@ class MyTable(QWidget):
         If underlying data is 3D, change the displayed data to the new subset of all_data, depending on c_dim and c_idx
         """
         data = None
-        if self.all_data.ndim == 3:
+        try:
+            ndim = self.all_data.ndim
+        except:
+            ndim = 1
+        if ndim == 3:
             if self.c_dim == 0:
                 data = self.all_data[self.c_idx,:,:]
             elif self.c_dim == 1:
                 data = self.all_data[:, self.c_idx, :]
             elif self.c_dim == 2:
                 data = self.all_data[:, :, self.c_idx]
-        elif self.all_data.ndim == 2:
+        elif ndim == 2:
             data = self.all_data[:]
-        elif self.all_data.ndim == 1:
-            data = array([self.all_data[:]])
+        elif ndim == 1:
+                data = array([self.all_data[:]])
         else:
-            data = array([[self.all_data.getValue()]])
+            try:
+                data = array([[self.all_data.getValue()]])
+            except:
+                data = array([[self.all_data]])
         name = self.name
-        if self.all_data.ndim == 3:
+        if ndim == 3:
             name += " slice " + str(self.c_idx) +  " in dim " + str(self.c_dim)
         header = self.all_data.header
         model = TableModel(data[:], name, header)
         self.table.setModel(model)
-        #for idx, hdr in enumerate(header):
-        #    #ee = model.headerData(idx, QtCore.Qt.Horizontal, 0, name=hdr)
-        #    ee = model.setHeaderData(idx, QtCore.Qt.Horizontal, hdr, 0)
-        #    print("settings: ", idx, hdr, ee)
+
 
 class MyQTableView(QTableView):
     """
@@ -345,6 +373,7 @@ class App(QMainWindow):
         with open(os.path.join(here,"config.yml")) as fid:
             self.config = yaml.load(fid, yaml.Loader)
         self.holdbutton = None
+        self.filetype = None
         self.load_file(this_file)
         self.setMenuBar(FileMenu(self))
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -411,7 +440,6 @@ class App(QMainWindow):
         for idx, key in enumerate(self.config["Headers"]):
             width = self.config["Headers"][key]
             self.view.setColumnWidth(idx, width)
-        #self.view.header().setSectionResizeMode(0, QHeaderView.Stretch)
 
     def load_file(self, m_file):
         self.name = os.path.basename(m_file)
@@ -421,8 +449,10 @@ class App(QMainWindow):
             pass
         try:
             self.mfile = netCDF4.Dataset(m_file)
+            self.filetype = "netcdf4"
         except (OSError, UnicodeError):
             self.mfile = hdf4_object(m_file)
+            self.filetype = "hdf4"
         statusbar = QStatusBar()
         statusbar.showMessage(self.name)
         self.setStatusBar(statusbar)

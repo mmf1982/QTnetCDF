@@ -29,6 +29,9 @@ DATATYPE = {pyhdf.SD.SDC().COMP_SZIP_RAW: "complex",
             }
 
 class Table(numpy.ndarray):
+    """
+    numpy array with header and attribute
+    """
     def __new__(cls, content, header, attr):
         mval = numpy.asarray(content).view(cls)
         mval.header = header
@@ -44,6 +47,7 @@ class Text(str):
         self.data = content
     def change_data(self, mdata):
         self.data = mdata
+
 
 class MyDict(dict):
     '''
@@ -70,11 +74,11 @@ class hdf4_object(object):
             try:
                 md = self.struct[key].data
                 key.change_data(Representative(md.ref(),  pyhdf.HDF.HC.DFTAG_NDG, self))
+                self.struct[key] = Representative(md.ref(),  pyhdf.HDF.HC.DFTAG_NDG, self)
             except:
                 pass
         self.struct.attributes = self.sd.attributes()
         self.add_vs_to_main(allvs_ids)
-        #self.struct["DIMENSIONS"] = self.list_all_dims(self.ref_for_dims)
 
     def find_ref_v_for_attr(self):
         no_attr = [entr[2] for entr in self.vs.vdatainfo(0)]
@@ -141,12 +145,13 @@ class hdf4_object(object):
                 skipkeys.extend(to_extend)
                 newallrefs.append(ref)
         self.remove_fakedim(mydict)  # remove fakedims and empty dicts
-        self.allrefs = newallrefs
-        self.done = []
-        for ref in newallrefs:
-            name = Text(Representative(ref, pyhdf.HDF.HC.DFTAG_VG, self))
-            mydict[name], to_extend = self.get_nested_struct(ref)
-        self.remove_fakedim(mydict)
+        # I do not remember why I needed this
+        # self.allrefs = newallrefs
+        # self.done = []
+        #for ref in newallrefs:
+        #    name = Text(Representative(ref, pyhdf.HDF.HC.DFTAG_VG, self))
+        #    mydict[name], to_extend = self.get_nested_struct(ref)
+        # self.remove_fakedim(mydict)
         return mydict
 
     def detect_v_group_for_sd_var(self, vgrref, elements):
@@ -161,7 +166,6 @@ class hdf4_object(object):
             elif set(attrs_sd) == set(attrs_here):
                 return sd_var
         return False
-
 
     def remove_fakedim(self, mydict):
         if isinstance(mydict, dict):
@@ -215,7 +219,6 @@ class Representative():
 
     def __getitem__(self, key):
         return self.data[key]
-
 
     def getstuff(self):
         header = None
@@ -335,14 +338,13 @@ class Representative():
     def attributes(self):
         if self.tag == pyhdf.HDF.HC.DFTAG_VG:
             allattr = self.data.attrinfo()
-            return allattr
-        if self.tag == pyhdf.HDF.HC.DFTAG_NDG:
+            allattr = {key: allattr[key][2] for key in allattr}
+        elif self.tag == pyhdf.HDF.HC.DFTAG_NDG:
             allattr = self.data.attributes()
-            return allattr
-        if self.tag == pyhdf.HDF.HC.DFTAG_VH:
+        elif self.tag == pyhdf.HDF.HC.DFTAG_VH:
             try:
-                allatr = self.data.attribute
+                allattr = self.data.attribute
             except:
-                allatr = {}
-            return allatr
+                allattr = {}
+        return allattr
 
