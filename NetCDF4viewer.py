@@ -408,7 +408,7 @@ class App(QMainWindow):
             pass
         try:
             self.mfile = netCDF4.Dataset(m_file)
-        except OSError:
+        except (OSError, UnicodeError):
             self.mfile = hdf4_object(m_file)
         statusbar = QStatusBar()
         statusbar.showMessage(self.name)
