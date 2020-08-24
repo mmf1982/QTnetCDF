@@ -43,15 +43,10 @@ class Easyerrorbar(axs.Axes):
             # y and yerr are selected, but also not always, the main window crashes. Seems to be some memory issue
             x2 = numpy.array([[xc, xc, xc, xc, xc + eb, xc - eb, xc] for xc, eb in zip(x, xerr)]).flatten()
             y2 = numpy.array([[yc, yc + eb, yc - eb, yc, yc, yc, yc] for yc, eb in zip(y, yerr)]).flatten()
-            print(type(x2), x2)
-            print(type(y2), y2)
         else:
             x2 = numpy.copy(x)
             y2 = numpy.copy(y)
         super().plot(x2, y2,  **kwargs)
-
-
-
 
 
 class MplCanvas(FigureCanvasQTAgg):
@@ -308,7 +303,6 @@ class Fast3D(QMainWindow):
                 self.shape = mydata.shape
             except Exception as exc:
                 print(exc)
-            print(kwargs)
             self.myfigure = MplCanvas(parent=self, **kwargs)
             my_slider = DataChooser(self)
             self.update_plot(0, 0)
@@ -347,11 +341,22 @@ class Fast3D(QMainWindow):
             raise ValueError("dimensionality is too high")
         if hold_it:
             self.myfigure.image(newdata, self.myfigure.get_axis_values)
+            if is_log:
+                self.myfigure.im.set_norm(LogNorm(*self.myfigure.im.get_clim()))
         else:
-            if not is_log:
+            if is_log:
+                old_lims = self.myfigure.im.get_clim()
+                if (self.myfigure.im.get_array() == newdata).all():
+                    self.myfigure.im.set_norm(LogNorm(*old_lims))
+                else:
+                    self.myfigure.image(newdata)
+                    self.myfigure.im.set_norm(LogNorm(*self.myfigure.im.get_clim()))
+            else:
                 self.myfigure.image(newdata)
-        if is_log:
-            self.myfigure.im.set_norm(LogNorm(*self.myfigure.im.get_clim()))
+        #if is_log:
+        #    print(newdata.min(), newdata.max())
+        #    print(*self.myfigure.im.get_clim())
+
         try:
             self.myfigure.draw()
         except ValueError:
