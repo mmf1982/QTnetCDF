@@ -258,6 +258,8 @@ class MyQTableView(QTableView):
             self.master.mdata.yerr.set(self.currentData, " ".join([self.model().name, self.curridx]))
         elif event.text() == "e":
             self.master.mdata.xerr.set(self.currentData, " ".join([self.model().name, self.curridx]))
+        elif event.text() == "+":
+            print("adding up ", " ".join([self.model().name, self.curridx]), np.sum(self.currentData) )
         #elif event.text() == "m":
         #    self.master.mdata.mask.set(self.currentData, " ".join([self.model().name, self.curridx]))
 
