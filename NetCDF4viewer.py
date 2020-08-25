@@ -21,7 +21,7 @@ try:
     from .Converters import hdf4_object, Table
 except (ImportError, ModuleNotFoundError):
     from Converters import hdf4_object, Table
-from numpy import array, arange, squeeze
+from numpy import array, arange, squeeze, nansum
 
 
 class Pointer(QStandardItem):
@@ -259,7 +259,7 @@ class MyQTableView(QTableView):
         elif event.text() == "e":
             self.master.mdata.xerr.set(self.currentData, " ".join([self.model().name, self.curridx]))
         elif event.text() == "+":
-            print("adding up ", " ".join([self.model().name, self.curridx]), np.sum(self.currentData) )
+            print("adding up ", " ".join([self.model().name, self.curridx]), nansum(self.currentData) )
         #elif event.text() == "m":
         #    self.master.mdata.mask.set(self.currentData, " ".join([self.model().name, self.curridx]))
 
