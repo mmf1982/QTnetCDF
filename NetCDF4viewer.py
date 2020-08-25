@@ -223,7 +223,10 @@ class MyTable(QWidget):
         name = self.name
         if ndim == 3:
             name += " slice " + str(self.c_idx) +  " in dim " + str(self.c_dim)
-        header = self.all_data.header
+        try:
+            header = self.all_data.header
+        except:
+            header = None
         model = TableModel(data[:], name, header)
         self.table.setModel(model)
 
