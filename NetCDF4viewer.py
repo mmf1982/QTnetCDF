@@ -14,9 +14,9 @@ try:
 except (ImportError, ModuleNotFoundError):
     from Fastplot import Fast3D, Fast2D, Fast1D
 try:
-    from .Menues import FileMenu
+    from .Menues import FileMenu, HelpWindow
 except (ImportError, ModuleNotFoundError):
-    from Menues import FileMenu
+    from Menues import FileMenu, HelpWindow
 try:
     from .Converters import hdf4_object, Table
 except (ImportError, ModuleNotFoundError):
@@ -250,16 +250,24 @@ class MyQTableView(QTableView):
         self.vd.sectionClicked.connect(self.vheader_selected)
 
     def keyPressEvent(self, event):
-        if event.text() == "x":
-            self.master.mdata.x.set(self.currentData, " ".join([self.model().name, self.curridx]))
-        elif event.text() == "y":
-            self.master.mdata.y.set(self.currentData, " ".join([self.model().name, self.curridx]))
-        elif event.text() == "u":
-            self.master.mdata.yerr.set(self.currentData, " ".join([self.model().name, self.curridx]))
-        elif event.text() == "e":
-            self.master.mdata.xerr.set(self.currentData, " ".join([self.model().name, self.curridx]))
-        elif event.text() == "+":
-            print("adding up ", " ".join([self.model().name, self.curridx]), nansum(self.currentData) )
+        try:
+            if event.text() == "x":
+                self.master.mdata.x.set(self.currentData, " ".join([self.model().name, self.curridx]))
+            elif event.text() == "y":
+                self.master.mdata.y.set(self.currentData, " ".join([self.model().name, self.curridx]))
+            elif event.text() == "u":
+                self.master.mdata.yerr.set(self.currentData, " ".join([self.model().name, self.curridx]))
+            elif event.text() == "e":
+                self.master.mdata.xerr.set(self.currentData, " ".join([self.model().name, self.curridx]))
+            elif event.text() == "+":
+                print("adding up ", " ".join([self.model().name, self.curridx]), nansum(self.currentData) )
+        except TypeError:
+            help = HelpWindow(self, "You need to 'select' a row(s) or column(s) first.\n"
+                                    "When you 'release' you have to be ontop of the header as well\n"
+                                    "Whether or not you selected, will be written in the terminal.\n"
+                                    "It should say: 'selected row(s)/ column(s):    '. If it does not\n"
+                                    "Nothing was selected. Try again")
+
         #elif event.text() == "m":
         #    self.master.mdata.mask.set(self.currentData, " ".join([self.model().name, self.curridx]))
 
