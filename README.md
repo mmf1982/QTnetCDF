@@ -7,7 +7,7 @@ Download for example a h5/ hdf/ nc file from here: https://hdfeos.org/zoo/index_
 call as 
   python3.7 -m NetCDF4viewer whatever_is_your_test_filename.nc_or_hdf_or_h5_or_hdf4
   
-  In the file representation that opens, a click on the triangle infront of a group (or main file level), open the group.
+  In the file representation that opens, a click on the triangle infront of a group (or main file level), opens the group.
   The following keys are activated on the tree:
   * double click on variable: plot Supported are 1D, 2D and 3D variables.
   * "d" key is pressed on selected line, attribute information of that group or variable is prited.
@@ -23,14 +23,14 @@ call as
   
   ### 1D plotting
   
-  If a variable is 1D, a double click will automatically plot it over its index. However, x, y, xerr and yerr can also be set. Either as a 1D variable as described above, or in from the table view (after "s" on a 0, 1, 2 or 3D variable) on which the following keys are activated: 
+  If a variable is 1D, a double click will automatically plot it over its index. However, x, y, xerr and yerr can also be set. Either as a 1D variable as described above, or from the table view (after "s" on a 0, 1, 2 or 3D variable) on which the following keys are activated: 
   
   * "x" data set as x for line plot
   * "y" data set as y for line plot
   * "e" data set as error on x for line plot
   * "u" data set as error on y for line plot
   
-  In the table, multiple rows or columns can be selected for y. If so, yerr is ignored. If only x or only y is selected, that variable is plotted as a function of its index. 
+  In the table, multiple rows or columns can be selected for y or x (but not both). If so, yerr (or xerr) is ignored. If only x or only y is selected, that variable is plotted as a function of its index. 
   
   To remove any of x, y, xerr or yerr, click on it below the "hold" and "plot" buttons.
   Buttons:
@@ -58,9 +58,12 @@ call as
  ## Crashes
  
  Currently, the program is a bit debil, it crashes:
- * when a group is double clicked
- * when a group is marked and "s" is clicked
- * when anything else than the first column in a tree is selected and any of the active keys is pressed (or double clicked)
+ * currently no know crashes, please report and send the example file.
+
+ ## other functionality
+
+ * In table view, if a row(s) or column(s) is selected and "+" is pressed, the row or column is summed and the value printed in the terminal
+
 
  
  

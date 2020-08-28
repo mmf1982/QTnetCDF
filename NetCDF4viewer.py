@@ -119,6 +119,9 @@ class MyTable(QWidget):
             self.maxidxs = data.mdata[:].shape
         except (AttributeError, IndexError):
             self.maxidxs = 1
+        except TypeError:
+            HelpWindow(self, "You tried to open a group in table view. This is not possible. Open the group and view variables.")
+            return
         self.diminfo = None
         self.sliceinfo = None
         self.all_data = data.mdata
@@ -493,10 +496,18 @@ class App(QMainWindow):
             self.walk_down_hdf4(self.mfile.struct, self.model)
 
     def get_data(self, signal):
-        if self.model.itemFromIndex(signal).mdata.ndim < 4:
-            thisdata = self.model.itemFromIndex(signal).mdata
-        else:
-            print("dimensionality of data is too big. Not yet implemented.")
+        try:
+            if self.model.itemFromIndex(signal).mdata.ndim < 4:
+                thisdata = self.model.itemFromIndex(signal).mdata
+            else:
+                print("dimensionality of data is too big. Not yet implemented.")
+                return
+        except AttributeError:
+            HelpWindow(self, "you need to click the first column ('name'), \n"
+                             "not anything else in order to plot a variable or open a group")
+            return
+        except KeyError:
+            HelpWindow(self, "It seems you tried to plot a group (double click plots). To open the group, click on the triangle")
             return
         if thisdata.ndim == 3:
             temp = Fast3D(thisdata[:], parent=self, **self.config["Startingsize"]["3Dplot"], mname=thisdata.name)
