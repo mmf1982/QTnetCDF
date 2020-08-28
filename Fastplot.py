@@ -60,7 +60,7 @@ class MplCanvas(FigureCanvasQTAgg):
         self.cb = None
         self.mpl_connect('key_press_event', self.on_key_press)
         self.setFocusPolicy(Qt.StrongFocus)
-        self.parent = parent
+        self.mparent = parent
 
     def on_key_press(self, event):
         try:
@@ -151,7 +151,7 @@ class DataChooser(QWidget):
         buttons2.setLayout(layout5)
         layout4.addWidget(buttons2)
         self.setLayout(layout4)
-        self.parent = parent
+        self.mparent = parent
 
     def on_log(self):
         if self.is_log:
@@ -161,17 +161,17 @@ class DataChooser(QWidget):
             self.is_log = True
             self.log_button.setText("put lin")
         if self.is3d:
-            worked = self.parent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
+            worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
             if not worked:
                 self.is_log = False
                 self.log_button.setText("put log")
-                worked = self.parent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
+                worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
         else:
-            worked = self.parent.update_plot(self.is_log)
+            worked = self.mparent.update_plot(self.is_log)
             if not worked:
                 self.is_log = False
                 self.log_button.setText("put log")
-                worked = self.parent.update_plot(self.is_log)
+                worked = self.mparent.update_plot(self.is_log)
 
     def on_freeze(self):
         if self.frozen:
@@ -180,20 +180,20 @@ class DataChooser(QWidget):
         else:
             self.frozen = True
             self.freeze_button.setText("      release      ")
-        worked = self.parent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
+        worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
         if not worked:
             self.is_log = False
             self.log_button.setText("put log")
-            worked = self.parent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
+            worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
 
     def update_dim_label(self, value):
         self.active_dimension = value
         self.update_slice()
         self.dim_label.setText("dim = " + str(value))
-        self.slice_label.setText("slice = "+(str(self.active_index)) + "/ 0-" + str(self.parent.shape[value] - 1))
+        self.slice_label.setText("slice = "+(str(self.active_index)) + "/ 0-" + str(self.mparent.shape[value] - 1))
 
     def on_minus(self):
-        mymax = self.parent.shape[self.active_dimension]
+        mymax = self.mparent.shape[self.active_dimension]
         if self.active_index > -mymax:
             self.active_index -= 1
         else:
@@ -201,7 +201,7 @@ class DataChooser(QWidget):
         self.update_slice()
 
     def on_plus(self):
-        mymax = self.parent.shape[self.active_dimension]
+        mymax = self.mparent.shape[self.active_dimension]
         if self.active_index < mymax - 1:
             self.active_index += 1
         else:
@@ -209,12 +209,12 @@ class DataChooser(QWidget):
         self.update_slice()
 
     def update_slice(self):
-        worked = self.parent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
+        worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
         if not worked:
             self.is_log = False
             self.log_button.setText("put log")
-            worked = self.parent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
-        self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(self.parent.shape[self.active_dimension]-1))
+            worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
+        self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(self.mparent.shape[self.active_dimension]-1))
 
 
 class Fast2D(QMainWindow):
