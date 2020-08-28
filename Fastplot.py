@@ -190,6 +190,7 @@ class DataChooser(QWidget):
         self.active_dimension = value
         self.update_slice()
         self.dim_label.setText("dim = " + str(value))
+        self.slice_label.setText("slice = "+(str(self.active_index)) + "/ 0-" + str(self.parent.shape[value] - 1))
 
     def on_minus(self):
         mymax = self.parent.shape[self.active_dimension]
@@ -265,7 +266,11 @@ class Fast1D(QMainWindow):
         layout.addWidget(self.myfigure, stretch=1)
         mainwindow.setLayout(layout)
         self.setCentralWidget(mainwindow)
-        self.update_plot(mydata)
+        try:
+            self.update_plot(mydata)
+        except ValueError as valerr:
+            help = HelpWindow(self, "Probably you chose to plot x-y with different dimensions? Errormessage:"+
+                              str(valerr))
         self.myfigure.axes.set_xlabel(mydata.x.text().split(":")[1])
         center(self)
         self.show()

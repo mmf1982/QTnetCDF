@@ -193,6 +193,7 @@ class MyTable(QWidget):
         """
         self.c_dim = idx
         self.diminfo.setText("dim " + str(self.c_dim))
+        self.sliceinfo.setText("slice = " + (str(self.c_idx)) + "/ 0-" + str(self.maxidxs[self.c_dim] - 1))
         self.update_table()
 
     def update_table(self):
@@ -389,6 +390,8 @@ class App(QMainWindow):
         self.mdata = Data()
         self.holdon = False
         self.active1D = None
+        self.active1D = None
+        self.openplots = []
         here = os.path.dirname(os.path.abspath(__file__))
         with open(os.path.join(here,"config.yml")) as fid:
             self.config = yaml.load(fid, yaml.Loader)
@@ -409,12 +412,18 @@ class App(QMainWindow):
             self.mdata.x.set(arange((self.mdata.y.datavalue.shape[-1])), "index")
 
     def plotit(self):
-        self.fix1d_data()
-        # print(type(self.mdata.x.datavalue))
-        if self.holdon:
-            self.active1D.update_plot(self.mdata)
-        else:
-            self.active1D = Fast1D(self.mdata, **self.config["Startingsize"]["1Dplot"])
+        try:
+            self.fix1d_data()
+            # print(type(self.mdata.x.datavalue))
+            if self.holdon:
+                self.active1D.update_plot(self.mdata)
+            else:
+                temp = Fast1D(self.mdata, **self.config["Startingsize"]["1Dplot"])
+                self.openplots.append(temp)
+                self.active1D = temp
+        except AttributeError:
+            help = HelpWindow(self, "It seems you have not set anything to plot. You need to mark row(s) or column(s)\n"
+                                    "and then hit at least x or y to have some plottable data. Try again")
 
     def holdit(self):
         if self.holdon:
@@ -490,9 +499,11 @@ class App(QMainWindow):
             print("dimensionality of data is too big. Not yet implemented.")
             return
         if thisdata.ndim == 3:
-            Fast3D(thisdata[:], parent=self, **self.config["Startingsize"]["3Dplot"], mname=thisdata.name)
+            temp = Fast3D(thisdata[:], parent=self, **self.config["Startingsize"]["3Dplot"], mname=thisdata.name)
+            self.openplots.append(temp)
         elif thisdata.ndim == 2:
-            Fast2D(thisdata[:], **self.config["Startingsize"]["2Dplot"], mname=thisdata.name)
+            temp = Fast2D(thisdata[:], **self.config["Startingsize"]["2Dplot"], mname=thisdata.name)
+            self.openplots.append(temp)
         elif thisdata.ndim == 1:
             mdata = Data()
             mdata.x.set(arange(len(thisdata[:])), "index")
@@ -500,7 +511,9 @@ class App(QMainWindow):
             if self.holdon:
                 self.active1D.update_plot(mdata)
             else:
-                self.active1D = Fast1D(mdata, **self.config["Startingsize"]["1Dplot"], mname=thisdata.name)
+                temp = Fast1D(mdata, **self.config["Startingsize"]["1Dplot"], mname=thisdata.name)
+                self.active1D = temp
+                self.openplots.append(temp)
         else:
             print("nothing to plot, it seems to be a scalar")
 
