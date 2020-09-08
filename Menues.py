@@ -2,7 +2,7 @@ from PyQt5.QtGui import QIcon, QKeySequence, QFont
 from PyQt5.QtWidgets import QAction, QMenuBar, qApp, QTreeView, QFileSystemModel, QMainWindow, QLabel, QDesktopWidget
 import pathlib
 import netCDF4
-
+import os
 def center(window):
     """
     simple function put the window in the center of the screen
@@ -61,6 +61,9 @@ class FileMenu(QMenuBar):
         file_menu = self.addMenu('&File')
         file_menu.addAction(self.make_exit)
         file_menu.addAction(self.open_file)
+        next_menu = self.addMenu('&previous/ next')
+        next_menu.addAction(self.next)
+        next_menu.addAction(self.previous)
 
     def open_menu(self):
         w = Files(self.master)
@@ -81,3 +84,47 @@ class FileMenu(QMenuBar):
         exitact.setStatusTip('Exit application')
         exitact.triggered.connect(qApp.quit)
         return exitact
+
+    @property
+    def next(self):
+        nextact = QAction(QIcon('next.png'), '&next', self.master)
+        nextact.setShortcut(QKeySequence.FindNext)
+        nextact.setStatusTip('next file')
+        nextact.triggered.connect(self.next_file)
+        return nextact
+
+    @property
+    def previous(self):
+        nextact = QAction(QIcon('previous.png'), '&previous', self.master)
+        nextact.setShortcut(QKeySequence.FindPrevious)
+        nextact.setStatusTip('previous file')
+        nextact.triggered.connect(self.previous_file)
+        return nextact
+
+    def next_file(self):
+        newp = pathlib.Path().absolute()
+        allfiles = os.listdir()
+        allfiles.sort()
+        old_idx = allfiles.index(self.master.name)
+        if old_idx < len(allfiles) - 1:
+            new_idx = old_idx + 1
+        else:
+            new_idx = 0
+        newfile = allfiles[new_idx]
+        print(newfile)
+        print(newp)
+        self.master.load_file(os.path.join(newp, newfile))
+
+    def previous_file(self):
+        newp = pathlib.Path().absolute()
+        allfiles = os.listdir()
+        allfiles.sort()
+        old_idx = allfiles.index(self.master.name)
+        if old_idx > 0:
+            new_idx = old_idx - 1
+        else:
+            new_idx = len(allfiles)
+        newfile = allfiles[new_idx]
+        print(newfile)
+        print(newp)
+        self.master.load_file(os.path.join(newp, newfile))
