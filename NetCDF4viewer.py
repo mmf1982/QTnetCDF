@@ -1,11 +1,14 @@
 
 import os
+
+from PyQt5.QtCore import QEvent
+
 print(os.path.dirname(os.path.abspath(__file__)))
 import sys
 import netCDF4
 import yaml
 from PyQt5 import QtCore
-from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont
+from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QKeySequence, QKeyEvent
 from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWindow, QDockWidget,
                              QTableView, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
                              QSlider, QLabel, QStatusBar)
@@ -380,6 +383,14 @@ class MyQLabel(QLabel):
         self.datavalue = None
 
 
+class MyQButton(QPushButton):
+    def __init__(self, *args):
+        QPushButton.__init__(self, *args)
+        self.symbol = "."
+
+    def keyPressEvent(self, event):
+        self.symbol = event.text()
+
 class App(QMainWindow):
     """
     Main Application to hold the file display and detachable the table data
@@ -414,19 +425,25 @@ class App(QMainWindow):
         if self.mdata.x.datavalue is None:
             self.mdata.x.set(arange((self.mdata.y.datavalue.shape[-1])), "index")
 
-    def plotit(self):
+    def plotit(self, symbol=False):
         try:
             self.fix1d_data()
             # print(type(self.mdata.x.datavalue))
             if self.holdon:
-                self.active1D.update_plot(self.mdata)
+                self.active1D.update_plot(self.mdata, symbol)
             else:
-                temp = Fast1D(self.mdata, **self.config["Startingsize"]["1Dplot"])
+                temp = Fast1D(self.mdata, symbol, **self.config["Startingsize"]["1Dplot"])
                 self.openplots.append(temp)
                 self.active1D = temp
         except AttributeError:
             help = HelpWindow(self, "It seems you have not set anything to plot. You need to mark row(s) or column(s)\n"
                                     "and then hit at least x or y to have some plottable data. Try again")
+
+    def plotitsymbol(self):
+        if self.plotsymbol.symbol in ["o","x","<",">","*",".","^","v", "1", "2", "3", "p", "h", "H", "D", "+"]:
+            self.plotit(self.plotsymbol.symbol)
+        else:
+            HelpWindow(self, "try a different symbol, any of: o x < > * . ^ v 1 2 3 p h H D + ")
 
     def holdit(self):
         if self.holdon:
@@ -440,11 +457,15 @@ class App(QMainWindow):
         plotarea = QWidget()
         plotaeralayout = QHBoxLayout()
         self.holdbutton = QPushButton("hold")
-        plotbutton = QPushButton("plot")
+        plotbutton = QPushButton("&plot line")
+        plotbutton.setShortcut(QKeySequence.Print)
+        self.plotsymbol = MyQButton("plot symbol")
         self.holdbutton.clicked.connect(self.holdit)
         plotbutton.clicked.connect(self.plotit)
+        self.plotsymbol.clicked.connect(self.plotitsymbol)
         plotaeralayout.addWidget(self.holdbutton)
         plotaeralayout.addWidget(plotbutton)
+        plotaeralayout.addWidget(self.plotsymbol)
         plotarea.setLayout(plotaeralayout)
         return plotarea
 

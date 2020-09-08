@@ -253,7 +253,7 @@ class Fast2D(QMainWindow):
 
 
 class Fast1D(QMainWindow):
-    def __init__(self, mydata, mname=None, **kwargs):
+    def __init__(self, mydata, symbol=False, mname=None, **kwargs):
         super().__init__()
         if mname is None:
             mname = '1D Viewer'
@@ -267,7 +267,7 @@ class Fast1D(QMainWindow):
         mainwindow.setLayout(layout)
         self.setCentralWidget(mainwindow)
         try:
-            self.update_plot(mydata)
+            self.update_plot(mydata, symbol)
         except ValueError as valerr:
             help = HelpWindow(self, "Probably you chose to plot x-y with different dimensions? Errormessage:"+
                               str(valerr))
@@ -275,24 +275,34 @@ class Fast1D(QMainWindow):
         center(self)
         self.show()
 
-    def update_plot(self, mydata):
+    def update_plot(self, mydata, symbol=False):
+        print(symbol)
         if mydata.y.datavalue.ndim > 1:
             alllabel = mydata.y.text().split(":")[1].split("s.")[-1].split(" - ")
             labs = numpy.arange(int(alllabel[0]), int(alllabel[1])+1)
             for row, lab in zip(mydata.y.datavalue, labs):
                 label = (mydata.x.text().split(":")[1] + " vs " + mydata.y.text().split(":")[1].split("s.")[0] +
                          " " + str(lab))
-                self.myfigure.axes.plot(mydata.x.datavalue, row, label=label)
+                if symbol:
+                    self.myfigure.axes.plot(mydata.x.datavalue, row, marker=symbol, lw=0, label=label)
+                else:
+                    self.myfigure.axes.plot(mydata.x.datavalue, row, label=label)
         elif mydata.x.datavalue.ndim > 1:
             alllabel = mydata.x.text().split(":")[1].split("s.")[-1].split(" - ")
             labs = numpy.arange(int(alllabel[0]), int(alllabel[1])+1)
             for row, lab in zip(mydata.x.datavalue, labs):
                 label = (mydata.x.text().split(":")[1].split("s.")[0] + " " + str(lab) + " vs " +
                          mydata.y.text().split(":")[1])
-                self.myfigure.axes.plot(row, mydata.y.datavalue, label=label)
+                if symbol:
+                    self.myfigure.axes.plot(row, mydata.y.datavalue, marker=symbol, lw=0, label=label)
+                else:
+                    self.myfigure.axes.plot(row, mydata.y.datavalue, label=label)
         else:
             label = mydata.x.text().split(":")[1] + " vs " + mydata.y.text().split(":")[1]
-            self.myfigure.axes.errorbar(mydata.x.datavalue, mydata.y.datavalue, yerr=mydata.yerr.datavalue,
+            if symbol:
+                self.myfigure.axes.plot(mydata.x.datavalue, mydata.y.datavalue,marker=symbol, lw=0, label=label)
+            else:
+                self.myfigure.axes.errorbar(mydata.x.datavalue, mydata.y.datavalue, yerr=mydata.yerr.datavalue,
                                         xerr=mydata.xerr.datavalue, label=label)
         try:
             ai.add_interactivity(fig=self.myfigure.fig, ax=self.myfigure.axes, nodrag=False, legsize=7)
