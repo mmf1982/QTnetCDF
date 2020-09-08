@@ -72,7 +72,7 @@ class MyQTreeView(QTreeView):
                         mdata = Table(attributes[attr], None, attr)
                         interm_pointer = Pointer(mdata, attr)
                         self.open_table(interm_pointer)
-                    elif isinstance(attributes[attr], str) and len(attributes[attr])>100:
+                    elif isinstance(attributes[attr], str) and len(attributes[attr])>500:
                         print(attr, ":      is currently not displayed. It is a very long string, "
                                     "likely describing the structure.")
                     else:
