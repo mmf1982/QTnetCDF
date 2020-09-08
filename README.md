@@ -35,9 +35,9 @@ call as
   To remove any of x, y, xerr or yerr, click on its name below the "hold" and "plot" buttons.
   Buttons:
   
-  "hold" --> "release" to keep plotting in same window or to open a new. If there is no current window, "plot" has no effect if hold button shows "release". 
-  "plot line" to plot current selection of x, y, xerr and yerr
-  "plot symbol" to plot current selection of x  and y with symbols, no line. If no key is pressed, the symbol is ".". Supported keys: .o+xv^<>123hHdp 
+  * "hold" --> "release" to keep plotting in same window or to open a new. If there is no current window, "plot" has no effect if hold button shows "release". 
+  * "plot line" to plot current selection of x, y, xerr and yerr
+  * "plot symbol" to plot current selection of x  and y with symbols, no line. If no key is pressed, the symbol is ".". Supported keys: .o+xv^<>123hHdp 
  
  The plots support the usual matplotlib shortcuts (l,k,L,  g,G,...) and the QT backend possibility to change the axes. However, if the line style is changed, there are currently some inconsistences with the legend (if add_interactivity is used in conjunction). 
  
