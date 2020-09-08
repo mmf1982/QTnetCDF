@@ -32,20 +32,21 @@ call as
   
   In the table, multiple rows or columns can be selected for y or x (but not both). If so, yerr (or xerr) is ignored. If only x or only y is selected, that variable is plotted as a function of its index. 
   
-  To remove any of x, y, xerr or yerr, click on it below the "hold" and "plot" buttons.
+  To remove any of x, y, xerr or yerr, click on its name below the "hold" and "plot" buttons.
   Buttons:
   
-  "plot" to plot current selection of x, y, xerr and yerr
   "hold" --> "release" to keep plotting in same window or to open a new. If there is no current window, "plot" has no effect if hold button shows "release". 
+  "plot line" to plot current selection of x, y, xerr and yerr
+  "plot symbol" to plot current selection of x  and y with symbols, no line. If no key is pressed, the symbol is ".". Supported keys: .o+xv^<>123hHdp 
  
- The plots support the usual matplotlib shortcuts (l,k,L,  g,G,...) and the QT backend possibility to change the axes
+ The plots support the usual matplotlib shortcuts (l,k,L,  g,G,...) and the QT backend possibility to change the axes. However, if the line style is changed, there are currently some inconsistences with the legend (if add_interactivity is used in conjunction). 
  
- Line plots also have some of the functionality from add_interactivity, namely:
+ Line plots also have some of the functionality from add_interactivity (if it is installed), namely:
  
  * left click a line to toggle
  * right click a line to bring it to front
- * left click while arrow up to make line thicker, arrow down to make it thinner
- * left click while button left make legend text smaller, right click to make it bigger
+ * left click a line while arrow up to make line thicker, arrow down to make it thinner
+ * left click legend while arrow left: make legend text smaller, right arrow to make it bigger
  
  ### 2D and 3D plotting
  
