@@ -1,12 +1,9 @@
 
 import os
-
-from PyQt5.QtCore import QEvent
-
-print(os.path.dirname(os.path.abspath(__file__)))
 import sys
 import netCDF4
 import yaml
+import pyhdf.error
 from PyQt5 import QtCore
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QKeySequence, QKeyEvent
 from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWindow, QDockWidget,
@@ -56,38 +53,45 @@ class MyQTreeView(QTreeView):
     def keyPressEvent(self, event):
         idx = self.currentIndex()
         current_pointer = self.model().itemFromIndex(idx)
-        if event.text() == "d":
-                if self.master.filetype == "netcdf4":
-                    print(current_pointer.mdata)
-                    attributes = {key: current_pointer.mdata.getncattr(key) for key in
-                                  current_pointer.mdata.ncattrs()}
-                else:
-                    try:
-                        attributes = current_pointer.name.data.attributes
-                    except AttributeError:
-                        attributes = current_pointer.mdata.attributes
-                for attr in attributes:
-                    if hasattr(attributes[attr], '__len__') and (len(attributes[attr])>10)\
-                            and not isinstance(attributes[attr], str):
-                        mdata = Table(attributes[attr], None, attr)
-                        interm_pointer = Pointer(mdata, attr)
-                        self.open_table(interm_pointer)
-                    elif isinstance(attributes[attr], str) and len(attributes[attr])>500:
-                        print(attr, ":      is currently not displayed. It is a very long string, "
-                                    "likely describing the structure.")
+        try:
+            if event.text() == "d":
+                    if self.master.filetype == "netcdf4":
+                        attributes = {key: current_pointer.mdata.getncattr(key) for key in
+                                      current_pointer.mdata.ncattrs()}
                     else:
-                        print(attr, ": ", attributes[attr])
-        elif event.text() == "s":
-            # open tableview
-            self.open_table(current_pointer)
-        elif event.text() == "x":
-            self.master.mdata.x.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
-        elif event.text() == "y":
-            self.master.mdata.y.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
-        elif event.text() == "u":
-            self.master.mdata.yerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
-        elif event.text() == "e":
-            self.master.mdata.xerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
+                        try:
+                            attributes = current_pointer.name.data.attributes
+                        except AttributeError:
+                            attributes = current_pointer.mdata.attributes
+                    for attr in attributes:
+                        if hasattr(attributes[attr], '__len__') and (len(attributes[attr])>10)\
+                                and not isinstance(attributes[attr], str):
+                            mdata = Table(attributes[attr], None, attr)
+                            interm_pointer = Pointer(mdata, attr)
+                            self.open_table(interm_pointer)
+                        elif isinstance(attributes[attr], str) and len(attributes[attr])>500:
+                            print(attr, ":      is currently not displayed. It is a very long string, "
+                                        "likely describing the structure.")
+                        else:
+                            print(attr, ": ", attributes[attr])
+            elif event.text() == "s":
+                # open tableview
+                self.open_table(current_pointer)
+            elif event.text() == "x":
+                self.master.mdata.x.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
+            elif event.text() == "y":
+                self.master.mdata.y.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
+            elif event.text() == "u":
+                self.master.mdata.yerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
+            elif event.text() == "e":
+                self.master.mdata.xerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
+        except TypeError:
+            HelpWindow(self.master, "likely you clicked a group and pressed x, y, u or e. \n"
+                                    "On groups, only d works to show details.")
+        except AttributeError:
+            HelpWindow(self.master, "something went wrong. Possibly you did not click in the first column of a variable\n"
+                                    " when clicking x,y,u,e or d. You have to be in the 'name' column when clicking.")
+
         #elif event.text() == "m":
         #    self.master.mdata.mask.set(current_pointer.mdata[:], current_pointer.mdata.name)
 
@@ -400,6 +404,7 @@ class App(QMainWindow):
         self.mfile = None
         self.model = None
         self.name = name
+        self.complete_name = this_file
         self.view = None
         self.mdata = Data()
         self.holdon = False
@@ -428,7 +433,6 @@ class App(QMainWindow):
     def plotit(self, symbol=False):
         try:
             self.fix1d_data()
-            # print(type(self.mdata.x.datavalue))
             if self.holdon:
                 self.active1D.update_plot(self.mdata, symbol)
             else:
@@ -488,15 +492,17 @@ class App(QMainWindow):
         # self.view.header().setResizeMode(QHeaderView.ResizeToContents)
         self.view.doubleClicked.connect(self.get_data)
         self.view.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.model.setHorizontalHeaderLabels(self.config["Headers"].keys())
+        self.model.setHorizontalHeaderLabels(self.config["Headers"]["Table"].keys())
         self.view.setModel(self.model)
         self.view.setUniformRowHeights(True)
-        for idx, key in enumerate(self.config["Headers"]):
-            width = self.config["Headers"][key]
+        for idx, key in enumerate(self.config["Headers"]["Table"]):
+            width = self.config["Headers"]["Table"][key]
             self.view.setColumnWidth(idx, width)
 
     def load_file(self, m_file):
         self.name = os.path.basename(m_file)
+        self.complete_name = m_file
+        print("loading file: ", m_file)
         try:
             self.mfile.close()
         except AttributeError:
@@ -505,8 +511,12 @@ class App(QMainWindow):
             self.mfile = netCDF4.Dataset(m_file)
             self.filetype = "netcdf4"
         except (OSError, UnicodeError):
-            self.mfile = hdf4_object(m_file)
-            self.filetype = "hdf4"
+            try:
+                self.mfile = hdf4_object(m_file)
+                self.filetype = "hdf4"
+            except pyhdf.error.HDF4Error:
+                HelpWindow(self, "This seems not to be a valid nc, hdf4 or hdf5 file: " + str(m_file))
+                return
         statusbar = QStatusBar()
         statusbar.showMessage(self.name)
         self.setStatusBar(statusbar)
@@ -547,7 +557,7 @@ class App(QMainWindow):
                 self.active1D = temp
                 self.openplots.append(temp)
         else:
-            print("nothing to plot, it seems to be a scalar")
+            HelpWindow(self, "nothing to plot, it seems to be a scalar")
 
     def walk_down_netcdf(self, currentlevel, currentitemlevel):
         if isinstance(currentitemlevel, str):

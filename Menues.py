@@ -1,3 +1,4 @@
+from PyQt5 import QtCore
 from PyQt5.QtGui import QIcon, QKeySequence, QFont
 from PyQt5.QtWidgets import QAction, QMenuBar, qApp, QTreeView, QFileSystemModel, QMainWindow, QLabel, QDesktopWidget
 import pathlib
@@ -15,6 +16,16 @@ def center(window):
     qr.moveCenter(cp)  # move the center of the geometry (not the object itself) to center of screen
     window.move(qr.topLeft())  # move the object itself to the top-left corner of that geometry
 
+class MyQFileSystemModel(QFileSystemModel):
+    def __init__(self):
+        super(MyQFileSystemModel, self).__init__()
+    def data(self, QModelIndex, role=None):  # real signature unknown; restored from __doc__
+        if (role == QtCore.Qt.TextAlignmentRole):
+            return QFileSystemModel.data(self, QModelIndex, role=QtCore.Qt.AlignLeft)
+        else:
+            return QFileSystemModel.data(self, QModelIndex, role=role)
+
+
 class HelpWindow(QMainWindow):
     def __init__(self, master, mytext):
         super().__init__(master)
@@ -31,8 +42,8 @@ class Files(QMainWindow):
         super().__init__(master)
         self.master = master
         self.treeview = QTreeView()
-        self.model = QFileSystemModel()
-        newp = pathlib.Path().absolute()
+        self.model = MyQFileSystemModel()
+        newp = pathlib.Path(self.master.complete_name).absolute()
         allps = [str(newp)]
         while str(newp.parent) != "/":
             allps.append(str(newp.parent))
@@ -43,15 +54,24 @@ class Files(QMainWindow):
         for idx in allps:
             self.treeview.expand(self.model.index(idx))
         self.treeview.setCurrentIndex(self.model.index(allps[0]))
+        self.treeview.setAlternatingRowColors(True)
+        self.treeview.setAutoScroll(True)
         self.treeview.doubleClicked.connect(self.open_file)
         self.setCentralWidget(self.treeview)
+        self.resize(self.master.config["Startingsize"]["Filemenu"]["width"],
+                            self.master.config["Startingsize"]["Filemenu"]["height"])
+        self.treeview.setUniformRowHeights(True)
+        for idx, key in enumerate(self.master.config["Headers"]["Filemenu"]):
+            width = self.master.config["Headers"]["Filemenu"][key]
+            self.treeview.setColumnWidth(idx, width)
+        self.treeview.setAlternatingRowColors(True)
+        self.treeview.scrollTo(self.model.index(allps[0]))
         self.show()
 
     def open_file(self, signal):
         file_path = self.model.filePath(signal)
         self.master.load_file(file_path)
         self.close()
-        print(file_path)
 
 
 class FileMenu(QMenuBar):
@@ -67,7 +87,6 @@ class FileMenu(QMenuBar):
 
     def open_menu(self):
         w = Files(self.master)
-        print("showing anything?")
 
     @property
     def open_file(self):
@@ -102,8 +121,8 @@ class FileMenu(QMenuBar):
         return nextact
 
     def next_file(self):
-        newp = pathlib.Path().absolute()
-        allfiles = os.listdir()
+        newp = os.path.split(self.master.complete_name)[0]
+        allfiles = os.listdir(newp)
         allfiles.sort()
         old_idx = allfiles.index(self.master.name)
         if old_idx < len(allfiles) - 1:
@@ -111,20 +130,16 @@ class FileMenu(QMenuBar):
         else:
             new_idx = 0
         newfile = allfiles[new_idx]
-        print(newfile)
-        print(newp)
         self.master.load_file(os.path.join(newp, newfile))
 
     def previous_file(self):
-        newp = pathlib.Path().absolute()
-        allfiles = os.listdir()
+        newp = os.path.split(self.master.complete_name)[0]
+        allfiles = os.listdir(newp)
         allfiles.sort()
         old_idx = allfiles.index(self.master.name)
         if old_idx > 0:
             new_idx = old_idx - 1
         else:
-            new_idx = len(allfiles)
+            new_idx = len(allfiles)-1
         newfile = allfiles[new_idx]
-        print(newfile)
-        print(newp)
         self.master.load_file(os.path.join(newp, newfile))

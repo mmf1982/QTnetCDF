@@ -1,11 +1,17 @@
 Headers:  # in pixels
-  name: 400
-  ndim: 30
-  shape: 100
-  dimensions: 200
-  units: 100
-  dtype: 100
-  attributes: 400
+  Table:
+    name: 400
+    ndim: 30
+    shape: 100
+    dimensions: 200
+    units: 100
+    dtype: 100
+    attributes: 400
+  Filemenu:
+    Name: 1000
+    Size: 130
+    Type: 130
+    Date Modified: 140
 
 Startingsize:
   Mainwindow:  # in pixels,
@@ -23,3 +29,6 @@ Startingsize:
     width: 4
     height: 4
     dpi: 150
+  Filemenu:
+    width: 1400
+    height: 600
