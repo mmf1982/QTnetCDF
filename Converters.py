@@ -131,6 +131,8 @@ class hdf4_object(object):
             except pyhdf.error.HDF4Error:
                 pass
             return ref, refs
+        except RecursionError:
+            return ref, refs
 
     def get_struct(self):
         _, allrefs = self.all_v_ids(-1, [])

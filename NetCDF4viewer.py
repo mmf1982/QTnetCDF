@@ -515,7 +515,8 @@ class App(QMainWindow):
                 self.mfile = hdf4_object(m_file)
                 self.filetype = "hdf4"
             except pyhdf.error.HDF4Error:
-                HelpWindow(self, "This seems not to be a valid nc, hdf4 or hdf5 file: " + str(m_file))
+                HelpWindow(self, "This seems not to be a valid nc, hdf4 or hdf5 file: " + str(m_file) +"\n"
+                           "If you believe it is, please report back")
                 return
         statusbar = QStatusBar()
         statusbar.showMessage(self.name)
