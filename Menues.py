@@ -122,6 +122,8 @@ class FileMenu(QMenuBar):
 
     def next_file(self):
         newp = os.path.split(self.master.complete_name)[0]
+        if len(newp) == 0:
+            newp = "."
         allfiles = os.listdir(newp)
         allfiles.sort()
         old_idx = allfiles.index(self.master.name)
@@ -134,6 +136,8 @@ class FileMenu(QMenuBar):
 
     def previous_file(self):
         newp = os.path.split(self.master.complete_name)[0]
+        if len(newp) == 0:
+            newp = "."
         allfiles = os.listdir(newp)
         allfiles.sort()
         old_idx = allfiles.index(self.master.name)
