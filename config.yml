@@ -1,6 +1,6 @@
 Headers:  # in pixels
   Table:
-    name: 400
+    name: 900
     ndim: 30
     shape: 100
     dimensions: 200
@@ -15,7 +15,7 @@ Headers:  # in pixels
 
 Startingsize:
   Mainwindow:  # in pixels,
-    width: 1400  # should be equal or larger than sum of Headers
+    width: 1800  # should be equal or larger than sum of Headers
     height: 400
   2Dplot:  # in inches
     width: 5

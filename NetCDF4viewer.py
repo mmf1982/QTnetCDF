@@ -399,8 +399,9 @@ class App(QMainWindow):
     """
     Main Application to hold the file display and detachable the table data
     """
-    def __init__(self, this_file, name):
+    def __init__(self, this_file):
         super(App, self).__init__()
+        name = os.path.basename(this_file)
         self.mfile = None
         self.model = None
         self.name = name
@@ -459,7 +460,7 @@ class App(QMainWindow):
 
     def plotarea_layout(self):
         plotarea = QWidget()
-        plotaeralayout = QHBoxLayout()
+        self.plotaeralayout = QHBoxLayout()
         self.holdbutton = QPushButton("hold")
         plotbutton = QPushButton("&plot line")
         plotbutton.setShortcut(QKeySequence.Print)
@@ -467,10 +468,10 @@ class App(QMainWindow):
         self.holdbutton.clicked.connect(self.holdit)
         plotbutton.clicked.connect(self.plotit)
         self.plotsymbol.clicked.connect(self.plotitsymbol)
-        plotaeralayout.addWidget(self.holdbutton)
-        plotaeralayout.addWidget(plotbutton)
-        plotaeralayout.addWidget(self.plotsymbol)
-        plotarea.setLayout(plotaeralayout)
+        self.plotaeralayout.addWidget(self.holdbutton)
+        self.plotaeralayout.addWidget(plotbutton)
+        self.plotaeralayout.addWidget(self.plotsymbol)
+        plotarea.setLayout(self.plotaeralayout)
         return plotarea
 
     def make_design(self):
@@ -658,13 +659,41 @@ class App(QMainWindow):
         print("Close Viewer")
 
 def main(myfile):
-    name = os.path.basename(myfile)
+    name = os.path.basename(myfile[0])
     my_graphics = QApplication([name])
-    myapp = App(myfile, name)
-    myapp.show()
+    myapp = App2(myfile)
     sys.exit(my_graphics.exec_())
+
+class App2(QWidget):
+    def __init__(self, files):
+        super(App2, self).__init__()
+        self.windows = []
+        mainwidget = QWidget()
+        layout = QVBoxLayout()
+        plus = QPushButton("broadcast plot")
+        plus.clicked.connect(self.broadcast)
+        layout.addWidget(plus)
+        for file in files:
+            self.windows.append(App(file))
+
+        if len(files) > 1:
+            self.setLayout(layout)
+            self.windows[0].plotaeralayout.addWidget(self)
+        for ii in range(len(files)):
+            self.windows[ii].show()
+            #self.show()
+
+    def broadcast(self):
+        if self.windows[0].active1D is not None:
+            for ii in range(1,len(self.windows)):
+                self.windows[ii].active1D = self.windows[0].active1D
+        else:
+            print("window 1 has no open plot")
 
 
 if __name__ == '__main__':
-    mfile = sys.argv[1]
-    main(mfile)
+    print("here")
+    mfile = sys.argv[1:]
+    print(len(mfile))
+    print(mfile[0])
+    # main(mfile)
