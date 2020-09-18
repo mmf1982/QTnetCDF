@@ -695,7 +695,6 @@ class App2(QWidget):
             self.windows[0].plotaeralayout.addWidget(self)
         for ii in range(len(files)):
             self.windows[ii].show()
-            #self.show()
 
     def broadcast(self):
         if self.windows[0].active1D is not None:
@@ -706,8 +705,5 @@ class App2(QWidget):
 
 
 if __name__ == '__main__':
-    print("here")
     mfile = sys.argv[1:]
-    print(len(mfile))
-    print(mfile[0])
-    # main(mfile)
+    main(mfile)
