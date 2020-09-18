@@ -47,6 +47,7 @@ class MyQTreeView(QTreeView):
     """
     def __init__(self, master, *args, **kwargs):
         self.master = master
+        self.tab = None
         super().__init__(*args, **kwargs)
 
 
@@ -63,20 +64,31 @@ class MyQTreeView(QTreeView):
                             attributes = current_pointer.name.data.attributes
                         except AttributeError:
                             attributes = current_pointer.mdata.attributes
+                    wids = []
                     for attr in attributes:
                         if hasattr(attributes[attr], '__len__') and (len(attributes[attr])>10)\
                                 and not isinstance(attributes[attr], str):
                             mdata = Table(attributes[attr], None, attr)
                             interm_pointer = Pointer(mdata, attr)
-                            self.open_table(interm_pointer)
+                            wids.append(self.open_table(interm_pointer))
                         elif isinstance(attributes[attr], str) and len(attributes[attr])>500:
                             print(attr, ":      is currently not displayed. It is a very long string, "
                                         "likely describing the structure.")
                         else:
                             print(attr, ": ", attributes[attr])
+                    try:
+                        one = wids.pop()
+                        while len(wids)>=1:
+                            two = wids.pop()
+                            self.master.tabifyDockWidget(one, two)
+                    except Exception as exc:
+                        print(exc)
             elif event.text() == "s":
                 # open tableview
-                self.open_table(current_pointer)
+                last_tab = self.tab
+                self.tab = self.open_table(current_pointer)
+                if last_tab is not None:
+                    self.master.tabifyDockWidget(last_tab, self.tab)
             elif event.text() == "x":
                 self.master.mdata.x.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
             elif event.text() == "y":
@@ -100,7 +112,7 @@ class MyQTreeView(QTreeView):
         table_widget = MyTable(self.master, current_p)
         dock_widget.setWidget(table_widget)
         self.master.addDockWidget(QtCore.Qt.BottomDockWidgetArea, dock_widget, QtCore.Qt.Vertical)
-        return
+        return dock_widget
 
 
 class MyTable(QWidget):
@@ -246,7 +258,7 @@ class MyQTableView(QTableView):
     """
     Display of the 2D or 1D data selected. Header functionality defined here, also for data choosing x,y, u, e.
 
-    TODO: as for main variables, maybe add functionality of double click to plot data directly?
+    TODO: as for main variables, maybe add functionality of double click to plot data directly? Difficult....
     """
     def __init__(self, master):
         super(MyQTableView, self).__init__()
@@ -412,12 +424,14 @@ class App(QMainWindow):
         self.active1D = None
         self.active1D = None
         self.openplots = []
+        self.plotaeralayout = None
         here = os.path.dirname(os.path.abspath(__file__))
         with open(os.path.join(here,"config.yml")) as fid:
             self.config = yaml.load(fid, yaml.Loader)
         self.holdbutton = None
         self.filetype = None
         self.load_file(this_file)
+        print(self.plotaeralayout)
         self.setMenuBar(FileMenu(self))
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.resize(self.config["Startingsize"]["Mainwindow"]["width"],
