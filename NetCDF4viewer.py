@@ -9,6 +9,7 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QKeySequence, 
 from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWindow, QDockWidget,
                              QTableView, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
                              QSlider, QLabel, QStatusBar)
+import numpy as np
 try:
     from .Fastplot import Fast3D, Fast2D, Fast1D
 except (ImportError, ModuleNotFoundError):
@@ -419,6 +420,7 @@ class App(QMainWindow):
         self.name = name
         self.complete_name = this_file
         self.view = None
+        self.plot_buttons = None
         self.mdata = Data()
         self.holdon = False
         self.active1D = None
@@ -431,6 +433,7 @@ class App(QMainWindow):
         self.holdbutton = None
         self.filetype = None
         self.load_file(this_file)
+
         print(self.plotaeralayout)
         self.setMenuBar(FileMenu(self))
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -451,7 +454,7 @@ class App(QMainWindow):
             if self.holdon:
                 self.active1D.update_plot(self.mdata, symbol)
             else:
-                temp = Fast1D(self.mdata, symbol, **self.config["Startingsize"]["1Dplot"])
+                temp = Fast1D(self.mdata, symbol, **self.config["Startingsize"]["1Dplot"], filename=self.name)
                 self.openplots.append(temp)
                 self.active1D = temp
         except AttributeError:
@@ -495,7 +498,9 @@ class App(QMainWindow):
         layout = QVBoxLayout()
         self.view = MyQTreeView(self)
         layout.addWidget(self.view)
-        layout.addWidget(self.plotarea_layout())
+        if self.plot_buttons is None:
+            self.plot_buttons = self.plotarea_layout()
+        layout.addWidget(self.plot_buttons)
         showtext = QWidget()
         showtext_layout = QVBoxLayout()
         for entr in self.mdata.__dict__.keys():
@@ -544,7 +549,8 @@ class App(QMainWindow):
 
     def get_data(self, signal):
         try:
-            if self.model.itemFromIndex(signal).mdata.ndim < 4:
+            mydata = np.squeeze(self.model.itemFromIndex(signal).mdata[:])
+            if mydata.ndim < 4:
                 thisdata = self.model.itemFromIndex(signal).mdata
             else:
                 print("dimensionality of data is too big. Not yet implemented.")
@@ -556,23 +562,28 @@ class App(QMainWindow):
         except KeyError:
             HelpWindow(self, "It seems you tried to plot a group (double click plots). To open the group, click on the triangle")
             return
-        if thisdata.ndim == 3:
-            temp = Fast3D(thisdata[:], parent=self, **self.config["Startingsize"]["3Dplot"], mname=thisdata.name)
+        if mydata.ndim == 3:
+            temp = Fast3D(
+                mydata, parent=self, **self.config["Startingsize"]["3Dplot"],
+                mname=thisdata.name, filename=self.name)
             self.openplots.append(temp)
-        elif thisdata.ndim == 2:
-            temp = Fast2D(thisdata[:], **self.config["Startingsize"]["2Dplot"], mname=thisdata.name)
+        elif mydata.ndim == 2:
+            temp = Fast2D(
+                mydata, **self.config["Startingsize"]["2Dplot"], mname=thisdata.name, filename=self.name)
             self.openplots.append(temp)
-        elif thisdata.ndim == 1:
+        elif mydata.ndim == 1:
             mdata = Data()
-            mdata.x.set(arange(len(thisdata[:])), "index")
-            mdata.y.set(thisdata[:], thisdata.name)
+            mdata.x.set(arange(len(mydata)), "index")
+            mdata.y.set(mydata, thisdata.name)
             if self.holdon:
                 self.active1D.update_plot(mdata)
             else:
-                temp = Fast1D(mdata, **self.config["Startingsize"]["1Dplot"], mname=thisdata.name)
+                temp = Fast1D(
+                    mdata, **self.config["Startingsize"]["1Dplot"], mname=thisdata.name, filename=self.name)
                 self.active1D = temp
                 self.openplots.append(temp)
         else:
+            print(thisdata.ndim)
             HelpWindow(self, "nothing to plot, it seems to be a scalar")
 
     def walk_down_netcdf(self, currentlevel, currentitemlevel):

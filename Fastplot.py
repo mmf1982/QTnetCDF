@@ -3,7 +3,7 @@ import numpy
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QApplication, QLabel, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QMessageBox,
-                             QDesktopWidget, QMainWindow, qApp, QSlider)
+                             QMainWindow, qApp, QSlider, QStatusBar)
 try:
     from . import add_interactivity as ai
 except (ModuleNotFoundError, ImportError):
@@ -80,8 +80,12 @@ class MplCanvas(FigureCanvasQTAgg):
             self.cb.remove()
         except AttributeError:
             pass
-
-        self.im = self.axes.imshow(mdata, cmap="jet")
+        try:
+            self.im = self.axes.imshow(mdata, cmap="jet")
+        except TypeError:
+            HelpWindow(self, "Likely you tried to make an image of text data. \n"
+                       "Maybe this is a table and not a matrix? Check with 's'.")
+            return
         if limits is not None:
             self.im.axes.set_xlim(limits["xlim"])
             self.im.axes.set_ylim(limits["ylim"])
@@ -218,7 +222,7 @@ class DataChooser(QWidget):
 
 
 class Fast2D(QMainWindow):
-    def __init__(self, mydata, mname=None, **kwargs):
+    def __init__(self, mydata, mname=None, filename=None, **kwargs):
         super().__init__()
         if mname is None:
             mname = '2D Viewer'
@@ -235,6 +239,10 @@ class Fast2D(QMainWindow):
         self.myfigure.image(mydata)
         self.setCentralWidget(mainwindow)
         center(self)
+        if filename is not None:
+            statusbar = QStatusBar()
+            statusbar.showMessage(filename)
+            self.setStatusBar(statusbar)
         self.show()
 
     def update_plot(self, is_log=False):
@@ -253,7 +261,7 @@ class Fast2D(QMainWindow):
 
 
 class Fast1D(QMainWindow):
-    def __init__(self, mydata, symbol=False, mname=None, **kwargs):
+    def __init__(self, mydata, symbol=False, mname=None, filename=None, **kwargs):
         super().__init__()
         if mname is None:
             mname = '1D Viewer'
@@ -273,6 +281,10 @@ class Fast1D(QMainWindow):
                               str(valerr))
         self.myfigure.axes.set_xlabel(mydata.x.text().split(":")[1])
         center(self)
+        if filename is not None:
+            statusbar = QStatusBar()
+            statusbar.showMessage(filename)
+            self.setStatusBar(statusbar)
         self.show()
 
     def update_plot(self, mydata, symbol=False):
@@ -312,7 +324,7 @@ class Fast1D(QMainWindow):
 
 
 class Fast3D(QMainWindow):
-    def __init__(self, mydata, parent=None, mname=None, **kwargs):
+    def __init__(self, mydata, parent=None, mname=None, filename=None, **kwargs):
         super(Fast3D, self).__init__(parent)
         if mname is None:
             mname = '3D Viewer'
@@ -335,6 +347,10 @@ class Fast3D(QMainWindow):
             mainwindow.setLayout(layout)
             self.setCentralWidget(mainwindow)
             center(self)
+            if filename is not None:
+                statusbar = QStatusBar()
+                statusbar.showMessage(filename)
+                self.setStatusBar(statusbar)
             self.show()
         elif mydata.ndim > 3:
             messagebox = QMessageBox()
@@ -344,6 +360,7 @@ class Fast3D(QMainWindow):
                 sys.exit()
             elif reply == QMessageBox.Yes:
                 qApp.quit()
+
 
     def update_plot(self, index, dimension, hold_it=False, is_log=False):
         """

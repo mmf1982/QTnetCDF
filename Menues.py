@@ -45,11 +45,14 @@ class Files(QMainWindow):
         self.model = MyQFileSystemModel()
         newp = pathlib.Path(self.master.complete_name).absolute()
         allps = [str(newp)]
-        while str(newp.parent) != "/":
+        while str(newp.parent) != os.path.sep:
             allps.append(str(newp.parent))
             newp = newp.parent
+            if newp.parent == newp:
+                break
+
         allps.append(str(newp.parent))
-        self.model.setRootPath(".")
+        self.model.setRootPath(os.path.curdir)
         self.treeview.setModel(self.model)
         for idx in allps:
             self.treeview.expand(self.model.index(idx))
