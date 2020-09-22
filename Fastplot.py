@@ -1,7 +1,9 @@
 import sys
+import os
 import numpy
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
+import matplotlib.pyplot as plt
 from PyQt5.QtWidgets import (QApplication, QLabel, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QMessageBox,
                              QMainWindow, qApp, QSlider, QStatusBar)
 try:
@@ -12,6 +14,10 @@ except (ModuleNotFoundError, ImportError):
     except (ModuleNotFoundError, ImportError):
         print("add_interactivity is not loaded. This reduces the interactivity"
               "for 1D plots. Check if add_interactivity.py is in the current python path")
+try:
+    from .Colorschemes import QDarkPalette
+except:
+    from Colorschemes import QDarkPalette
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 from matplotlib.colors import LogNorm, Normalize
@@ -50,7 +56,18 @@ class Easyerrorbar(axs.Axes):
 
 
 class MplCanvas(FigureCanvasQTAgg):
-    def __init__(self, parent=None, width=4, height=4, dpi=150):
+    def __init__(self, parent=None, width=4, height=4, dpi=150, plotscheme="default", **kwargs):
+        try:
+            plt.style.use(plotscheme)
+        except:
+            try:
+                here = os.path.dirname(os.path.abspath(__file__))
+                plotschemenew = plotscheme[:-1]
+                plotschemenew.append(os.path.join(here, plotscheme[0]))
+                plt.style.use(plotschemenew)
+            except:
+                pass
+        print(plotscheme)
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         proj.register_projection(Easyerrorbar)  # this is needed for 1D errorbars.
         self.axes = self.fig.add_subplot(111, projection='easyerrorbar')
@@ -81,7 +98,7 @@ class MplCanvas(FigureCanvasQTAgg):
         except AttributeError:
             pass
         try:
-            self.im = self.axes.imshow(mdata, cmap="jet")
+            self.im = self.axes.imshow(mdata) #, cmap="jet")
         except TypeError:
             HelpWindow(self, "Likely you tried to make an image of text data. \n"
                        "Maybe this is a table and not a matrix? Check with 's'.")
@@ -222,7 +239,7 @@ class DataChooser(QWidget):
 
 
 class Fast2D(QMainWindow):
-    def __init__(self, mydata, mname=None, filename=None, **kwargs):
+    def __init__(self, mydata, mname=None, filename=None, dark=False, **kwargs):
         super().__init__()
         if mname is None:
             mname = '2D Viewer'
@@ -243,6 +260,9 @@ class Fast2D(QMainWindow):
             statusbar = QStatusBar()
             statusbar.showMessage(filename)
             self.setStatusBar(statusbar)
+        if dark:
+            palette = QDarkPalette()
+            self.setPalette(palette)
         self.show()
 
     def update_plot(self, is_log=False):
@@ -261,7 +281,7 @@ class Fast2D(QMainWindow):
 
 
 class Fast1D(QMainWindow):
-    def __init__(self, mydata, symbol=False, mname=None, filename=None, **kwargs):
+    def __init__(self, mydata, symbol=False, mname=None, filename=None, dark=False, **kwargs):
         super().__init__()
         if mname is None:
             mname = '1D Viewer'
@@ -285,6 +305,9 @@ class Fast1D(QMainWindow):
             statusbar = QStatusBar()
             statusbar.showMessage(filename)
             self.setStatusBar(statusbar)
+        if dark:
+            palette = QDarkPalette()
+            self.setPalette(palette)
         self.show()
 
     def update_plot(self, mydata, symbol=False):
@@ -324,7 +347,7 @@ class Fast1D(QMainWindow):
 
 
 class Fast3D(QMainWindow):
-    def __init__(self, mydata, parent=None, mname=None, filename=None, **kwargs):
+    def __init__(self, mydata, parent=None, mname=None, filename=None, dark=False, **kwargs):
         super(Fast3D, self).__init__(parent)
         if mname is None:
             mname = '3D Viewer'
@@ -360,7 +383,9 @@ class Fast3D(QMainWindow):
                 sys.exit()
             elif reply == QMessageBox.Yes:
                 qApp.quit()
-
+        if dark:
+            palette = QDarkPalette()
+            self.setPalette(palette)
 
     def update_plot(self, index, dimension, hold_it=False, is_log=False):
         """

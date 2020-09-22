@@ -1,0 +1,32 @@
+axes.titlesize : 13
+axes.labelsize: medium
+axes.facecolor: 424242
+axes.edgecolor: lightgray
+axes.grid: True
+axes.linewidth: 0.8
+axes.labelcolor: lightgray
+lines.linewidth : 2
+lines.linestyle: -
+lines.markersize : 10
+xtick.labelsize : 11
+ytick.labelsize : 11
+font.family:  sans-serif
+font.size: 10.0
+text.color: lightgray
+figure.subplot.bottom: 0.15
+xtick.top: True
+xtick.color: lightgray
+xtick.direction: out
+xtick.minor.visible: True
+ytick.minor.visible: True
+ytick.right: True
+ytick.color: lightgray
+ytick.direction: out
+grid.color: gray
+grid.linestyle: -
+grid.linewidth: 0.6
+grid.alpha: 0.8
+figure.facecolor: dimgray
+figure.edgecolor: gray
+image.cmap: gist_earth
+savefig.dpi: 100

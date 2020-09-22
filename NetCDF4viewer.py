@@ -5,7 +5,7 @@ import netCDF4
 import yaml
 import pyhdf.error
 from PyQt5 import QtCore
-from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QKeySequence, QKeyEvent
+from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QKeySequence
 from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWindow, QDockWidget,
                              QTableView, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
                              QSlider, QLabel, QStatusBar)
@@ -22,8 +22,13 @@ try:
     from .Converters import hdf4_object, Table
 except (ImportError, ModuleNotFoundError):
     from Converters import hdf4_object, Table
-from numpy import array, arange, squeeze, nansum
+try:
+    from .Colorschemes import QDarkPalette, reset_colors
+except:
+    from Colorschemes import QDarkPalette, reset_colors
 
+
+from numpy import array, arange, squeeze, nansum
 
 class Pointer(QStandardItem):
     """
@@ -57,6 +62,9 @@ class MyQTreeView(QTreeView):
         current_pointer = self.model().itemFromIndex(idx)
         try:
             if event.text() == "d":
+                    print("   ")
+                    print("     INFO on ", current_pointer.name)
+                    print("----------------------------")
                     if self.master.filetype == "netcdf4":
                         attributes = {key: current_pointer.mdata.getncattr(key) for key in
                                       current_pointer.mdata.ncattrs()}
@@ -67,12 +75,12 @@ class MyQTreeView(QTreeView):
                             attributes = current_pointer.mdata.attributes
                     wids = []
                     for attr in attributes:
-                        if hasattr(attributes[attr], '__len__') and (len(attributes[attr])>10)\
+                        if hasattr(attributes[attr], '__len__') and (len(attributes[attr])>5)\
                                 and not isinstance(attributes[attr], str):
                             mdata = Table(attributes[attr], None, attr)
                             interm_pointer = Pointer(mdata, attr)
                             wids.append(self.open_table(interm_pointer))
-                        elif isinstance(attributes[attr], str) and len(attributes[attr])>500:
+                        elif isinstance(attributes[attr], str) and len(attributes[attr])>1000:
                             print(attr, ":      is currently not displayed. It is a very long string, "
                                         "likely describing the structure.")
                         else:
@@ -81,14 +89,16 @@ class MyQTreeView(QTreeView):
                         one = wids.pop()
                         while len(wids)>=1:
                             two = wids.pop()
-                            self.master.tabifyDockWidget(one, two)
+                            if self.master.config["Tableview"]["tabbing"]:
+                                self.master.tabifyDockWidget(one, two)
                     except Exception as exc:
                         print(exc)
+                    print(" ")
             elif event.text() == "s":
                 # open tableview
                 last_tab = self.tab
                 self.tab = self.open_table(current_pointer)
-                if last_tab is not None:
+                if last_tab is not None and self.master.config["Tableview"]["tabbing"]:
                     self.master.tabifyDockWidget(last_tab, self.tab)
             elif event.text() == "x":
                 self.master.mdata.x.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
@@ -112,7 +122,19 @@ class MyQTreeView(QTreeView):
         dock_widget = QDockWidget(current_p.name)
         table_widget = MyTable(self.master, current_p)
         dock_widget.setWidget(table_widget)
-        self.master.addDockWidget(QtCore.Qt.BottomDockWidgetArea, dock_widget, QtCore.Qt.Vertical)
+        if "hor" in self.master.config["Tableview"]["stacking"].lower():
+            stacking = QtCore.Qt.Horizontal
+        else:
+            stacking = QtCore.Qt.Vertical
+        if "bottom" in self.master.config["Tableview"]["location"].lower():
+            location = QtCore.Qt.BottomDockWidgetArea
+        elif "top" in self.master.config["Tableview"]["location"].lower():
+            location = QtCore.Qt.TopDockWidgetArea
+        elif "right" in self.master.config["Tableview"]["location"].lower():
+            location = QtCore.Qt.RightDockWidgetArea
+        else:
+            location = QtCore.Qt.LeftDockWidgetArea
+        self.master.addDockWidget(location, dock_widget, stacking)
         return dock_widget
 
 
@@ -140,7 +162,8 @@ class MyTable(QWidget):
         except (AttributeError, IndexError):
             self.maxidxs = 1
         except TypeError:
-            HelpWindow(self, "You tried to open a group in table view. This is not possible. Open the group and view variables.")
+            HelpWindow(self, "You tried to open a group in table view or the variable has not data.\n"
+                             " This is not possible. Open the group and view variables.")
             return
         self.diminfo = None
         self.sliceinfo = None
@@ -430,6 +453,16 @@ class App(QMainWindow):
         here = os.path.dirname(os.path.abspath(__file__))
         with open(os.path.join(here,"config.yml")) as fid:
             self.config = yaml.load(fid, yaml.Loader)
+        if "Colors" in self.config.keys():
+            reset_colors(self.config["Colors"])
+        try:
+            self.dark = "dark" in self.config["Colorscheme"]["App"].lower()
+        except:
+            self.dark = False
+        try:
+            self.plotscheme = self.config["Colorscheme"]["plots"]
+        except:
+            self.plotscheme = "default"
         self.holdbutton = None
         self.filetype = None
         self.load_file(this_file)
@@ -454,7 +487,8 @@ class App(QMainWindow):
             if self.holdon:
                 self.active1D.update_plot(self.mdata, symbol)
             else:
-                temp = Fast1D(self.mdata, symbol, **self.config["Startingsize"]["1Dplot"], filename=self.name)
+                temp = Fast1D(self.mdata, symbol, **self.config["Startingsize"]["1Dplot"],
+                              filename=self.name, dark = self.dark, plotscheme=self.plotscheme)
                 self.openplots.append(temp)
                 self.active1D = temp
         except AttributeError:
@@ -562,14 +596,18 @@ class App(QMainWindow):
         except KeyError:
             HelpWindow(self, "It seems you tried to plot a group (double click plots). To open the group, click on the triangle")
             return
+        except TypeError:
+            HelpWindow(self, "It seems that there is no data.... maybe only attributes?")
+            return
         if mydata.ndim == 3:
             temp = Fast3D(
                 mydata, parent=self, **self.config["Startingsize"]["3Dplot"],
-                mname=thisdata.name, filename=self.name)
+                mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
             self.openplots.append(temp)
         elif mydata.ndim == 2:
             temp = Fast2D(
-                mydata, **self.config["Startingsize"]["2Dplot"], mname=thisdata.name, filename=self.name)
+                mydata, **self.config["Startingsize"]["2Dplot"], mname=thisdata.name,
+                filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
             self.openplots.append(temp)
         elif mydata.ndim == 1:
             mdata = Data()
@@ -579,7 +617,8 @@ class App(QMainWindow):
                 self.active1D.update_plot(mdata)
             else:
                 temp = Fast1D(
-                    mdata, **self.config["Startingsize"]["1Dplot"], mname=thisdata.name, filename=self.name)
+                    mdata, **self.config["Startingsize"]["1Dplot"], mname=thisdata.name, filename=self.name,
+                    dark=self.dark, plotscheme=self.plotscheme)
                 self.active1D = temp
                 self.openplots.append(temp)
         else:
@@ -705,6 +744,9 @@ class App2(QWidget):
             self.setLayout(layout)
             self.windows[0].plotaeralayout.addWidget(self)
         for ii in range(len(files)):
+            if self.windows[ii].dark:
+                palette = QDarkPalette()
+                self.windows[ii].setPalette(palette)
             self.windows[ii].show()
 
     def broadcast(self):
