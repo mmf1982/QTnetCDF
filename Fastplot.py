@@ -56,7 +56,7 @@ class Easyerrorbar(axs.Axes):
 
 
 class MplCanvas(FigureCanvasQTAgg):
-    def __init__(self, parent=None, width=4, height=4, dpi=150, plotscheme="default", **kwargs):
+    def __init__(self, parent=None, width=4, height=4, dpi=150, plotscheme=["default"], **kwargs):
         try:
             plt.style.use(plotscheme)
         except:
@@ -67,7 +67,6 @@ class MplCanvas(FigureCanvasQTAgg):
                 plt.style.use(plotschemenew)
             except:
                 pass
-        print(plotscheme)
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         proj.register_projection(Easyerrorbar)  # this is needed for 1D errorbars.
         self.axes = self.fig.add_subplot(111, projection='easyerrorbar')
@@ -98,7 +97,7 @@ class MplCanvas(FigureCanvasQTAgg):
         except AttributeError:
             pass
         try:
-            self.im = self.axes.imshow(mdata) #, cmap="jet")
+            self.im = self.axes.imshow(mdata)
         except TypeError:
             HelpWindow(self, "Likely you tried to make an image of text data. \n"
                        "Maybe this is a table and not a matrix? Check with 's'.")
@@ -110,6 +109,26 @@ class MplCanvas(FigureCanvasQTAgg):
             self.im.set_cmap(limits["cmap"])
         self.cb = self.fig.colorbar(self.im, ax=self.axes)
         return
+
+    def pcolormesh(self, x, y, z):
+        try:
+            self.cb.remove()
+        except AttributeError:
+            pass
+        try:
+            self.im = self.axes.pcolormesh(x.datavalue, y.datavalue, z.datavalue)
+        except Exception as exc1:
+            try:
+                self.im = self.axes.pcolormesh(x.datavalue, y.datavalue, z.datavalue.T)
+                HelpWindow(self, "careful: z data is transposed to fit x and y")
+            except Exception as exc2:
+                HelpWindow(self.mparent, "one of the following errors occured:"+ str(exc1) + str(exc2))
+                return False
+        self.cb = self.fig.colorbar(self.im, ax=self.axes)
+        self.axes.set_xlabel(x.name_value)
+        self.axes.set_ylabel(y.name_value)
+        self.axes.set_title(z.name_value)
+        return True
 
     @property
     def get_axis_values(self):
@@ -131,6 +150,10 @@ class DataChooser(QWidget):
         layout4 = QHBoxLayout()
         layout5 = QVBoxLayout()
         self.is3d = is3d
+        slicings = QWidget()
+        layout2 = QVBoxLayout()
+        if is3d:
+            self.slice_label = QLabel("slice = 0" + "/ 0-" + str(parent.shape[0] - 1))
         if is3d:
             self.active_index = 0
             self.active_dimension = 0
@@ -140,13 +163,10 @@ class DataChooser(QWidget):
             minus = QPushButton('-')
             plus.clicked.connect(self.on_plus)
             minus.clicked.connect(self.on_minus)
-            self.slice_label = QLabel("slice = 0"+ "/ 0-" + str(parent.shape[0]-1))
             layout.addWidget(minus)
             layout.addWidget(plus)
             buttons = QWidget()
             buttons.setLayout(layout)
-            slicings = QWidget()
-            layout2 = QVBoxLayout()
             layout2.addWidget(buttons, alignment=Qt.AlignVCenter)
             layout2.addWidget(self.slice_label, alignment=Qt.AlignHCenter)
             slicings.setLayout(layout2)
@@ -193,67 +213,90 @@ class DataChooser(QWidget):
                 self.is_log = False
                 self.log_button.setText("put log")
                 worked = self.mparent.update_plot(self.is_log)
+        return
 
     def on_freeze(self):
-        if self.frozen:
-            self.frozen = False
-            self.freeze_button.setText("keep settings")
-        else:
-            self.frozen = True
-            self.freeze_button.setText("      release      ")
-        worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
-        if not worked:
-            self.is_log = False
-            self.log_button.setText("put log")
+        if self.is3d:
+            if self.frozen:
+                self.frozen = False
+                self.freeze_button.setText("keep settings")
+            else:
+                self.frozen = True
+                self.freeze_button.setText("      release      ")
             worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
+            if not worked:
+                self.is_log = False
+                self.log_button.setText("put log")
+                worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
 
     def update_dim_label(self, value):
-        self.active_dimension = value
-        self.update_slice()
-        self.dim_label.setText("dim = " + str(value))
-        self.slice_label.setText("slice = "+(str(self.active_index)) + "/ 0-" + str(self.mparent.shape[value] - 1))
+        if self.is3d:
+            self.active_dimension = value
+            self.update_slice()
+            self.dim_label.setText("dim = " + str(value))
+            self.slice_label.setText("slice = "+(str(self.active_index)) + "/ 0-" + str(self.mparent.shape[value] - 1))
 
     def on_minus(self):
-        mymax = self.mparent.shape[self.active_dimension]
-        if self.active_index > -mymax:
-            self.active_index -= 1
-        else:
-            self.active_index = -1
-        self.update_slice()
+        if self.is3d:
+            mymax = self.mparent.shape[self.active_dimension]
+            if self.active_index > -mymax:
+                self.active_index -= 1
+            else:
+                self.active_index = -1
+            self.update_slice()
 
     def on_plus(self):
-        mymax = self.mparent.shape[self.active_dimension]
-        if self.active_index < mymax - 1:
-            self.active_index += 1
-        else:
-            self.active_index = 0
-        self.update_slice()
+        if self.is3d:
+            mymax = self.mparent.shape[self.active_dimension]
+            if self.active_index < mymax - 1:
+                self.active_index += 1
+            else:
+                self.active_index = 0
+            self.update_slice()
 
     def update_slice(self):
-        worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
-        if not worked:
-            self.is_log = False
-            self.log_button.setText("put log")
+        if self.is3d:
             worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
-        self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(self.mparent.shape[self.active_dimension]-1))
+            if not worked:
+                self.is_log = False
+                self.log_button.setText("put log")
+                worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
+            self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(self.mparent.shape[self.active_dimension]-1))
 
 
 class Fast2D(QMainWindow):
-    def __init__(self, mydata, mname=None, filename=None, dark=False, **kwargs):
-        super().__init__()
+    def __init__(self, mydata,  parent=None, mname=None, filename=None, dark=False, **kwargs):
+        super(Fast2D, self).__init__(parent)
+        self.isimage = True
+        if (mydata.__class__.__name__) == ("Data"):
+            self.isimage = False
+            self.x = mydata.x
+            self.y = mydata.y
+            mydata = mydata.z
         if mname is None:
             mname = '2D Viewer'
+        self.mydata = mydata
+        try:
+            self.shape = mydata.shape
+        except AttributeError:
+            self.shape = mydata.datavalue.shape
         self.setWindowTitle(mname)
-        self.setWindowIcon(QIcon("web.png"))
-        self.myfigure = MplCanvas(self, **kwargs)
-        my_slider = DataChooser(self, False)
+        # self.setWindowIcon(QIcon("web.png"))
+        self.myfigure = MplCanvas(parent=self, **kwargs)
+        my_slider = DataChooser(self, is3d=False)
         mainwindow = QWidget()
         layout = QVBoxLayout()
         layout.addWidget(self.myfigure.toolbar)
         layout.addWidget(self.myfigure, stretch=1)
         layout.addWidget(my_slider)
         mainwindow.setLayout(layout)
-        self.myfigure.image(mydata)
+        if self.isimage:
+            self.myfigure.image(mydata)
+        else:
+            worked = self.myfigure.pcolormesh(self.x, self.y, mydata)
+            if not worked:
+                self.show()
+                return
         self.setCentralWidget(mainwindow)
         center(self)
         if filename is not None:
@@ -267,12 +310,17 @@ class Fast2D(QMainWindow):
 
     def update_plot(self, is_log=False):
         if is_log:
+            if min(*self.myfigure.im.get_clim()) <= 0:
+                help = HelpWindow(self, "it seems there are 0 or negative values.\n "
+                                    "Before putting log, adjust limits \nand "
+                                    "keep the values. Change back to lin for now.")
+                return False
             self.myfigure.im.set_norm(LogNorm(*self.myfigure.im.get_clim()))
         else:
             self.myfigure.im.set_norm(Normalize(*self.myfigure.im.get_clim()))
         try:
             self.myfigure.draw()
-        except ValueError:
+        except (ValueError, ZeroDivisionError):
             help = HelpWindow(self, "it seems there are 0 or negative values.\n "
                                     "Before putting log, adjust limits \nand "
                                     "keep the values. Change back to lin for now.")
@@ -311,7 +359,6 @@ class Fast1D(QMainWindow):
         self.show()
 
     def update_plot(self, mydata, symbol=False):
-        print(symbol)
         if mydata.y.datavalue.ndim > 1:
             alllabel = mydata.y.text().split(":")[1].split("s.")[-1].split(" - ")
             labs = numpy.arange(int(alllabel[0]), int(alllabel[1])+1)
@@ -352,7 +399,7 @@ class Fast3D(QMainWindow):
         if mname is None:
             mname = '3D Viewer'
         self.setWindowTitle(mname)
-        self.setWindowIcon(QIcon("web.png"))
+        # self.setWindowIcon(QIcon("web.png"))
         if mydata.ndim == 3:
             self.mydata = mydata
             try:
@@ -360,20 +407,20 @@ class Fast3D(QMainWindow):
             except Exception as exc:
                 print(exc)
             self.myfigure = MplCanvas(parent=self, **kwargs)
-            my_slider = DataChooser(self)
+            self.my_slider = DataChooser(self)
             self.update_plot(0, 0)
-            mainwindow = QWidget()
-            layout = QVBoxLayout()
-            layout.addWidget(self.myfigure.toolbar)
-            layout.addWidget(self.myfigure, stretch=1)
-            layout.addWidget(my_slider)
-            mainwindow.setLayout(layout)
-            self.setCentralWidget(mainwindow)
+            self.mainwindow = QWidget()
+            self.layout = QVBoxLayout()
+            self.layout.addWidget(self.myfigure.toolbar)
+            self.layout.addWidget(self.myfigure, stretch=1)
+            self.layout.addWidget(self.my_slider)
+            self.mainwindow.setLayout(self.layout)
+            self.setCentralWidget(self.mainwindow)
             center(self)
             if filename is not None:
-                statusbar = QStatusBar()
-                statusbar.showMessage(filename)
-                self.setStatusBar(statusbar)
+                self.statusbar = QStatusBar()
+                self.statusbar.showMessage(filename)
+                self.setStatusBar(self.statusbar)
             self.show()
         elif mydata.ndim > 3:
             messagebox = QMessageBox()
@@ -384,8 +431,8 @@ class Fast3D(QMainWindow):
             elif reply == QMessageBox.Yes:
                 qApp.quit()
         if dark:
-            palette = QDarkPalette()
-            self.setPalette(palette)
+            self.palette = QDarkPalette()
+            self.setPalette(self.palette)
 
     def update_plot(self, index, dimension, hold_it=False, is_log=False):
         """
@@ -394,14 +441,18 @@ class Fast3D(QMainWindow):
         :param hold_it: logical
         :param is_log: logical
         """
-        if dimension == 0:
-            newdata = self.mydata[index]
-        elif dimension == 1:
-            newdata = self.mydata[:, index, :]
-        elif dimension == 2:
-            newdata = self.mydata[:, :, index]
-        else:
-            raise ValueError("dimensionality is too high")
+        try:
+            if dimension == 0:
+                newdata = self.mydata[index]
+            elif dimension == 1:
+                newdata = self.mydata[:, index, :]
+            elif dimension == 2:
+                newdata = self.mydata[:, :, index]
+            else:
+                raise ValueError("dimensionality is too high")
+        except (IndexError):
+            HelpWindow(self, "It seems you chose an index that does not exist. Maybe you changed slicing at high index")
+            return False
         if hold_it:
             self.myfigure.image(newdata, self.myfigure.get_axis_values)
             if is_log:
@@ -410,23 +461,31 @@ class Fast3D(QMainWindow):
             if is_log:
                 old_lims = self.myfigure.im.get_clim()
                 if (self.myfigure.im.get_array() == newdata).all():
+                    if min(*old_lims) <= 0:
+                        help = HelpWindow(self, "it seems there are 0 or negative values.\n "
+                                    "Before putting log, adjust limits \nand "
+                                    "keep the values. Change back to lin for now.")
+                        return False
                     self.myfigure.im.set_norm(LogNorm(*old_lims))
                 else:
                     self.myfigure.image(newdata)
+                    if min(*self.myfigure.im.get_clim()) <= 0:
+                        help = HelpWindow(self, "it seems there are 0 or negative values.\n "
+                                    "Before putting log, adjust limits \nand "
+                                    "keep the values. Change back to lin for now.")
+                        return False
                     self.myfigure.im.set_norm(LogNorm(*self.myfigure.im.get_clim()))
             else:
                 self.myfigure.image(newdata)
-        #if is_log:
-        #    print(newdata.min(), newdata.max())
-        #    print(*self.myfigure.im.get_clim())
-
         try:
             self.myfigure.draw()
-        except ValueError:
-            help = HelpWindow(self, "it seems there are 0 or negative values.\n "
+        except (ValueError, ZeroDivisionError):
+            HelpWindow(self, "it seems there are 0 or negative values.\n "
                                     "Before putting log, adjust limits \nand "
                                     "keep the values. Change back to lin for now.")
             return False
+        except RuntimeError:
+            HelpWindow(self, "sorry, something bad happened")
         return True
 
 

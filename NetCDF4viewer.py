@@ -1,4 +1,3 @@
-
 import os
 import sys
 import netCDF4
@@ -10,6 +9,7 @@ from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWi
                              QTableView, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
                              QSlider, QLabel, QStatusBar)
 import numpy as np
+
 try:
     from .Fastplot import Fast3D, Fast2D, Fast1D
 except (ImportError, ModuleNotFoundError):
@@ -27,8 +27,8 @@ try:
 except:
     from Colorschemes import QDarkPalette, reset_colors
 
-
 from numpy import array, arange, squeeze, nansum
+
 
 class Pointer(QStandardItem):
     """
@@ -51,49 +51,56 @@ class MyQTreeView(QTreeView):
 
     Also, define here the data chooser events x, y, u, e to extract data as x, y yerr and xerr directly from file level
     """
+
     def __init__(self, master, *args, **kwargs):
         self.master = master
         self.tab = None
         super().__init__(*args, **kwargs)
-
 
     def keyPressEvent(self, event):
         idx = self.currentIndex()
         current_pointer = self.model().itemFromIndex(idx)
         try:
             if event.text() == "d":
-                    print("   ")
-                    print("     INFO on ", current_pointer.name)
-                    print("----------------------------")
-                    if self.master.filetype == "netcdf4":
-                        attributes = {key: current_pointer.mdata.getncattr(key) for key in
-                                      current_pointer.mdata.ncattrs()}
-                    else:
-                        try:
-                            attributes = current_pointer.name.data.attributes
-                        except AttributeError:
-                            attributes = current_pointer.mdata.attributes
-                    wids = []
-                    for attr in attributes:
-                        if hasattr(attributes[attr], '__len__') and (len(attributes[attr])>5)\
-                                and not isinstance(attributes[attr], str):
-                            mdata = Table(attributes[attr], None, attr)
-                            interm_pointer = Pointer(mdata, attr)
-                            wids.append(self.open_table(interm_pointer))
-                        elif isinstance(attributes[attr], str) and len(attributes[attr])>1000:
-                            print(attr, ":      is currently not displayed. It is a very long string, "
-                                        "likely describing the structure.")
-                        else:
-                            print(attr, ": ", attributes[attr])
+                print("   ")
+                print("     INFO on ", current_pointer.name)
+                print("----------------------------")
+                if self.master.filetype == "netcdf4":
+                    attributes = {key: current_pointer.mdata.getncattr(key) for key in
+                                  current_pointer.mdata.ncattrs()}
+                else:
                     try:
-                        one = wids.pop()
-                        while len(wids)>=1:
-                            two = wids.pop()
-                            if self.master.config["Tableview"]["tabbing"]:
-                                self.master.tabifyDockWidget(one, two)
-                    except Exception as exc:
-                        print(exc)
-                    print(" ")
+                        attributes = current_pointer.name.data.attributes
+                    except AttributeError:
+                        attributes = current_pointer.mdata.attributes
+                wids = []
+                for attr in attributes:
+                    if hasattr(attributes[attr], '__len__') and (len(attributes[attr]) > 5) \
+                            and not isinstance(attributes[attr], str):
+                        mdata = Table(attributes[attr], None, attr)
+                        interm_pointer = Pointer(mdata, attr)
+                        wids.append(self.open_table(interm_pointer))
+                    elif isinstance(attributes[attr], str) and len(attributes[attr]) > 1000:
+                        print(attr, ":      is currently not displayed. It is a very long string, "
+                                    "likely describing the structure.")
+                    elif isinstance(attributes[attr], dict):
+                        mdata = attributes[attr]
+                        for key in mdata:
+                            name = ": ".join([attr, key])
+                            mdat = Table(mdata[key], None, name)
+                            interm_pointer = Pointer(mdat, name)
+                            wids.append(self.open_table(interm_pointer))
+                    else:
+                        print(attr, ": ", attributes[attr])
+                try:
+                    one = wids.pop()
+                    while len(wids) >= 1:
+                        two = wids.pop()
+                        if self.master.config["Tableview"]["tabbing"]:
+                            self.master.tabifyDockWidget(one, two)
+                except Exception as exc:
+                    print(exc)
+                print(" ")
             elif event.text() == "s":
                 # open tableview
                 last_tab = self.tab
@@ -104,6 +111,8 @@ class MyQTreeView(QTreeView):
                 self.master.mdata.x.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
             elif event.text() == "y":
                 self.master.mdata.y.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
+            elif event.text() == "z":
+                self.master.mdata.z.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
             elif event.text() == "u":
                 self.master.mdata.yerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
             elif event.text() == "e":
@@ -112,10 +121,11 @@ class MyQTreeView(QTreeView):
             HelpWindow(self.master, "likely you clicked a group and pressed x, y, u or e. \n"
                                     "On groups, only d works to show details.")
         except AttributeError:
-            HelpWindow(self.master, "something went wrong. Possibly you did not click in the first column of a variable\n"
-                                    " when clicking x,y,u,e or d. You have to be in the 'name' column when clicking.")
+            HelpWindow(self.master,
+                       "something went wrong. Possibly you did not click in the first column of a variable\n"
+                       " when clicking x,y,u,e or d. You have to be in the 'name' column when clicking.")
 
-        #elif event.text() == "m":
+        # elif event.text() == "m":
         #    self.master.mdata.mask.set(current_pointer.mdata[:], current_pointer.mdata.name)
 
     def open_table(self, current_p):
@@ -144,6 +154,7 @@ class MyTable(QWidget):
 
     Variable cannot be higher than 3D
     """
+
     def __init__(self, master, data):
         """
         Initialize table
@@ -160,7 +171,7 @@ class MyTable(QWidget):
         try:
             self.maxidxs = data.mdata[:].shape
         except (AttributeError, IndexError):
-            self.maxidxs = 1
+            self.maxidxs = [1]
         except TypeError:
             HelpWindow(self, "You tried to open a group in table view or the variable has not data.\n"
                              " This is not possible. Open the group and view variables.")
@@ -192,7 +203,7 @@ class MyTable(QWidget):
             display_area = QWidget()
             display_layout = QVBoxLayout()
             self.diminfo = QLabel("dim 0")
-            self.sliceinfo = QLabel("slice 0 / 0-" + str(self.maxidxs[0]-1))
+            self.sliceinfo = QLabel("slice 0 / 0-" + str(self.maxidxs[0] - 1))
             display_layout.addWidget(self.diminfo)
             display_layout.addWidget(self.sliceinfo)
             display_area.setLayout(display_layout)
@@ -218,7 +229,7 @@ class MyTable(QWidget):
             self.c_idx += 1
         else:
             self.c_idx = 0
-        self.sliceinfo.setText("slice " + str(self.c_idx) + "/ 0-" + str(self.maxidxs[self.c_dim]-1))
+        self.sliceinfo.setText("slice " + str(self.c_idx) + "/ 0-" + str(self.maxidxs[self.c_dim] - 1))
         self.update_table()
 
     def minus(self):
@@ -229,7 +240,7 @@ class MyTable(QWidget):
             self.c_idx -= 1
         else:
             self.c_idx = 0
-        self.sliceinfo.setText("slice " + str(self.c_idx)  + "/ 0-" + str(self.maxidxs[self.c_dim]-1))
+        self.sliceinfo.setText("slice " + str(self.c_idx) + "/ 0-" + str(self.maxidxs[self.c_dim] - 1))
         self.update_table()
 
     def slicing(self, idx):
@@ -253,7 +264,7 @@ class MyTable(QWidget):
             ndim = 1
         if ndim == 3:
             if self.c_dim == 0:
-                data = self.all_data[self.c_idx,:,:]
+                data = self.all_data[self.c_idx, :, :]
             elif self.c_dim == 1:
                 data = self.all_data[:, self.c_idx, :]
             elif self.c_dim == 2:
@@ -261,7 +272,7 @@ class MyTable(QWidget):
         elif ndim == 2:
             data = self.all_data[:]
         elif ndim == 1:
-                data = array([self.all_data[:]])
+            data = array([self.all_data[:]])
         else:
             try:
                 data = array([[self.all_data.getValue()]])
@@ -269,7 +280,7 @@ class MyTable(QWidget):
                 data = array([[self.all_data]])
         name = self.name
         if ndim == 3:
-            name += " slice " + str(self.c_idx) +  " in dim " + str(self.c_dim)
+            name += " slice " + str(self.c_idx) + " in dim " + str(self.c_dim)
         try:
             header = self.all_data.header
         except:
@@ -284,6 +295,7 @@ class MyQTableView(QTableView):
 
     TODO: as for main variables, maybe add functionality of double click to plot data directly? Difficult....
     """
+
     def __init__(self, master):
         super(MyQTableView, self).__init__()
         self.currentData = None
@@ -302,20 +314,22 @@ class MyQTableView(QTableView):
                 self.master.mdata.x.set(self.currentData, " ".join([self.model().name, self.curridx]))
             elif event.text() == "y":
                 self.master.mdata.y.set(self.currentData, " ".join([self.model().name, self.curridx]))
+            elif event.text() == "z":
+                self.master.mdata.z.set(self.currentData, " ".join([self.model().name, self.curridx]))
             elif event.text() == "u":
                 self.master.mdata.yerr.set(self.currentData, " ".join([self.model().name, self.curridx]))
             elif event.text() == "e":
                 self.master.mdata.xerr.set(self.currentData, " ".join([self.model().name, self.curridx]))
             elif event.text() == "+":
-                print("adding up ", " ".join([self.model().name, self.curridx]), nansum(self.currentData) )
+                print("adding up ", " ".join([self.model().name, self.curridx]), nansum(self.currentData))
         except TypeError:
-            help = HelpWindow(self, "You need to 'select' a row(s) or column(s) first.\n"
-                                    "When you 'release' you have to be ontop of the header as well\n"
-                                    "Whether or not you selected, will be written in the terminal.\n"
-                                    "It should say: 'selected row(s)/ column(s):    '. If it does not\n"
-                                    "Nothing was selected. Try again")
+            HelpWindow(self, "You need to 'select' a row(s) or column(s) first.\n"
+                             "When you 'release' you have to be ontop of the header as well\n"
+                             "Whether or not you selected, will be written in the terminal.\n"
+                             "It should say: 'selected row(s)/ column(s):    '. If it does not\n"
+                             "Nothing was selected. Try again")
 
-        #elif event.text() == "m":
+        # elif event.text() == "m":
         #    self.master.mdata.mask.set(self.currentData, " ".join([self.model().name, self.curridx]))
 
     def hheader_selected(self, index):
@@ -360,6 +374,7 @@ class TableModel(QtCore.QAbstractTableModel):
     """
     Model of the data displayed in MyQTableView.
     """
+
     def __init__(self, data, name, header):
         super(TableModel, self).__init__()
         self._data = data
@@ -367,8 +382,8 @@ class TableModel(QtCore.QAbstractTableModel):
         self.header = header
 
     def headerData(self, column, orientation, role=QtCore.Qt.DisplayRole):
-        if role==QtCore.Qt.DisplayRole:
-            if orientation==QtCore.Qt.Horizontal and self.header is not None:
+        if role == QtCore.Qt.DisplayRole:
+            if orientation == QtCore.Qt.Horizontal and self.header is not None:
                 name = self.header[column]
                 return QtCore.QVariant(name)
             else:
@@ -396,8 +411,9 @@ class Data(object):
     """
     Data for line plots with x, y and xerr and yerr
     """
+
     def __init__(self, **kwargs):
-        for key in ["x", "y", "xerr", "yerr"]: #, "mask"]:
+        for key in ["x", "y", "z", "xerr", "yerr"]:  # , "mask"]:
             setattr(self, key, MyQLabel(key, None))
         self.__dict__.update(kwargs)
 
@@ -406,6 +422,7 @@ class MyQLabel(QLabel):
     """
     implements clickable QLabel that performs action on itself: delete text and associated value.
     """
+
     def __init__(self, dataname, datavalue, extra=": "):
         super(MyQLabel, self).__init__()
         self.datavalue = datavalue
@@ -413,10 +430,12 @@ class MyQLabel(QLabel):
         self.name = dataname.ljust(5)
         newfont = QFont("Mono", 8, QFont.Normal)
         self.setFont(newfont)
+        self.name_value = ""
 
     def set(self, value, name):
         self.setText(self.name + ": " + name)
         self.datavalue = value
+        self.name_value = name
 
     def mousePressEvent(self, event):
         self.setText(self.name + ": ")
@@ -431,10 +450,12 @@ class MyQButton(QPushButton):
     def keyPressEvent(self, event):
         self.symbol = event.text()
 
+
 class App(QMainWindow):
     """
     Main Application to hold the file display and detachable the table data
     """
+
     def __init__(self, this_file):
         super(App, self).__init__()
         name = os.path.basename(this_file)
@@ -451,7 +472,7 @@ class App(QMainWindow):
         self.openplots = []
         self.plotaeralayout = None
         here = os.path.dirname(os.path.abspath(__file__))
-        with open(os.path.join(here,"config.yml")) as fid:
+        with open(os.path.join(here, "config.yml")) as fid:
             self.config = yaml.load(fid, yaml.Loader)
         if "Colors" in self.config.keys():
             reset_colors(self.config["Colors"])
@@ -471,7 +492,7 @@ class App(QMainWindow):
         self.setMenuBar(FileMenu(self))
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.resize(self.config["Startingsize"]["Mainwindow"]["width"],
-                            self.config["Startingsize"]["Mainwindow"]["height"])
+                    self.config["Startingsize"]["Mainwindow"]["height"])
 
     def fix1d_data(self):
         if self.mdata.y.datavalue is None:
@@ -482,21 +503,37 @@ class App(QMainWindow):
             self.mdata.x.set(arange((self.mdata.y.datavalue.shape[-1])), "index")
 
     def plotit(self, symbol=False):
-        try:
-            self.fix1d_data()
+        # try:
+            if self.mdata.z.datavalue is None:
+                self.fix1d_data()
             if self.holdon:
-                self.active1D.update_plot(self.mdata, symbol)
+                try:
+                    self.active1D.update_plot(self.mdata, symbol)
+                except ValueError as valerr:
+                    HelpWindow(self, "Probably you chose to plot x-y with different dimensions? Errormessage:" +
+                               str(valerr))
             else:
-                temp = Fast1D(self.mdata, symbol, **self.config["Startingsize"]["1Dplot"],
-                              filename=self.name, dark = self.dark, plotscheme=self.plotscheme)
-                self.openplots.append(temp)
-                self.active1D = temp
-        except AttributeError:
-            help = HelpWindow(self, "It seems you have not set anything to plot. You need to mark row(s) or column(s)\n"
-                                    "and then hit at least x or y to have some plottable data. Try again")
+                if self.mdata.z.datavalue is not None:
+                    if self.mdata.z.datavalue.ndim < 2 or self.mdata.z.datavalue.ndim > 2:
+                        HelpWindow(self, "dimensionality of z value has to be 2 for now")
+                        self.show()
+                        return
+                    if self.mdata.z.datavalue.ndim == 2:
+                        temp = Fast2D(
+                            self.mdata, **self.config["Startingsize"]["2Dplot"],
+                            mname=self.mdata.z.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
+                    self.openplots.append(temp)
+                else:
+                    temp = Fast1D(self.mdata, symbol, **self.config["Startingsize"]["1Dplot"],
+                              filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
+                    self.openplots.append(temp)
+                    self.active1D = temp
+        #except AttributeError:
+        #    HelpWindow(self, "It seems you have not set anything to plot. You need to mark row(s) or column(s)\n"
+        #                     "and then hit at least x or y to have some plottable data. Try again")
 
     def plotitsymbol(self):
-        if self.plotsymbol.symbol in ["o","x","<",">","*",".","^","v", "1", "2", "3", "p", "h", "H", "D", "+"]:
+        if self.plotsymbol.symbol in ["o", "x", "<", ">", "*", ".", "^", "v", "1", "2", "3", "p", "h", "H", "D", "+"]:
             self.plotit(self.plotsymbol.symbol)
         else:
             HelpWindow(self, "try a different symbol, any of: o x < > * . ^ v 1 2 3 p h H D + ")
@@ -569,8 +606,8 @@ class App(QMainWindow):
                 self.mfile = hdf4_object(m_file)
                 self.filetype = "hdf4"
             except pyhdf.error.HDF4Error:
-                HelpWindow(self, "This seems not to be a valid nc, hdf4 or hdf5 file: " + str(m_file) +"\n"
-                           "If you believe it is, please report back")
+                HelpWindow(self, "This seems not to be a valid nc, hdf4 or hdf5 file: " + str(m_file) + "\n"
+                                                                                                        "If you believe it is, please report back")
                 return
         statusbar = QStatusBar()
         statusbar.showMessage(self.name)
@@ -594,7 +631,8 @@ class App(QMainWindow):
                              "not anything else in order to plot a variable or open a group")
             return
         except KeyError:
-            HelpWindow(self, "It seems you tried to plot a group (double click plots). To open the group, click on the triangle")
+            HelpWindow(self,
+                       "It seems you tried to plot a group (double click plots). To open the group, click on the triangle")
             return
         except TypeError:
             HelpWindow(self, "It seems that there is no data.... maybe only attributes?")
@@ -606,8 +644,8 @@ class App(QMainWindow):
             self.openplots.append(temp)
         elif mydata.ndim == 2:
             temp = Fast2D(
-                mydata, **self.config["Startingsize"]["2Dplot"], mname=thisdata.name,
-                filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
+                mydata, parent=self, **self.config["Startingsize"]["2Dplot"],
+                mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
             self.openplots.append(temp)
         elif mydata.ndim == 1:
             mdata = Data()
@@ -719,39 +757,40 @@ class App(QMainWindow):
                 currentitemlevel.appendRow(last)
         return currentitemlevel
 
-    def closeEvent(selfself, event):
+    def closeEvent(self, event):
         print("Close Viewer")
+
 
 def main(myfile):
     name = os.path.basename(myfile[0])
     my_graphics = QApplication([name])
-    myapp = App2(myfile)
+    main = App2(myfile)
     sys.exit(my_graphics.exec_())
+
 
 class App2(QWidget):
     def __init__(self, files):
         super(App2, self).__init__()
         self.windows = []
-        mainwidget = QWidget()
-        layout = QVBoxLayout()
-        plus = QPushButton("broadcast plot")
-        plus.clicked.connect(self.broadcast)
-        layout.addWidget(plus)
+        self.layout = QVBoxLayout()
+        self.plus = QPushButton("broadcast plot")
+        self.plus.clicked.connect(self.broadcast)
+        self.layout.addWidget(self.plus)
         for file in files:
             self.windows.append(App(file))
 
         if len(files) > 1:
-            self.setLayout(layout)
+            self.setLayout(self.layout)
             self.windows[0].plotaeralayout.addWidget(self)
         for ii in range(len(files)):
             if self.windows[ii].dark:
-                palette = QDarkPalette()
-                self.windows[ii].setPalette(palette)
+                self.palette = QDarkPalette()
+                self.windows[ii].setPalette(self.palette)
             self.windows[ii].show()
 
     def broadcast(self):
         if self.windows[0].active1D is not None:
-            for ii in range(1,len(self.windows)):
+            for ii in range(1, len(self.windows)):
                 self.windows[ii].active1D = self.windows[0].active1D
         else:
             print("window 1 has no open plot")

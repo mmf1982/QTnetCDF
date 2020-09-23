@@ -4,6 +4,7 @@ import pyhdf.HDF
 import pyhdf.VS
 import pyhdf.V
 import numpy
+from pyhdf.error import HDF4Error
 
 HDFTYPE = {pyhdf.HDF.HC.DFTAG_NDG: "HDF SDS",
            pyhdf.HDF.HC.DFTAG_VH: "HDF Vdata",
@@ -127,7 +128,7 @@ class hdf4_object(object):
             try:
                 ref = self.vs.next(ref)
                 refs.extend([ref])
-                ref, refs = self.all_ids(ref, refs)
+                ref, refs = self.all_v_ids(ref, refs)
             except pyhdf.error.HDF4Error:
                 pass
             return ref, refs
@@ -212,6 +213,11 @@ class hdf4_object(object):
                     refsdone.extend([ref])
                 self.done.append(ref)
         return mydict, refsdone
+
+    def close(self):
+        self.sd.end()
+        self.hdf.close()
+
 
 class Representative():
     def __init__(self, myref, type, myfile):
@@ -306,7 +312,11 @@ class Representative():
         elif self.tag == pyhdf.HDF.HC.DFTAG_VH:
                 data = self.myfile.vs.attach(self.myref)
                 header = data.inquire()[2]
-                attributes = data.attrinfo()
+                attributes = {}
+                for head in header:
+                    attributes[head] =  {key: data.field(head).attrinfo()[key][2] for key in data.field(head).attrinfo()}                                                          \
+                       # data.field(head).attrinfo()
+                attributes["general"] = {key: data.attrinfo()[key][2] for key in data.attrinfo()} # data.attrinfo()
                 data = numpy.array(data[:])
                 data = Table(data[:], header, attributes)
         elif self.tag == pyhdf.HDF.HC.DFTAG_NDG:
@@ -345,7 +355,7 @@ class Representative():
             allattr = self.data.attributes()
         elif self.tag == pyhdf.HDF.HC.DFTAG_VH:
             try:
-                allattr = self.data.attribute
+                allattr = self.data.attributes
             except:
                 allattr = {}
         return allattr
