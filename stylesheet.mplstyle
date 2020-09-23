@@ -30,4 +30,4 @@ grid.alpha: 0.8
 figure.facecolor: dimgray
 figure.edgecolor: gray
 image.cmap: gist_earth
-savefig.dpi: 100
+savefig.dpi: 300

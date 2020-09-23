@@ -116,7 +116,10 @@ class MplCanvas(FigureCanvasQTAgg):
         except AttributeError:
             pass
         try:
-            self.im = self.axes.pcolormesh(x.datavalue, y.datavalue, z.datavalue)
+            if z.datavalue.ndim == 1:
+                self.im = self.axes.scatter(x.datavalue, y.datavalue, c=z.datavalue)
+            else:
+                self.im = self.axes.pcolormesh(x.datavalue, y.datavalue, z.datavalue)
         except Exception as exc1:
             try:
                 self.im = self.axes.pcolormesh(x.datavalue, y.datavalue, z.datavalue.T)
