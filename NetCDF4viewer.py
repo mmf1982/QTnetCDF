@@ -7,7 +7,7 @@ from PyQt5 import QtCore
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QKeySequence
 from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWindow, QDockWidget,
                              QTableView, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
-                             QSlider, QLabel, QStatusBar, QStyleFactory)
+                             QSlider, QLabel, QStatusBar, QStyleFactory, QToolButton)
 import numpy as np
 
 try:
@@ -121,6 +121,25 @@ class MyQTreeView(QTreeView):
                 self.master.mdata.yerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
             elif event.text() == "e":
                 self.master.mdata.xerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
+            elif event.text() == "m":
+                if self.master.mdata.misc.datavalue is None:
+                    self.master.mdata.misc.set(squeeze(current_pointer.mdata[:].astype("float")), current_pointer.mdata.name)
+                else:
+                    try:
+                        if "+" in self.master.mdata.misc_op:
+                            mdata = self.master.mdata.misc.datavalue + squeeze(current_pointer.mdata[:])
+                        elif "-" in self.master.mdata.misc_op:
+                            mdata = self.master.mdata.misc.datavalue - squeeze(current_pointer.mdata[:])
+                        elif "/" in self.master.mdata.misc_op:
+                            mdata = self.master.mdata.misc.datavalue / squeeze(current_pointer.mdata[:])
+                        elif "*" in self.master.mdata.misc_op:
+                            mdata = self.master.mdata.misc.datavalue * squeeze(current_pointer.mdata[:])
+                        mname = self.master.mdata.misc.name_value + self.master.mdata.misc_op + current_pointer.mdata.name
+                        self.master.mdata.misc.set(mdata, mname)
+                    except ValueError as verr:
+                        HelpWindow(self, "likely dimensions that don't fit together: " + str(verr))
+                    except Exception as exc:
+                        print(exc)
         except TypeError:
             HelpWindow(self.master, "likely you clicked a group and pressed x, y, u or e. \n"
                                     "On groups, only d works to show details.")
@@ -326,6 +345,28 @@ class MyQTableView(QTableView):
                 self.master.mdata.xerr.set(self.currentData, " ".join([self.model().name, self.curridx]))
             elif event.text() == "+":
                 print("adding up ", " ".join([self.model().name, self.curridx]), nansum(self.currentData))
+            elif event.text() == "m":
+                mdata = self.currentData
+                mname = " ".join([self.model().name, self.curridx])
+                if self.master.mdata.misc.datavalue is None:
+                    self.master.mdata.misc.set(squeeze(mdata), mname)
+                else:
+                    try:
+                        print(self.master.mdata.misc_op)
+                        if "+" in self.master.mdata.misc_op:
+                            mdata = self.master.mdata.misc.datavalue + mdata
+                        elif "-" in self.master.mdata.misc_op:
+                            mdata = self.master.mdata.misc.datavalue - mdata
+                        elif "/" in self.master.mdata.misc_op:
+                            mdata = self.master.mdata.misc.datavalue / mdata
+                        elif "*" in self.master.mdata.misc_op:
+                            mdata = self.master.mdata.misc.datavalue * mdata
+                        mname = self.master.mdata.misc.name_value + self.master.mdata.misc_op + mname
+                        self.master.mdata.misc.set(mdata, mname)
+                    except ValueError as verr:
+                        HelpWindow(self, "likely dimensions that don't fit together: " + str(verr))
+                    except Exception as exc:
+                        print(exc)
         except TypeError:
             HelpWindow(self, "You need to 'select' a row(s) or column(s) first.\n"
                              "When you 'release' you have to be ontop of the header as well\n"
@@ -417,9 +458,10 @@ class Data(object):
     """
 
     def __init__(self, **kwargs):
-        for key in ["x", "y", "z", "xerr", "yerr"]:  # , "mask"]:
+        for key in ["x", "y", "z", "xerr", "yerr", "misc"]:  # , "mask"]:
             setattr(self, key, MyQLabel(key, None))
         self.__dict__.update(kwargs)
+        self.misc_op = "+"
 
 
 class MyQLabel(QLabel):
@@ -577,11 +619,88 @@ class App(QMainWindow):
             self.plot_buttons = self.plotarea_layout()
         layout.addWidget(self.plot_buttons)
         showtext = QWidget()
-        showtext_layout = QVBoxLayout()
+        showall = QWidget()
+        misc_widget = QWidget()
+        misc_layout = QHBoxLayout()
+        showall_layout = QVBoxLayout()
+        showall_layout.addWidget(showtext)
+        showtext_layout = QHBoxLayout()
+        layout_xyz = QVBoxLayout()
+        layout_errs = QVBoxLayout()
+        xyz = QWidget()
+        errs = QWidget()
         for entr in self.mdata.__dict__.keys():
-            showtext_layout.addWidget(self.mdata.__dict__[entr])
+            if "misc_op" not in entr:
+                if "err" in entr:
+                    layout_errs.addWidget(self.mdata.__dict__[entr])
+                elif len(entr) == 1:
+                    layout_xyz.addWidget(self.mdata.__dict__[entr])
+                else:
+                    misc_layout.addWidget(self.mdata.__dict__[entr])
+        for el in ["+", "-", "/", "*"]:
+            button = QPushButton(el)
+            width = button.fontMetrics().boundingRect(el).width() + 4
+            button.setMaximumWidth(width)
+            misc_layout.addWidget(button)
+            def func(el):
+                self.mdata.misc_op = el
+            button.clicked.connect(lambda state, x=el: func(x))
+        for use_as in ["use_as_x", "use_as_y", "use_as_z"]:
+            button = QPushButton(use_as)
+            width = button.fontMetrics().boundingRect(use_as).width() + 8
+            button.setMaximumWidth(width)
+            misc_layout.addWidget(button)
+            def funcxyz(which):
+                val = self.mdata.misc.datavalue
+                name = self.mdata.misc.name_value
+                if "x" in which:
+                    self.mdata.x.set(val, name)
+                elif "y" in which:
+                    self.mdata.y.set(val, name)
+                elif "z" in which:
+                    self.mdata.z.set(val, name)
+            button.clicked.connect(lambda state, w=use_as: funcxyz(w))
+        button = QPushButton("plot misc")
+        width = button.fontMetrics().boundingRect(use_as).width() + 12
+        button.setMaximumWidth(width)
+        misc_layout.addWidget(button)
+        def plotmisc():
+            if self.mdata.misc.datavalue.ndim >= 3:
+                temp = Fast3D(self.mdata.misc.datavalue,
+                parent=self, **self.config["Startingsize"]["3Dplot"],
+                mname=self.mdata.misc.name_value, filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
+                self.openplots.append(temp)
+            elif self.mdata.misc.datavalue.ndim == 2:
+                temp = Fast2D(self.mdata.misc.datavalue,
+                    parent=self, **self.config["Startingsize"]["2Dplot"],
+                    mname=self.mdata.misc.name_value, filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
+                self.openplots.append(temp)
+            elif self.mdata.misc.datavalue.ndim == 1:
+                mdata = Data()
+                mdata.x.set(arange(len(self.mdata.misc.datavalue)), "index")
+                mdata.y.set(self.mdata.misc.datavalue, self.mdata.misc.name_value)
+                if self.holdon:
+                    self.active1D.update_plot(mdata)
+                else:
+                    temp = Fast1D(
+                        mdata, **self.config["Startingsize"]["1Dplot"], mname=self.mdata.misc.name_value, filename=self.name,
+                        dark=self.dark, plotscheme=self.plotscheme)
+                    self.active1D = temp
+                    self.openplots.append(temp)
+            
+            
+            
+        button.clicked.connect(plotmisc)
+        #plus_button.resize(plus_button.sizeHint().width(), plus_button.sizeHint().height())
+        misc_widget.setLayout(misc_layout)
+        showall_layout.addWidget(misc_widget)
+        xyz.setLayout(layout_xyz)
+        errs.setLayout(layout_errs)
+        showtext_layout.addWidget(xyz)
+        showtext_layout.addWidget(errs)
         showtext.setLayout(showtext_layout)
-        layout.addWidget(showtext)
+        showall.setLayout(showall_layout)
+        layout.addWidget(showall)
         mainwidget.setLayout(layout)
         self.setCentralWidget(mainwidget)
         # self.view.header().setResizeMode(QHeaderView.ResizeToContents)

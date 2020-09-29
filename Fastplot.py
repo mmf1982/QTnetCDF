@@ -154,7 +154,6 @@ class DataChooser(QWidget):
         layout5 = QVBoxLayout()
         self.is3d = is3d
         self.is4d = is4d
-        print(self.is4d)
         slicings = QWidget()
         layout2 = QVBoxLayout()
         if is3d:
