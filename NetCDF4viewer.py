@@ -29,6 +29,7 @@ except:
 
 from numpy import array, arange, squeeze, nansum
 
+CONFIGPATH = ""
 
 class Pointer(QStandardItem):
     """
@@ -471,8 +472,8 @@ class App(QMainWindow):
         self.active1D = None
         self.openplots = []
         self.plotaeralayout = None
-        here = os.path.dirname(os.path.abspath(__file__))
-        with open(os.path.join(here, "config.yml")) as fid:
+        # here = os.path.dirname(os.path.abspath(__file__))
+        with open(CONFIGPATH) as fid:
             self.config = yaml.load(fid, yaml.Loader)
         if "Colors" in self.config.keys():
             reset_colors(self.config["Colors"])
@@ -762,12 +763,18 @@ class App(QMainWindow):
 
 
 def main(myfile):
+    global CONFIGPATH
+    if myfile[0][0] == "-":
+        CONFIGPATH = myfile[0][1:]
+        myfile = myfile[1:]
+    else:
+        here = os.path.dirname(os.path.abspath(__file__))
+        CONFIGPATH = os.path.join(here, "config.yml")
     name = os.path.basename(myfile[0])
     my_graphics = QApplication([name])
     # my_graphics.setStyle("Fusion")   .setStyleSheet("QWidget{font-size:30px;}");
     # my_graphics.setStyle(QStyleFactory.create('Cleanlooks'))
-    here = os.path.dirname(os.path.abspath(__file__))
-    with open(os.path.join(here, "config.yml")) as fid:
+    with open(CONFIGPATH) as fid:
         config = yaml.load(fid, yaml.Loader)
     new_font = my_graphics.font()
     new_font.setPointSize(config["Startingsize"]["Fontsize"])
