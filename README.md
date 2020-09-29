@@ -7,7 +7,7 @@ Download for example a h5/ hdf/ nc file from here: https://hdfeos.org/zoo/index_
 call as 
 
     python3.7 -m NetCDF4viewer whatever_is_your_test_filename.nc_or_hdf_or_h5_or_hdf4
-  
+
   In the file representation that opens, a click on the triangle infront of a group (or main file level), opens the group.
   The following keys are activated on the tree:
   * double click on variable: plot Supported are 1D, 2D and 3D variables.
@@ -17,63 +17,65 @@ call as
   * "y" data set as y for line plot
   * "e" data set as error on x for line plot
   * "u" data set as error on y for line plot
-  
+
   ## Plotting
-  
-  The main thing about this tool is the plotting, you can do line plots or image plots.
-  
+
+  The main thing about this tool is the plotting, you can do line/ marker plots, image or pcolormesh or scatter plots.
+
   ### 1D plotting
-  
+
   If a variable is 1D, a double click will automatically plot it over its index. However, x, y, xerr and yerr can also be set. Either as a 1D variable as described above, or from the table view (after "s" on a 0, 1, 2 or 3D variable) on which the following keys are activated: 
-  
+
   * "x" data set as x for line plot
   * "y" data set as y for line plot
   * "e" data set as error on x for line plot
   * "u" data set as error on y for line plot
-  
-  In the table, multiple rows or columns can be selected for y or x (but not both). If so, yerr (or xerr) is ignored. If only x or only y is selected, that variable is plotted as a function of its index. 
-  
+
+  In the table, multiple rows or columns can be selected for y or x (but not both). If so, yerr (or xerr) is ignored. If only x or only y is selected, that variable is plotted as a function of its index.
+
   To remove any of x, y, xerr or yerr, click on its name below the "hold" and "plot" buttons.
   Buttons:
-  
-  * "hold" --> "release" to keep plotting in same window or to open a new. If there is no current window, "plot" has no effect if hold button shows "release". 
-  * "plot line" to plot current selection of x, y, xerr and yerr
-  * "plot symbol" to plot current selection of x  and y with symbols, no line. If no key is pressed, the symbol is ".". Supported keys: .o+xv^<>123hHdp 
- 
- The plots support the usual matplotlib shortcuts (l,k,L,  g,G,...) and the QT backend possibility to change the axes. However, if the line style is changed, there are currently some inconsistences with the legend (if add_interactivity is used in conjunction). 
- 
- Line plots also have some of the functionality from add_interactivity (if it is installed), namely:
- 
- * left click a line to toggle
- * right click a line to bring it to front
- * left click a line while arrow up to make line thicker, arrow down to make it thinner
+
+  * "hold" --> "release" to keep plotting in same window or to open a new. If there is no current window, "plot" has no effect if hold button shows "release".
+  * "plot line" to plot current selection of x, y, xerr and yerr with lines.
+  * "plot symbol" to plot current selection of x  and y with symbols, no line. If no key is pressed, the symbol is ".". Supported keys: .o+xv^<>123hHdp (they have their usual matplotlib marker interpretation).
+
+ The plots support the usual matplotlib shortcuts (l,k,L,  g,G,...) and the QT backend possibility to change the axes and lines. However, if the line style is changed, there are currently some inconsistences with the legend (if add_interactivity is used in conjunction).
+
+ Line/ marker plots also have some of the functionality from add_interactivity (if it is installed), namely:
+
+ * left click a line/ marker to toggle
+ * right click a line/ marker to bring it to front
+ * left click a line/ marker while arrow up to make line thicker (marker larger), arrow down to make it thinner (marker smaller).
  * left click legend while arrow left: make legend text smaller, right arrow to make it bigger
- 
+
  ### 2D and 3D plotting
- 
+
  Currently, only 2D, 3D or 4D variables can be plotted by directly clicking on them in the TreeView.
- 
- 2D/ 3D/ 4D plots have the usual QT possibility of changing color map and limits. There is now also a "plot log" which converts the data to log. x, y axis can be converted to log with "k" and "l", as usual. 
- 
+
+ 2D/ 3D/ 4D plots have the usual QT possibility of changing color map and limits. There is now also a "plot log" which converts the data to log. x, y axis can be converted to log with "k" and "l", as usual.
+
  For 3D plots, you can slice along x, y or z and use the "+" and "-" buttons to go forward or backward in the file.
- 
- While 4D plots are implemented (there are two slicers now, the upper one always have to be at a "higher" axis than the upper, default is first is 0, second is 1), it's use is discouraged since the whole 4D variable is loaded at once and the
- program might get really slow or even unresponsive. 
- 
+
+ While 4D plots are implemented (there are two slicers now, the upper one always has to be at a "higher" axis than the lower, default is first is 0, second is 1), it's use is discouraged since the whole 4D variable is loaded at once and the program might get really slow or even unresponsive.
+
  For 2D plotting, instead of simple image plot (via double click), x and y axis can be set (with "x" and "y", see above) and then the z data can be set via "z".
- Here, x and y can be 1 or two dimensional. If they are 1 dimensional and do not fit the data, the z data is transposed to
- try if the fit that way. A warning is displayed. You need to press either of the two "plot" buttons.
- 
- The 2D plotting with x, y and z also supports all 3 variables as 1D. In this case, a scatter plot is attempted. 
- 
+ Here, x and y can be 1 or 2 dimensional (but they have to be consistent, i.e. if x is 1D, y has to be 1D, too). If they are 1 dimensional and do not fit the data, the z data is transposed to
+ try if the data fits that way. A warning is displayed. You need to press either of the two "plot" buttons, there is no difference between them for 2D plots.
+
+ The 2D plotting with x, y and z also supports all 3 variables as 1D. In this case, a scatter plot is attempted.
+
  # Crashes
- 
+
  Currently, the program might be a bit debil, it crashes:
  * currently no know crashes, please report and send the example file.
 
  # other functionality
 
  * In table view, if a row(s) or column(s) is selected and "+" is pressed, the row or column is summed and the value printed in the terminal
+ * Two (or more) files can be opened at the same time (passing more than one file path as command line argument, separated by a space). In that case, the window of the first file has an extra button (to the left of the "plot symbol" button), called "broadcast plot". If a 1D plot is performed from that window, and then the "broadcast plot" button is pushed, that same plot window becomes visible by the other windows (from the other open files). If you press the "hold" button in the other open window, the plot will be carried out in that very same plot window. 
+
+ This is useful if you have 2 versions of supposedly the same data, processed slightly differently. This allows you to easily plot both together in one figure.
 
 # Configure
 The tool comes with a config.yml file which is located in the same folder as the python programs. Here, default settings for
@@ -94,9 +96,9 @@ If this is desired, the path (including file name) needs to be passed as first a
 preceded by a "-" without a space:
 
     python3.7 -m NetCDF4viewer -/home/your_home/path_to/config.yml path/to_your/ncfile.nc
- 
- 
+
+
  # Nice to have, not implemented yet:
  I collect some ideas here for implementation. Please contact me if you have more suggestions.
  * Doing simple manipulations on the data before plotting, such ass adding/ subtracting...
-  
+

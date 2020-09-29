@@ -31,6 +31,9 @@ from numpy import array, arange, squeeze, nansum
 
 CONFIGPATH = ""
 
+__version__ = "1.0.0"
+__author__ = "Martina M. Friedrich"
+
 class Pointer(QStandardItem):
     """
     class to add underlying data to an item in treeview
