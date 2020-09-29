@@ -7,7 +7,7 @@ from PyQt5 import QtCore
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QKeySequence
 from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWindow, QDockWidget,
                              QTableView, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
-                             QSlider, QLabel, QStatusBar)
+                             QSlider, QLabel, QStatusBar, QStyleFactory)
 import numpy as np
 
 try:
@@ -621,7 +621,7 @@ class App(QMainWindow):
     def get_data(self, signal):
         try:
             mydata = np.squeeze(self.model.itemFromIndex(signal).mdata[:])
-            if mydata.ndim < 4:
+            if mydata.ndim < 5:
                 thisdata = self.model.itemFromIndex(signal).mdata
             else:
                 print("dimensionality of data is too big. Not yet implemented.")
@@ -637,7 +637,7 @@ class App(QMainWindow):
         except TypeError:
             HelpWindow(self, "It seems that there is no data.... maybe only attributes?")
             return
-        if mydata.ndim == 3:
+        if mydata.ndim >= 3:
             temp = Fast3D(
                 mydata, parent=self, **self.config["Startingsize"]["3Dplot"],
                 mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
@@ -764,6 +764,15 @@ class App(QMainWindow):
 def main(myfile):
     name = os.path.basename(myfile[0])
     my_graphics = QApplication([name])
+    # my_graphics.setStyle("Fusion")   .setStyleSheet("QWidget{font-size:30px;}");
+    # my_graphics.setStyle(QStyleFactory.create('Cleanlooks'))
+    here = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(here, "config.yml")) as fid:
+        config = yaml.load(fid, yaml.Loader)
+    new_font = my_graphics.font()
+    new_font.setPointSize(config["Startingsize"]["Fontsize"])
+    my_graphics.setFont(new_font)
+    #my_graphics.setStyleSheet(os.path.join(here, "qt_stylesheet.css"))
     main = App2(myfile)
     sys.exit(my_graphics.exec_())
 

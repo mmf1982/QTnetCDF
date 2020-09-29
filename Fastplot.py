@@ -148,16 +148,17 @@ class MplCanvas(FigureCanvasQTAgg):
 
 
 class DataChooser(QWidget):
-    def __init__(self, parent, is3d=True, **kwargs):
+    def __init__(self, parent, is3d=True, is4d=False, **kwargs):
         super().__init__(**kwargs)
         layout4 = QHBoxLayout()
         layout5 = QVBoxLayout()
         self.is3d = is3d
+        self.is4d = is4d
+        print(self.is4d)
         slicings = QWidget()
         layout2 = QVBoxLayout()
         if is3d:
             self.slice_label = QLabel("slice = 0" + "/ 0-" + str(parent.shape[0] - 1))
-        if is3d:
             self.active_index = 0
             self.active_dimension = 0
             self.frozen = False
@@ -172,15 +173,42 @@ class DataChooser(QWidget):
             buttons.setLayout(layout)
             layout2.addWidget(buttons, alignment=Qt.AlignVCenter)
             layout2.addWidget(self.slice_label, alignment=Qt.AlignHCenter)
+        if is4d:
+            layoutb = QHBoxLayout()
+            self.slice_label2 = QLabel("slice = 0" + "/ 0-" + str(parent.shape[0] - 1))
+            self.active_index2 = 0
+            self.active_dimension2 = 1
+            plus2 = QPushButton('+')
+            minus2 = QPushButton('-')
+            plus2.clicked.connect(self.on_plus2)
+            minus2.clicked.connect(self.on_minus2)
+            layoutb.addWidget(minus2)
+            layoutb.addWidget(plus2)
+            buttons2 = QWidget()
+            buttons2.setLayout(layoutb)
+            layout2.addWidget(buttons2, alignment=Qt.AlignVCenter)
+            layout2.addWidget(self.slice_label2, alignment=Qt.AlignHCenter)
+        if is3d:
             slicings.setLayout(layout2)
             layout3 = QVBoxLayout()
             slider = QSlider(Qt.Horizontal)
             self.dim_label = QLabel("dim = 0")
+        if is4d:
+            slider.setRange(0, len(parent.shape) - 2)
+        if is3d:
             slider.setRange(0, len(parent.shape) - 1)
             slider.valueChanged.connect(self.update_dim_label)
             dimensions = QWidget()
             layout3.addWidget(slider, alignment=Qt.AlignVCenter)
             layout3.addWidget(self.dim_label, alignment=Qt.AlignHCenter)
+        if is4d:
+            slider2 = QSlider(Qt.Horizontal)
+            self.dim_label2 = QLabel("dim = 1")
+            slider2.setRange(1,len(parent.shape)-1)
+            slider2.valueChanged.connect(self.update_dim_label2)
+            layout3.addWidget(slider2, alignment=Qt.AlignVCenter)
+            layout3.addWidget(self.dim_label2, alignment=Qt.AlignHCenter)
+        if is3d:
             dimensions.setLayout(layout3)
             self.freeze_button = QPushButton('keep settings')
             self.freeze_button.clicked.connect(self.on_freeze)
@@ -205,11 +233,21 @@ class DataChooser(QWidget):
             self.is_log = True
             self.log_button.setText("put lin")
         if self.is3d:
-            worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
-            if not worked:
-                self.is_log = False
-                self.log_button.setText("put log")
+            if self.is4d:
+                worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log,
+                                                  idx2=self.active_index2, dim2=self.active_dimension2)
+                if not worked:
+                    self.is_log = False
+                    self.log_button.setText("put log")
+                    worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen,
+                                                      self.is_log,
+                                                      idx2=self.active_index2, dim2=self.active_dimension2)
+            else:
                 worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
+                if not worked:
+                    self.is_log = False
+                    self.log_button.setText("put log")
+                    worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
         else:
             worked = self.mparent.update_plot(self.is_log)
             if not worked:
@@ -226,11 +264,20 @@ class DataChooser(QWidget):
             else:
                 self.frozen = True
                 self.freeze_button.setText("      release      ")
-            worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
-            if not worked:
-                self.is_log = False
-                self.log_button.setText("put log")
+            if self.is4d:
+                worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log,
+                                                  idx2=self.active_index2, dim2=self.active_dimension2)
+                if not worked:
+                    self.is_log = False
+                    self.log_button.setText("put log")
+                    worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log,
+                                                  idx2=self.active_index2, dim2=self.active_dimension2)
+            else:
                 worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
+                if not worked:
+                    self.is_log = False
+                    self.log_button.setText("put log")
+                    worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
 
     def update_dim_label(self, value):
         if self.is3d:
@@ -238,6 +285,12 @@ class DataChooser(QWidget):
             self.update_slice()
             self.dim_label.setText("dim = " + str(value))
             self.slice_label.setText("slice = "+(str(self.active_index)) + "/ 0-" + str(self.mparent.shape[value] - 1))
+
+    def update_dim_label2(self, value):
+            self.active_dimension2 = value
+            self.update_slice()
+            self.dim_label2.setText("dim = " + str(value))
+            self.slice_label2.setText("slice = "+(str(self.active_index2)) + "/ 0-" + str(self.mparent.shape[value] - 1))
 
     def on_minus(self):
         if self.is3d:
@@ -248,6 +301,14 @@ class DataChooser(QWidget):
                 self.active_index = -1
             self.update_slice()
 
+    def on_minus2(self):
+        mymax = self.mparent.shape[self.active_dimension2]
+        if self.active_index2 > -mymax:
+            self.active_index2 -= 1
+        else:
+            self.active_index2 = -1
+        self.update_slice()
+
     def on_plus(self):
         if self.is3d:
             mymax = self.mparent.shape[self.active_dimension]
@@ -257,15 +318,36 @@ class DataChooser(QWidget):
                 self.active_index = 0
             self.update_slice()
 
+    def on_plus2(self):
+        if self.is4d:
+            mymax = self.mparent.shape[self.active_dimension2]
+            if self.active_index2 < mymax - 1:
+                self.active_index2 += 1
+            else:
+                self.active_index2 = 0
+            self.update_slice()
+
     def update_slice(self):
         if self.is3d:
-            worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
-            if not worked:
-                self.is_log = False
-                self.log_button.setText("put log")
+            if not self.is4d:
                 worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
-            self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(self.mparent.shape[self.active_dimension]-1))
-
+                if not worked:
+                    self.is_log = False
+                    self.log_button.setText("put log")
+                    worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
+                self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(self.mparent.shape[self.active_dimension]-1))
+            else:
+                worked = self.mparent.update_plot(self.active_index, self.active_dimension,
+                                                      self.frozen, self.is_log, idx2=self.active_index2,
+                                                      dim2=self.active_dimension2)
+                if not worked:
+                    self.is_log = False
+                    self.log_button.setText("put log")
+                    worked = self.mparent.update_plot(self.active_index, self.active_dimension,
+                                                      self.frozen, self.is_log, idx2=self.active_index2,
+                                                      dim2=self.active_dimension2)
+                self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(self.mparent.shape[self.active_dimension]-1))
+                self.slice_label2.setText("slice = " + str(self.active_index2) + "/ 0-" + str(self.mparent.shape[self.active_dimension2]-1))
 
 class Fast2D(QMainWindow):
     def __init__(self, mydata,  parent=None, mname=None, filename=None, dark=False, **kwargs):
@@ -398,20 +480,29 @@ class Fast1D(QMainWindow):
 
 class Fast3D(QMainWindow):
     def __init__(self, mydata, parent=None, mname=None, filename=None, dark=False, **kwargs):
+        print("here")
+        if mydata.ndim == 4:
+            self.is4d = True
+            print("is 4D")
+        else:
+            self.is4d = False
         super(Fast3D, self).__init__(parent)
         if mname is None:
             mname = '3D Viewer'
         self.setWindowTitle(mname)
         # self.setWindowIcon(QIcon("web.png"))
-        if mydata.ndim == 3:
+        if mydata.ndim <= 4:
             self.mydata = mydata
             try:
                 self.shape = mydata.shape
             except Exception as exc:
                 print(exc)
             self.myfigure = MplCanvas(parent=self, **kwargs)
-            self.my_slider = DataChooser(self)
-            self.update_plot(0, 0)
+            self.my_slider = DataChooser(self, is4d=self.is4d)
+            if self.is4d:
+                self.update_plot(0, 0, idx2=0, dim2=1)
+            else:
+                self.update_plot(0, 0)
             self.mainwindow = QWidget()
             self.layout = QVBoxLayout()
             self.layout.addWidget(self.myfigure.toolbar)
@@ -425,7 +516,7 @@ class Fast3D(QMainWindow):
                 self.statusbar.showMessage(filename)
                 self.setStatusBar(self.statusbar)
             self.show()
-        elif mydata.ndim > 3:
+        elif mydata.ndim > 4:
             messagebox = QMessageBox()
             messagebox.addButton(QMessageBox.Yes)
             reply = messagebox.exec_()
@@ -437,7 +528,7 @@ class Fast3D(QMainWindow):
             self.palette = QDarkPalette()
             self.setPalette(self.palette)
 
-    def update_plot(self, index, dimension, hold_it=False, is_log=False):
+    def update_plot(self, index, dimension, hold_it=False, is_log=False, idx2=None, dim2=None):
         """
         :param index: integer
         :param dimension:
@@ -456,6 +547,27 @@ class Fast3D(QMainWindow):
         except (IndexError):
             HelpWindow(self, "It seems you chose an index that does not exist. Maybe you changed slicing at high index")
             return False
+        if dim2 is not None:
+            if dim2 <= dimension:
+                print(dim2, dimension)
+                print("you have to choose the second dimension larger than the first.")
+                return False
+            try:
+                print("current choice: dim1", dimension, " slice idx ", index)
+                print("              : dim2", dim2, " slice idx2 ", idx2)
+                if dim2 == 1:
+                    newdata = newdata[idx2]
+                elif dim2 == 2:
+                    newdata = newdata[:, idx2, :]
+                elif dim2 == 3:
+                    newdata = newdata[:, :, idx2]
+                else:
+                    raise ValueError("dimensionality is too high")
+            except (IndexError):
+                HelpWindow(self,
+                           "It seems you chose an index that does not exist. Maybe you changed slicing at high index")
+                return False
+
         if hold_it:
             self.myfigure.image(newdata, self.myfigure.get_axis_values)
             if is_log:

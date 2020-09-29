@@ -1,6 +1,6 @@
 Headers:  # in pixels
   Table:
-    name: 800
+    name: 700
     ndim: 30
     shape: 100
     dimensions: 200
@@ -14,9 +14,10 @@ Headers:  # in pixels
     Date Modified: 140
 
 Startingsize:
+  Fontsize: 13
   Mainwindow:  # in pixels,
-    width: 1800  # should be equal or larger than sum of Headers
-    height: 800
+    width: 1600  # should be equal or larger than sum of Headers
+    height: 600
   2Dplot:  # in inches
     width: 5
     height: 5
@@ -41,9 +42,9 @@ Tableview:
 # not necessarily needed. One can set the colorscheme for the app and for the plots here. The
 # plots can be configured with the normal rc file in matplotlib, or with standard matplotlib style sheets.
 Colorscheme:
-  App: dark   # dark, light
-  plots: [stylesheet.mplstyle] #seaborn-ticks, classic, Solarize_Light2, dark_background] #, seaborn-colorblind]
-  #plots: dark_background
+  App: light #dark   # dark, light
+  # plots: [stylesheet.mplstyle] #seaborn-ticks, classic, Solarize_Light2, dark_background] #, seaborn-colorblind]
+  # plots: dark_background
   # any combination from plt.style.available, check also here:
   # https://matplotlib.org/3.2.1/gallery/style_sheets/style_sheets_reference.html
   # if an own file is set, this needs to be last and located in the same folder as app
