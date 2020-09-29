@@ -5,7 +5,8 @@ Can open netCDF4, hdf5 and hdf4 files. For hdf4 files, it tries to remove the vd
 Download for example a h5/ hdf/ nc file from here: https://hdfeos.org/zoo/index_openNSIDC_Examples.php  
 
 call as 
-  python3.7 -m NetCDF4viewer whatever_is_your_test_filename.nc_or_hdf_or_h5_or_hdf4
+
+    python3.7 -m NetCDF4viewer whatever_is_your_test_filename.nc_or_hdf_or_h5_or_hdf4
   
   In the file representation that opens, a click on the triangle infront of a group (or main file level), opens the group.
   The following keys are activated on the tree:
@@ -50,24 +51,50 @@ call as
  
  ### 2D and 3D plotting
  
- Currently, only 2D or 3D variables can be plotted by directly clicking on them in the TreeView.
+ Currently, only 2D, 3D or 4D variables can be plotted by directly clicking on them in the TreeView.
  
- 2D/ 3D plots have the usual QT possibility of changing color map and limits. There is now also a "plot log" which converts the data to log. x, y axis can be converted to log with "k" and "l", as usual. 
+ 2D/ 3D/ 4D plots have the usual QT possibility of changing color map and limits. There is now also a "plot log" which converts the data to log. x, y axis can be converted to log with "k" and "l", as usual. 
  
  For 3D plots, you can slice along x, y or z and use the "+" and "-" buttons to go forward or backward in the file.
  
- ## Crashes
+ While 4D plots are implemented (there are two slicers now, the upper one always have to be at a "higher" axis than the upper, default is first is 0, second is 1), it's use is discouraged since the whole 4D variable is loaded at once and the
+ program might get really slow or even unresponsive. 
  
- Currently, the program is a bit debil, it crashes:
+ For 2D plotting, instead of simple image plot (via double click), x and y axis can be set (with "x" and "y", see above) and then the z data can be set via "z".
+ Here, x and y can be 1 or two dimensional. If they are 1 dimensional and do not fit the data, the z data is transposed to
+ try if the fit that way. A warning is displayed. You need to press either of the two "plot" buttons.
+ 
+ The 2D plotting with x, y and z also supports all 3 variables as 1D. In this case, a scatter plot is attempted. 
+ 
+ # Crashes
+ 
+ Currently, the program might be a bit debil, it crashes:
  * currently no know crashes, please report and send the example file.
 
- ## other functionality
+ # other functionality
 
  * In table view, if a row(s) or column(s) is selected and "+" is pressed, the row or column is summed and the value printed in the terminal
 
+# Configure
+The tool comes with a config.yml file which is located in the same folder as the python programs. Here, default settings for
+the window sizes (main window and plot windows) can be set. 
 
+The width of the table headers (name, dimension, etc.) can also
+be specified there. By default, no color scheme is used, default settings are used. One can change Colorscheme:
+  App: dark (from light) to use a dark colour scheme. The actual settings of the colors used ("white", "black", etc) can also
+be changed in the configuration file. For the plotting, any of the standard matplotlib styles (see 
+also https://matplotlib.org/3.2.1/gallery/style_sheets/style_sheets_reference.html) can be set, or a combination. However, it
+is also possible to set your own stylesheet.mplstyle. The tools comes with an example. A complete file path to your standard
+setup file can be provided here. 
+
+It is possible to supply a different config.yml at start-up via the command line:
+If this is desired, the path (including file name) needs to be passed as first argument (so before the first file to open)
+preceded by a "-" without a space:
+
+    python3.7 -m NetCDF4viewer -/home/your_home/path_to/config.yml path/to_your/ncfile.nc
  
  
- 
-  
+ # Nice to have, not implemented yet:
+ I collect some ideas here for implementation. Please contact me if you have more suggestions.
+ * Doing simple manipulations on the data before plotting, such ass adding/ subtracting...
   
