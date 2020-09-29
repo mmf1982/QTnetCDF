@@ -85,9 +85,11 @@ be specified there. By default, no color scheme is used, default settings are us
 be changed in the configuration file. For the plotting, any of the standard matplotlib styles (see 
 also https://matplotlib.org/3.2.1/gallery/style_sheets/style_sheets_reference.html) can be set, or a combination. However, it
 is also possible to set your own stylesheet.mplstyle. The tools comes with an example. A complete file path to your standard
-setup file can be provided here. 
+setup file can be provided here, too: Colorscheme: Plots:
 
-It is possible to supply a different config.yml at start-up via the command line:
+See here: https://matplotlib.org/3.1.3/tutorials/introductory/customizing.html for options to put in your stylesheet.
+
+It is possible to supply a different config.yml at start-up via the command line.
 If this is desired, the path (including file name) needs to be passed as first argument (so before the first file to open)
 preceded by a "-" without a space:
 
