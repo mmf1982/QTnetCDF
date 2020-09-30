@@ -7,9 +7,8 @@ from PyQt5 import QtCore
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QKeySequence
 from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWindow, QDockWidget,
                              QTableView, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
-                             QSlider, QLabel, QStatusBar, QStyleFactory, QToolButton)
+                             QSlider, QLabel, QStatusBar, QStyleFactory, QToolButton, QLineEdit)
 import numpy as np
-
 try:
     from .Fastplot import Fast3D, Fast2D, Fast1D
 except (ImportError, ModuleNotFoundError):
@@ -191,6 +190,8 @@ class MyTable(QWidget):
         self.table = MyQTableView(self.master)
         self.c_idx = 0
         self.c_dim = 0
+        self.c_idx2 = 0
+        self.c_dim2 = 1
         try:
             self.maxidxs = data.mdata[:].shape
         except (AttributeError, IndexError):
@@ -201,7 +202,9 @@ class MyTable(QWidget):
             return
         self.diminfo = None
         self.sliceinfo = None
-        self.all_data = data.mdata
+        self.diminfo2 = None
+        self.slcieinfo2 = None
+        self.all_data = squeeze(data.mdata)
         self.make_design()
         self.update_table()
 
@@ -210,39 +213,112 @@ class MyTable(QWidget):
         Function to setup the layout of the table. If data is 3D, I need data selection options. Otherwise not.
         """
         table_layout = QHBoxLayout()
-        table_layout.addWidget(self.table)
+        table_layout.addWidget(self.table, 2)
         try:
             ndim = self.all_data.ndim
         except AttributeError:
             ndim = 1
-        if ndim == 3:
-            data_selection = QWidget()
-            data_selection_layout = QVBoxLayout()
-            slicer_area = QWidget()
-            slicer_layout = QHBoxLayout()
-            slicer = QSlider()
+        if ndim >= 3:
+            choose_area = QWidget()
+            choose_area_layout = QVBoxLayout()
+            data_selection = self.make_slicer_layout()
+            choose_area_layout.addWidget(data_selection)
+            choose_area.setLayout(choose_area_layout)
+            table_layout.addWidget(choose_area)
+        if ndim == 4:
+            data_selection = self.make_slicer_layout(1)
+            choose_area_layout.addWidget(data_selection)
+        elif ndim >=5:
+            HelpWindow(self, "dimensionality of the data is too big, data cannot be displayed in a table")
+        self.setLayout(table_layout)
+
+    def make_slicer_layout(self, number=0):
+        # areas and layouts
+        data_selection = QWidget()
+        data_selection.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        data_selection_layout = QHBoxLayout()
+        slicer_area = QWidget()
+        slicer_layout = QHBoxLayout()
+        display_area = QWidget()
+        display_layout = QVBoxLayout()
+        entry_area = QWidget()
+        entry_layout = QVBoxLayout()
+        # objects
+        slicer = QSlider()
+        entry_label = QLabel("slice:")
+        entry_layout.addWidget(entry_label, alignment=QtCore.Qt.AlignHCenter)
+        entry_area.setLayout(entry_layout)
+        if number == 0:
+            self.entry = QLineEdit()
+            self.entry.editingFinished.connect(self.on_click)
+            self.entry.setFixedWidth(entry_label.fontMetrics().boundingRect("10000").width())
+            #self.entry.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            entry_layout.addWidget(self.entry, alignment=QtCore.Qt.AlignHCenter)
             slicer.setRange(0, 2)
             slicer.valueChanged.connect(self.slicing)
-            display_area = QWidget()
-            display_layout = QVBoxLayout()
-            self.diminfo = QLabel("dim 0")
-            self.sliceinfo = QLabel("slice 0 / 0-" + str(self.maxidxs[0] - 1))
+            self.diminfo = QLabel("dim "+str(number))
+            self.sliceinfo = QLabel("slice 0 / 0-" + str(self.maxidxs[number] - 1))
+            self.sliceinfo.setFixedWidth(entry_label.fontMetrics().boundingRect("slice 10000/0-10000").width())
             display_layout.addWidget(self.diminfo)
             display_layout.addWidget(self.sliceinfo)
-            display_area.setLayout(display_layout)
-            slicer_layout.addWidget(slicer)
-            slicer_layout.addWidget(display_area)
-            slicer_area.setLayout(slicer_layout)
-            plus = QPushButton("+")
+        elif number == 1:
+            self.entry2 = QLineEdit()
+            self.entry2.setFixedWidth(entry_label.fontMetrics().boundingRect("10000").width())
+            #self.entry2.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            self.entry2.editingFinished.connect(self.on_click2)
+            entry_layout.addWidget(self.entry2, alignment=QtCore.Qt.AlignHCenter)
+            slicer.setRange(1, 3)
+            slicer.valueChanged.connect(self.slicing2)
+            self.diminfo2 = QLabel("dim "+str(number))
+            self.sliceinfo2 = QLabel("slice 0 / 0-" + str(self.maxidxs[number] - 1))
+            self.sliceinfo2.setFixedWidth(entry_label.fontMetrics().boundingRect("slice 10000/0-10000").width())
+            display_layout.addWidget(self.diminfo2)
+            display_layout.addWidget(self.sliceinfo2)
+        plus = QPushButton("+")
+        width = plus.fontMetrics().boundingRect("+").width() + 8
+        plus.setMaximumWidth(width)
+        minus = QPushButton("-")
+        minus.setMaximumWidth(width)
+        if number == 0:
             plus.clicked.connect(self.plus)
-            minus = QPushButton("-")
             minus.clicked.connect(self.minus)
-            for obj in [slicer_area, plus, minus]:
-                data_selection_layout.addWidget(obj)
-            data_selection.setLayout(data_selection_layout)
-            # slider.valueChanged.connect(self.update_dim_label)
-            table_layout.addWidget(data_selection)
-        self.setLayout(table_layout)
+        else:
+            plus.clicked.connect(self.plus2)
+            minus.clicked.connect(self.minus2)
+        for obj in [minus, plus]:
+            slicer_layout.addWidget(obj, alignment=QtCore.Qt.AlignHCenter)
+        display_area.setLayout(display_layout)
+        slicer_area.setLayout(slicer_layout)
+        data_selection_layout.addWidget(slicer)
+        data_selection_layout.addWidget(display_area)
+        entry_layout.addWidget(slicer_area)
+        data_selection_layout.addWidget(entry_area)
+        data_selection.setLayout(data_selection_layout)
+        return data_selection
+
+    def on_click(self):
+        try:
+            idx = int(self.entry.text())
+            if idx > self.maxidxs[self.c_dim] - 1:
+                HelpWindow(self, "the index you chose is larger than the current dimension")
+                return
+            self.c_idx = idx
+            self.sliceinfo.setText("slice " + str(self.c_idx) + "/ 0-" + str(self.maxidxs[self.c_dim] - 1))
+            self.update_table()
+        except ValueError:
+            HelpWindow(self, "You need to type integer values")
+
+    def on_click2(self):
+        try:
+            idx = int(self.entry2.text())
+            if idx > self.maxidxs[self.c_dim2] - 1:
+                HelpWindow(self, "the index you chose is larger than the current dimension")
+                return
+            self.c_idx2 = idx
+            self.sliceinfo2.setText("slice " + str(self.c_idx2) + "/ 0-" + str(self.maxidxs[self.c_dim] - 1))
+            self.update_table()
+        except ValueError:
+            HelpWindow(self, "You need to type integer values")
 
     def plus(self):
         """
@@ -253,6 +329,17 @@ class MyTable(QWidget):
         else:
             self.c_idx = 0
         self.sliceinfo.setText("slice " + str(self.c_idx) + "/ 0-" + str(self.maxidxs[self.c_dim] - 1))
+        self.update_table()
+
+    def plus2(self):
+        """
+        If underlying data is 4D, go on slice up on second dim.
+        """
+        if self.c_idx2 < self.maxidxs[self.c_dim2] - 1:
+            self.c_idx2 += 1
+        else:
+            self.c_idx2 = 0
+        self.sliceinfo2.setText("slice " + str(self.c_idx2) + "/ 0-" + str(self.maxidxs[self.c_dim2] - 1))
         self.update_table()
 
     def minus(self):
@@ -266,6 +353,17 @@ class MyTable(QWidget):
         self.sliceinfo.setText("slice " + str(self.c_idx) + "/ 0-" + str(self.maxidxs[self.c_dim] - 1))
         self.update_table()
 
+    def minus2(self):
+        """
+        If underlying data is 3D, go on slice down.
+        """
+        if self.c_idx2 > -self.maxidxs[self.c_dim2]:
+            self.c_idx2 -= 1
+        else:
+            self.c_idx2 = 0
+        self.sliceinfo2.setText("slice " + str(self.c_idx2) + "/ 0-" + str(self.maxidxs[self.c_dim2] - 1))
+        self.update_table()
+
     def slicing(self, idx):
         """
         If underlying data is 3D, change the slicing dimension
@@ -274,6 +372,16 @@ class MyTable(QWidget):
         self.c_dim = idx
         self.diminfo.setText("dim " + str(self.c_dim))
         self.sliceinfo.setText("slice = " + (str(self.c_idx)) + "/ 0-" + str(self.maxidxs[self.c_dim] - 1))
+        self.update_table()
+
+    def slicing2(self, idx):
+        """
+        If underlying data is 4D, change the slicing dimension2
+        :param idx: int, which dimension to slice along
+        """
+        self.c_dim2 = idx
+        self.diminfo2.setText("dim " + str(self.c_dim2))
+        self.sliceinfo2.setText("slice = " + (str(self.c_idx2)) + "/ 0-" + str(self.maxidxs[self.c_dim2] - 1))
         self.update_table()
 
     def update_table(self):
@@ -285,13 +393,26 @@ class MyTable(QWidget):
             ndim = self.all_data.ndim
         except:
             ndim = 1
-        if ndim == 3:
+        if ndim >= 3:
             if self.c_dim == 0:
                 data = self.all_data[self.c_idx, :, :]
             elif self.c_dim == 1:
                 data = self.all_data[:, self.c_idx, :]
             elif self.c_dim == 2:
                 data = self.all_data[:, :, self.c_idx]
+            if ndim == 4:
+                if self.c_dim2 <= self.c_dim:
+                    HelpWindow(self, "Please have the upper dimension strictly smaller than the lower one. Otherwise the displayed data is incorrect.")
+                    return
+                if self.c_dim2 == 1:
+                    data = data[self.c_idx2, :, :]
+                elif self.c_dim2 == 2:
+                    data = data[:, self.c_idx2, :]
+                elif self.c_dim2 == 3:
+                    data = data[:, :, self.c_idx2]
+                else:
+                    HelpWindow(self, "dimensionality of the data too big")
+                    return
         elif ndim == 2:
             data = self.all_data[:]
         elif ndim == 1:
@@ -302,8 +423,10 @@ class MyTable(QWidget):
             except:
                 data = array([[self.all_data]])
         name = self.name
-        if ndim == 3:
+        if ndim >= 3:
             name += " slice " + str(self.c_idx) + " in dim " + str(self.c_dim)
+        if ndim == 4:
+            name += " slice " + str(self.c_idx2) + " in dim " + str(self.c_dim2)
         try:
             header = self.all_data.header
         except:
@@ -639,13 +762,13 @@ class App(QMainWindow):
                     misc_layout.addWidget(self.mdata.__dict__[entr])
         for el in ["+", "-", "/", "*"]:
             button = QPushButton(el)
-            width = button.fontMetrics().boundingRect(el).width() + 4
+            width = button.fontMetrics().boundingRect(el).width() + 8
             button.setMaximumWidth(width)
             misc_layout.addWidget(button)
             def func(el):
                 self.mdata.misc_op = el
             button.clicked.connect(lambda state, x=el: func(x))
-        for use_as in ["use_as_x", "use_as_y", "use_as_z"]:
+        for use_as in ["as x", "as y", "as z"]:
             button = QPushButton(use_as)
             width = button.fontMetrics().boundingRect(use_as).width() + 8
             button.setMaximumWidth(width)
@@ -661,7 +784,7 @@ class App(QMainWindow):
                     self.mdata.z.set(val, name)
             button.clicked.connect(lambda state, w=use_as: funcxyz(w))
         button = QPushButton("plot misc")
-        width = button.fontMetrics().boundingRect(use_as).width() + 12
+        width = button.fontMetrics().boundingRect("plot misc").width() + 8
         button.setMaximumWidth(width)
         misc_layout.addWidget(button)
         def plotmisc():
@@ -687,9 +810,6 @@ class App(QMainWindow):
                         dark=self.dark, plotscheme=self.plotscheme)
                     self.active1D = temp
                     self.openplots.append(temp)
-            
-            
-            
         button.clicked.connect(plotmisc)
         #plus_button.resize(plus_button.sizeHint().width(), plus_button.sizeHint().height())
         misc_widget.setLayout(misc_layout)
