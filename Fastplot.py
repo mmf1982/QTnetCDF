@@ -174,7 +174,7 @@ class DataChooser(QWidget):
             layout2.addWidget(self.slice_label, alignment=Qt.AlignHCenter)
         if is4d:
             layoutb = QHBoxLayout()
-            self.slice_label2 = QLabel("slice = 0" + "/ 0-" + str(parent.shape[0] - 1))
+            self.slice_label2 = QLabel("slice = 0" + "/ 0-" + str(parent.shape[1] - 1))
             self.active_index2 = 0
             self.active_dimension2 = 1
             plus2 = QPushButton('+')
