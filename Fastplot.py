@@ -549,7 +549,7 @@ class Fast3D(QMainWindow):
         if dim2 is not None:
             if dim2 <= dimension:
                 print(dim2, dimension)
-                print("you have to choose the second dimension larger than the first.")
+                HelpWindow(self, "you have to choose the second dimension larger than the first.")
                 return False
             try:
                 print("current choice: dim1", dimension, " slice idx ", index)
