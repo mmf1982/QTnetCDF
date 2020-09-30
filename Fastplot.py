@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 import matplotlib.pyplot as plt
 from PyQt5.QtWidgets import (QApplication, QLabel, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QMessageBox,
-                             QMainWindow, qApp, QSlider, QStatusBar)
+                             QMainWindow, qApp, QSlider, QStatusBar, QLineEdit)
 try:
     from . import add_interactivity as ai
 except (ModuleNotFoundError, ImportError):
@@ -161,6 +161,9 @@ class DataChooser(QWidget):
             self.active_index = 0
             self.active_dimension = 0
             self.frozen = False
+            self.entry = QLineEdit()
+            self.entry.editingFinished.connect(self.on_click)
+            self.entry.setFixedWidth(self.entry.fontMetrics().boundingRect("1000000").width())
             layout = QHBoxLayout()
             plus = QPushButton('+')
             minus = QPushButton('-')
@@ -168,12 +171,16 @@ class DataChooser(QWidget):
             minus.clicked.connect(self.on_minus)
             layout.addWidget(minus)
             layout.addWidget(plus)
+            layout.addWidget(self.entry, alignment=Qt.AlignVCenter)
             buttons = QWidget()
             buttons.setLayout(layout)
             layout2.addWidget(buttons, alignment=Qt.AlignVCenter)
             layout2.addWidget(self.slice_label, alignment=Qt.AlignHCenter)
         if is4d:
             layoutb = QHBoxLayout()
+            self.entry2 = QLineEdit()
+            self.entry2.editingFinished.connect(self.on_click2)
+            self.entry2.setFixedWidth(self.entry2.fontMetrics().boundingRect("1000000").width())
             self.slice_label2 = QLabel("slice = 0" + "/ 0-" + str(parent.shape[1] - 1))
             self.active_index2 = 0
             self.active_dimension2 = 1
@@ -183,6 +190,7 @@ class DataChooser(QWidget):
             minus2.clicked.connect(self.on_minus2)
             layoutb.addWidget(minus2)
             layoutb.addWidget(plus2)
+            layoutb.addWidget(self.entry2, alignment=Qt.AlignVCenter)
             buttons2 = QWidget()
             buttons2.setLayout(layoutb)
             layout2.addWidget(buttons2, alignment=Qt.AlignVCenter)
@@ -223,6 +231,33 @@ class DataChooser(QWidget):
         layout4.addWidget(buttons2)
         self.setLayout(layout4)
         self.mparent = parent
+
+    def on_click(self):
+        try:
+            idx = int(self.entry.text())
+            if self.mparent.shape[self.active_dimension] <= idx:
+                print(self.mparent.shape)
+                print(self.active_dimension)
+                print(idx)
+                print("end")
+                HelpWindow(self, "the index you chose is too large for this dimension")
+                return
+            self.active_index = idx
+            self.update_slice()
+        except ValueError:
+            HelpWindow(self, "You need to type an integer")
+
+    def on_click2(self):
+        try:
+            idx = int(self.entry2.text())
+            if self.mparent.shape[self.active_dimension2] <= idx:
+                HelpWindow(self, "the index you chose is too large for this dimension")
+                return
+            self.active_index2 = idx
+            self.update_slice()
+        except ValueError:
+            HelpWindow(self, "You need to type an integer")
+
 
     def on_log(self):
         if self.is_log:
