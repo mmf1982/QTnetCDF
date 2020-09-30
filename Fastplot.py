@@ -481,13 +481,29 @@ class Fast1D(QMainWindow):
         if mydata.y.datavalue.ndim > 1:
             alllabel = mydata.y.text().split(":")[1].split("s.")[-1].split(" - ")
             labs = numpy.arange(int(alllabel[0]), int(alllabel[1])+1)
-            for row, lab in zip(mydata.y.datavalue, labs):
-                label = (mydata.x.text().split(":")[1] + " vs " + mydata.y.text().split(":")[1].split("s.")[0] +
-                         " " + str(lab))
-                if symbol:
-                    self.myfigure.axes.plot(mydata.x.datavalue, row, marker=symbol, lw=0, label=label)
-                else:
-                    self.myfigure.axes.plot(mydata.x.datavalue, row, label=label)
+            if mydata.x.datavalue.ndim > 1:
+                if not mydata.x.datavalue.shape == mydata.y.datavalue.shape:
+                    raise ValueError("x and y have different shapes, make sure you choose either same number of rows/cols"
+                                     " or either for x or y only 1 column/ row and that the length of the x and y data is equal.")
+                    return
+                alllabel2 = mydata.x.text().split(":")[1].split("s.")[-1].split(" - ")
+                labcols = numpy.arange(int(alllabel2[0]), int(alllabel2[1])+1)
+                for row, col, lab, labcol in zip(mydata.y.datavalue, mydata.x.datavalue, labs, labcols):
+                    label = (mydata.x.text().split(":")[1].split("s.")[0] + str(labcol) +
+                             " vs " + mydata.y.text().split(":")[1].split("s.")[0] +
+                             " " + str(lab))
+                    if symbol:
+                        self.myfigure.axes.plot(col, row, marker=symbol, lw=0, label=label)
+                    else:
+                        self.myfigure.axes.plot(col, row, label=label)
+            else:
+                for row, lab in zip(mydata.y.datavalue, labs):
+                    label = (mydata.x.text().split(":")[1] + " vs " + mydata.y.text().split(":")[1].split("s.")[0] +
+                             " " + str(lab))
+                    if symbol:
+                        self.myfigure.axes.plot(mydata.x.datavalue, row, marker=symbol, lw=0, label=label)
+                    else:
+                        self.myfigure.axes.plot(mydata.x.datavalue, row, label=label)
         elif mydata.x.datavalue.ndim > 1:
             alllabel = mydata.x.text().split(":")[1].split("s.")[-1].split(" - ")
             labs = numpy.arange(int(alllabel[0]), int(alllabel[1])+1)
