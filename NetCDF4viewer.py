@@ -193,7 +193,7 @@ class MyTable(QWidget):
         self.c_idx2 = 0
         self.c_dim2 = 1
         try:
-            self.maxidxs = data.mdata[:].shape
+            self.maxidxs = squeeze(data.mdata[:]).shape
         except (AttributeError, IndexError):
             self.maxidxs = [1]
         except TypeError:
