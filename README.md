@@ -12,11 +12,12 @@ call as
   The following keys are activated on the tree:
   * double click on variable: plot Supported are 1D, 2D and 3D variables.
   * "d" key is pressed on selected line, attribute information of that group or variable is prited.
-  * "s" key is pressed on selected variable opens it as a detachable table view (for 0D, 1D, 2D and 3D variables. Higher dimensions are not supported). Note: if it is a group, the program currently crashes. If the variable is 3D it shows a slice along the first dimension, This can be changed by a slicer bar and "+"/ "-" buttons. 
+  * "s" key is pressed on selected variable opens it as a detachable table view (for 0D, 1D, 2D, 3D and 4D variables. Higher dimensions are not supported. 4D variables with large grids might cause problems because a complete variable is read into memory). If the variable is 3D it shows slice 0 along the zeroth dimension, This can be changed by a slicer bar and "+"/ "-" buttons. If the variable is 4D, the slice is as for 3D and additionally slice 0 along the first dimension. Note that the second slicer always needs have a dimension at least one higher than the first. Each slicer also has an entry field where the field number can be entered directly (hit enter key to confirm). 
   * "x" data set as x for line plot
   * "y" data set as y for line plot
   * "e" data set as error on x for line plot
   * "u" data set as error on y for line plot
+  * "m" to loaded to misc. Data can then be combined with other data via the "/", "*", "+" and "-" buttons. Note that a+b/c will be calculated as (a+b)/c. The data set here (either as a full 1, 2, 3 or 4 D variable or a 1D or 2D subset) can either be set as x, y or z (as x etc) variable or directly plotted (plot misc) 
 
   ## Plotting
 
@@ -24,16 +25,17 @@ call as
 
   ### 1D plotting
 
-  If a variable is 1D, a double click will automatically plot it over its index. However, x, y, xerr and yerr can also be set. Either as a 1D variable as described above, or from the table view (after "s" on a 0, 1, 2 or 3D variable) on which the following keys are activated: 
+  If a variable is 1D, a double click will automatically plot it over its index. However, x, y, xerr and yerr can also be set. Either as a 1D variable as described above, or from the table view (after "s" on a 0, 1, 2, 3 or 4D variable) on which the following keys are activated: 
 
   * "x" data set as x for line plot
   * "y" data set as y for line plot
   * "e" data set as error on x for line plot
   * "u" data set as error on y for line plot
 
-  In the table, multiple rows or columns can be selected for y or x (but not both). If so, yerr (or xerr) is ignored. If only x or only y is selected, that variable is plotted as a function of its index.
+  In the table, multiple rows or columns can be selected for y or x (and also for both). If so, yerr (or xerr) is ignored. If only x or only y is selected, that variable is plotted as a function of its index (index is always on the x-axis).
 
-  To remove any of x, y, xerr or yerr, click on its name below the "hold" and "plot" buttons.
+  To remove any of x, y, xerr, yerr or misc, click on its name below the "hold" and "plot" buttons. However, all but "misc" will be automatically overwritten once a new "x", "y", "z", "e" or "u" is pressed. 
+  
   Buttons:
 
   * "hold" --> "release" to keep plotting in same window or to open a new. If there is no current window, "plot" has no effect if hold button shows "release".
@@ -48,14 +50,15 @@ call as
  * right click a line/ marker to bring it to front
  * left click a line/ marker while arrow up to make line thicker (marker larger), arrow down to make it thinner (marker smaller).
  * left click legend while arrow left: make legend text smaller, right arrow to make it bigger
+ * move legend by drag and drop
 
- ### 2D and 3D plotting
+ ### 2D, 3D and 4D plotting
 
- Currently, only 2D, 3D or 4D variables can be plotted by directly clicking on them in the TreeView.
+ Currently, only 2D, 3D or 4D variables can be plotted by directly clicking on them in the TreeView (or usining misc, see above. Hitting the "plot misc" button does the same to the "misc" variable as double clicking a variable).
 
  2D/ 3D/ 4D plots have the usual QT possibility of changing color map and limits. There is now also a "plot log" which converts the data to log. x, y axis can be converted to log with "k" and "l", as usual.
 
- For 3D plots, you can slice along x, y or z and use the "+" and "-" buttons to go forward or backward in the file.
+ For 3D plots, you can slice along x, y or z and use the "+" and "-" buttons to go forward or backward in the variable, or write a slice number in the entry field and hit the enter key to confirm.
 
  While 4D plots are implemented (there are two slicers now, the upper one always has to be at a "higher" axis than the lower, default is first is 0, second is 1), it's use is discouraged since the whole 4D variable is loaded at once and the program might get really slow or even unresponsive.
 
@@ -100,5 +103,9 @@ preceded by a "-" without a space:
 
  # Nice to have, not implemented yet:
  I collect some ideas here for implementation. Please contact me if you have more suggestions.
- * Doing simple manipulations on the data before plotting, such ass adding/ subtracting...
+ * Assigning a condition on one variable to transform it to a mask to use on other variables
+ * Having the possibility of scaling variables with a scale factor
+ * Make pcolormesh also workable for 3D variables (without the possibility of slicing, mapping decided automatically (?))
+ * Loading contour lines to put overlay pcolormesh maps
+ 
 
