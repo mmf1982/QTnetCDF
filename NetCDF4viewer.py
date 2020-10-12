@@ -30,7 +30,7 @@ from numpy import array, arange, squeeze, nansum
 
 CONFIGPATH = ""
 
-__version__ = "1.0.0"
+__version__ = "0.0.1"
 __author__ = "Martina M. Friedrich"
 
 class Pointer(QStandardItem):
