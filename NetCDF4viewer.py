@@ -204,7 +204,7 @@ class MyTable(QWidget):
         self.sliceinfo = None
         self.diminfo2 = None
         self.slcieinfo2 = None
-        self.all_data = squeeze(data.mdata)
+        self.all_data = squeeze(data.mdata[:])
         self.make_design()
         self.update_table()
 
