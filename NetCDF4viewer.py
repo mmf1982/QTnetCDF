@@ -7,7 +7,7 @@ from PyQt5 import QtCore
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QKeySequence
 from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWindow, QDockWidget,
                              QTableView, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
-                             QSlider, QLabel, QStatusBar, QStyleFactory, QToolButton, QLineEdit)
+                             QSlider, QLabel, QStatusBar, QLineEdit)
 import numpy as np
 try:
     from .Fastplot import Fast3D, Fast2D, Fast1D
@@ -122,7 +122,8 @@ class MyQTreeView(QTreeView):
                 self.master.mdata.xerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
             elif event.text() == "m":
                 if self.master.mdata.misc.datavalue is None:
-                    self.master.mdata.misc.set(squeeze(current_pointer.mdata[:].astype("float")), current_pointer.mdata.name)
+                    self.master.mdata.misc.set(
+                        squeeze(current_pointer.mdata[:].astype("float")), current_pointer.mdata.name)
                 else:
                     try:
                         if "+" in self.master.mdata.misc_op:
@@ -133,7 +134,7 @@ class MyQTreeView(QTreeView):
                             mdata = self.master.mdata.misc.datavalue / squeeze(current_pointer.mdata[:])
                         elif "*" in self.master.mdata.misc_op:
                             mdata = self.master.mdata.misc.datavalue * squeeze(current_pointer.mdata[:])
-                        mname = self.master.mdata.misc.name_value + self.master.mdata.misc_op + current_pointer.mdata.name
+                        mname = self.master.mdata.misc.name_value+self.master.mdata.misc_op+current_pointer.mdata.name
                         self.master.mdata.misc.set(mdata, mname)
                     except ValueError as verr:
                         HelpWindow(self, "likely dimensions that don't fit together: " + str(verr))
@@ -402,7 +403,8 @@ class MyTable(QWidget):
                 data = self.all_data[:, :, self.c_idx]
             if ndim == 4:
                 if self.c_dim2 <= self.c_dim:
-                    HelpWindow(self, "Please have the upper dimension strictly smaller than the lower one. Otherwise the displayed data is incorrect.")
+                    HelpWindow(self, "Please have the upper dimension strictly smaller than the lower one." +
+                                     " Otherwise the displayed data is incorrect.")
                     return
                 if self.c_dim2 == 1:
                     data = data[self.c_idx2, :, :]
@@ -636,7 +638,7 @@ class App(QMainWindow):
         self.plot_buttons = None
         self.mdata = Data()
         self.holdon = False
-        self.active1D = None
+        self.only_indices = False
         self.active1D = None
         self.openplots = []
         self.plotaeralayout = None
@@ -677,7 +679,10 @@ class App(QMainWindow):
                 self.fix1d_data()
             if self.holdon:
                 try:
-                    self.active1D.update_plot(self.mdata, symbol)
+                    if self.only_indices:
+                        self.active1D.update_plot(self.mdata, symbol, oi=self.current_idx)
+                    else:
+                        self.active1D.update_plot(self.mdata, symbol)
                 except ValueError as valerr:
                     HelpWindow(self, "Probably you chose to plot x-y with different dimensions? Errormessage:" +
                                str(valerr))
@@ -693,7 +698,12 @@ class App(QMainWindow):
                             mname=self.mdata.z.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
                     self.openplots.append(temp)
                 else:
-                    temp = Fast1D(self.mdata, symbol, **self.config["Startingsize"]["1Dplot"],
+                    if self.only_indices:
+                        temp = Fast1D(
+                            self, self.mdata, symbol, **self.config["Startingsize"]["1Dplot"], filename=self.name,
+                            dark=self.dark, plotscheme=self.plotscheme, only_indices=self.current_idx)
+                    else:
+                        temp = Fast1D(self, self.mdata, symbol, **self.config["Startingsize"]["1Dplot"],
                               filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
                     self.openplots.append(temp)
                     self.active1D = temp
@@ -715,6 +725,15 @@ class App(QMainWindow):
             self.holdon = True
             self.holdbutton.setText("release")
 
+    def use_indices(self):
+        if self.only_indices:
+            self.only_indices = False
+            self.useidx.setText("use idxs?")
+        else:
+            self.only_indices = True
+            self.useidx.setText("using idxs only")
+            self.current_idx = self.active1D.current_idx
+
     def plotarea_layout(self):
         plotarea = QWidget()
         self.plotaeralayout = QHBoxLayout()
@@ -722,12 +741,15 @@ class App(QMainWindow):
         plotbutton = QPushButton("&plot line")
         plotbutton.setShortcut(QKeySequence.Print)
         self.plotsymbol = MyQButton("plot symbol")
+        self.useidx = MyQButton("use idxs?")
+        self.useidx.clicked.connect(self.use_indices)
         self.holdbutton.clicked.connect(self.holdit)
         plotbutton.clicked.connect(self.plotit)
         self.plotsymbol.clicked.connect(self.plotitsymbol)
         self.plotaeralayout.addWidget(self.holdbutton)
         self.plotaeralayout.addWidget(plotbutton)
         self.plotaeralayout.addWidget(self.plotsymbol)
+        self.plotaeralayout.addWidget(self.useidx)
         plotarea.setLayout(self.plotaeralayout)
         return plotarea
 
@@ -806,8 +828,8 @@ class App(QMainWindow):
                     self.active1D.update_plot(mdata)
                 else:
                     temp = Fast1D(
-                        mdata, **self.config["Startingsize"]["1Dplot"], mname=self.mdata.misc.name_value, filename=self.name,
-                        dark=self.dark, plotscheme=self.plotscheme)
+                        self, mdata, **self.config["Startingsize"]["1Dplot"], mname=self.mdata.misc.name_value,
+                        filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
                     self.active1D = temp
                     self.openplots.append(temp)
         button.clicked.connect(plotmisc)
@@ -849,8 +871,9 @@ class App(QMainWindow):
                 self.mfile = hdf4_object(m_file)
                 self.filetype = "hdf4"
             except pyhdf.error.HDF4Error:
-                HelpWindow(self, "This seems not to be a valid nc, hdf4 or hdf5 file: " + str(m_file) + "\n"
-                                                                                                        "If you believe it is, please report back")
+                HelpWindow(
+                    self, "This seems not to be a valid nc, hdf4 or hdf5 file: " + str(m_file) + "\n" +
+                    "If you believe it is, please report back")
                 return
         statusbar = QStatusBar()
         statusbar.showMessage(self.name)
@@ -870,12 +893,13 @@ class App(QMainWindow):
                 print("dimensionality of data is too big. Not yet implemented.")
                 return
         except AttributeError:
-            HelpWindow(self, "you need to click the first column ('name'), \n"
+            HelpWindow(self, "you need to click the first column ('name'), \n" +
                              "not anything else in order to plot a variable or open a group")
             return
         except KeyError:
-            HelpWindow(self,
-                       "It seems you tried to plot a group (double click plots). To open the group, click on the triangle")
+            HelpWindow(
+                self,
+                "It seems you tried to plot a group (double click plots). To open the group, click on the triangle")
             return
         except TypeError:
             HelpWindow(self, "It seems that there is no data.... maybe only attributes?")
@@ -897,7 +921,7 @@ class App(QMainWindow):
             if self.holdon:
                 self.active1D.update_plot(mdata)
             else:
-                temp = Fast1D(
+                temp = Fast1D(self,
                     mdata, **self.config["Startingsize"]["1Dplot"], mname=thisdata.name, filename=self.name,
                     dark=self.dark, plotscheme=self.plotscheme)
                 self.active1D = temp

@@ -4,6 +4,8 @@ import numpy
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 import matplotlib.pyplot as plt
+from matplotlib.path import Path
+from matplotlib.widgets import LassoSelector
 from PyQt5.QtWidgets import (QApplication, QLabel, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QMessageBox,
                              QMainWindow, qApp, QSlider, QStatusBar, QLineEdit)
 try:
@@ -56,14 +58,16 @@ class Easyerrorbar(axs.Axes):
 
 
 class MplCanvas(FigureCanvasQTAgg):
-    def __init__(self, parent=None, width=4, height=4, dpi=150, plotscheme=["default"], **kwargs):
+    def __init__(self, parent=None, width=4, height=4, dpi=150, plotscheme="default", **kwargs):
         try:
             plt.style.use(plotscheme)
         except:
             try:
                 here = os.path.dirname(os.path.abspath(__file__))
+                if (not isinstance(plotscheme, numpy.ndarray)) and (not isinstance(plotscheme, list)):
+                    plotscheme = [plotscheme]
                 plotschemenew = plotscheme[:-1]
-                plotschemenew.append(os.path.join(here, plotscheme[0]))
+                plotschemenew.append(os.path.join(here, plotscheme[-1]))
                 plt.style.use(plotschemenew)
             except:
                 pass
@@ -125,7 +129,7 @@ class MplCanvas(FigureCanvasQTAgg):
                 self.im = self.axes.pcolormesh(x.datavalue, y.datavalue, z.datavalue.T)
                 HelpWindow(self, "careful: z data is transposed to fit x and y")
             except Exception as exc2:
-                HelpWindow(self.mparent, "one of the following errors occured:"+ str(exc1) + str(exc2))
+                HelpWindow(self.mparent, "one of the following errors occured:" + str(exc1) + str(exc2))
                 return False
         self.cb = self.fig.colorbar(self.im, ax=self.axes)
         self.axes.set_xlabel(x.name_value)
@@ -156,6 +160,9 @@ class DataChooser(QWidget):
         self.is4d = is4d
         slicings = QWidget()
         layout2 = QVBoxLayout()
+        slider = None
+        layout3 = None
+        dimensions = None
         if is3d:
             self.slice_label = QLabel("slice = 0" + "/ 0-" + str(parent.shape[0] - 1))
             self.active_index = 0
@@ -281,7 +288,8 @@ class DataChooser(QWidget):
                 if not worked:
                     self.is_log = False
                     self.log_button.setText("put log")
-                    worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
+                    worked = self.mparent.update_plot(
+                        self.active_index, self.active_dimension, self.frozen, self.is_log)
         else:
             worked = self.mparent.update_plot(self.is_log)
             if not worked:
@@ -304,14 +312,16 @@ class DataChooser(QWidget):
                 if not worked:
                     self.is_log = False
                     self.log_button.setText("put log")
-                    worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log,
-                                                  idx2=self.active_index2, dim2=self.active_dimension2)
+                    worked = self.mparent.update_plot(
+                        self.active_index, self.active_dimension, self.frozen, self.is_log,
+                        idx2=self.active_index2, dim2=self.active_dimension2)
             else:
                 worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
                 if not worked:
                     self.is_log = False
                     self.log_button.setText("put log")
-                    worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
+                    worked = self.mparent.update_plot(
+                        self.active_index, self.active_dimension, self.frozen, self.is_log)
 
     def update_dim_label(self, value):
         if self.is3d:
@@ -369,7 +379,8 @@ class DataChooser(QWidget):
                     self.is_log = False
                     self.log_button.setText("put log")
                     worked = self.mparent.update_plot(self.active_index, self.active_dimension, self.frozen, self.is_log)
-                self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(self.mparent.shape[self.active_dimension]-1))
+                self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(
+                    self.mparent.shape[self.active_dimension]-1))
             else:
                 worked = self.mparent.update_plot(self.active_index, self.active_dimension,
                                                       self.frozen, self.is_log, idx2=self.active_index2,
@@ -380,8 +391,10 @@ class DataChooser(QWidget):
                     worked = self.mparent.update_plot(self.active_index, self.active_dimension,
                                                       self.frozen, self.is_log, idx2=self.active_index2,
                                                       dim2=self.active_dimension2)
-                self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(self.mparent.shape[self.active_dimension]-1))
-                self.slice_label2.setText("slice = " + str(self.active_index2) + "/ 0-" + str(self.mparent.shape[self.active_dimension2]-1))
+                self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(
+                    self.mparent.shape[self.active_dimension]-1))
+                self.slice_label2.setText("slice = " + str(self.active_index2) + "/ 0-" + str(
+                    self.mparent.shape[self.active_dimension2]-1))
 
 class Fast2D(QMainWindow):
     def __init__(self, mydata,  parent=None, mname=None, filename=None, dark=False, **kwargs):
@@ -448,21 +461,28 @@ class Fast2D(QMainWindow):
 
 
 class Fast1D(QMainWindow):
-    def __init__(self, mydata, symbol=False, mname=None, filename=None, dark=False, **kwargs):
+    def __init__(self, master, mydata, symbol=False, mname=None, filename=None, dark=False, only_indices=None,  **kwargs):
         super().__init__()
         if mname is None:
             mname = '1D Viewer'
+        self.master = master
         self.setWindowTitle(mname)
+        self.only_indices = only_indices
         self.setWindowIcon(QIcon("web.png"))
         self.myfigure = MplCanvas(self, **kwargs)
+        self.lassos = []
+        self.current_idx = []
+        self.active_button = QPushButton("make active")
+        self.active_button.clicked.connect(self.make_active)
         mainwindow = QWidget()
         layout = QVBoxLayout()
         layout.addWidget(self.myfigure.toolbar)
+        layout.addWidget(self.active_button)
         layout.addWidget(self.myfigure, stretch=1)
         mainwindow.setLayout(layout)
         self.setCentralWidget(mainwindow)
         try:
-            self.update_plot(mydata, symbol)
+            self.update_plot(mydata, symbol, only_indices)
         except ValueError as valerr:
             help = HelpWindow(self, "Probably you chose to plot x-y with different dimensions? Errormessage:"+
                               str(valerr))
@@ -477,49 +497,89 @@ class Fast1D(QMainWindow):
             self.setPalette(palette)
         self.show()
 
-    def update_plot(self, mydata, symbol=False):
+    def make_active(self):
+        self.master.active1D = self
+
+    def onselect(self, hh, xdata, ydata):
+        def onsel(verts, hh=hh, xdata=xdata, ydata=ydata):
+            pts = [(xi, yi) for xi, yi in zip(xdata, ydata)]
+            path = Path(verts)
+            idxs = numpy.nonzero(path.contains_points(pts))[0]
+            mask = numpy.full([len(pts),], fill_value=False)
+            mask[idxs] = True
+            labelx, labely = [entr.strip() for entr in hh.split("vs")]
+            print("indices:", idxs)
+            print(labelx, ": ", xdata[mask])
+            print(labely, ": ", ydata[mask])
+            self.current_idx = idxs
+        return onsel
+
+    def update_plot(self, mydata, symbol=False, oi=None):
         if mydata.y.datavalue.ndim > 1:
             alllabel = mydata.y.text().split(":")[1].split("s.")[-1].split(" - ")
             labs = numpy.arange(int(alllabel[0]), int(alllabel[1])+1)
             if mydata.x.datavalue.ndim > 1:
                 if not mydata.x.datavalue.shape == mydata.y.datavalue.shape:
-                    raise ValueError("x and y have different shapes, make sure you choose either same number of rows/cols"
+                    raise ValueError("x and y have different shapes, make sure to choose either same number of rows/cols"
                                      " or either for x or y only 1 column/ row and that the length of the x and y data is equal.")
                     return
                 alllabel2 = mydata.x.text().split(":")[1].split("s.")[-1].split(" - ")
                 labcols = numpy.arange(int(alllabel2[0]), int(alllabel2[1])+1)
                 for row, col, lab, labcol in zip(mydata.y.datavalue, mydata.x.datavalue, labs, labcols):
-                    label = (mydata.x.text().split(":")[1].split("s.")[0] + str(labcol) +
+                    if oi is not None:
+                        row = row[oi]
+                        col = col[oi]
+                    label = (mydata.x.text().split(":")[1].split("s.")[0] + " " + str(labcol) +
                              " vs " + mydata.y.text().split(":")[1].split("s.")[0] +
                              " " + str(lab))
                     if symbol:
                         self.myfigure.axes.plot(col, row, marker=symbol, lw=0, label=label)
+                        self.lassos.append(make_lasso(col, row, self.onselect, label, self.myfigure.axes))
                     else:
                         self.myfigure.axes.plot(col, row, label=label)
             else:
+                xdata = numpy.copy(mydata.x.datavalue)
+                if oi is not None:
+                    xdata = xdata[oi]
                 for row, lab in zip(mydata.y.datavalue, labs):
+                    if oi is not None:
+                        row = row[oi]
                     label = (mydata.x.text().split(":")[1] + " vs " + mydata.y.text().split(":")[1].split("s.")[0] +
                              " " + str(lab))
                     if symbol:
-                        self.myfigure.axes.plot(mydata.x.datavalue, row, marker=symbol, lw=0, label=label)
+                        self.myfigure.axes.plot(xdata, row, marker=symbol, lw=0, label=label)
+                        self.lassos.append(make_lasso(xdata, row, self.onselect, label,
+                                                      self.myfigure.axes))
                     else:
-                        self.myfigure.axes.plot(mydata.x.datavalue, row, label=label)
+                        self.myfigure.axes.plot(xdata, row, label=label)
         elif mydata.x.datavalue.ndim > 1:
+            ydata = numpy.copy(mydata.y.datavalue)
+            if oi is not None:
+                ydata = ydata[oi]
             alllabel = mydata.x.text().split(":")[1].split("s.")[-1].split(" - ")
             labs = numpy.arange(int(alllabel[0]), int(alllabel[1])+1)
             for row, lab in zip(mydata.x.datavalue, labs):
+                if oi is not None:
+                    row = row[oi]
                 label = (mydata.x.text().split(":")[1].split("s.")[0] + " " + str(lab) + " vs " +
                          mydata.y.text().split(":")[1])
                 if symbol:
-                    self.myfigure.axes.plot(row, mydata.y.datavalue, marker=symbol, lw=0, label=label)
+                    self.myfigure.axes.plot(row, ydata, marker=symbol, lw=0, label=label)
+                    self.lassos.append(make_lasso(row, ydata, self.onselect, label, self.myfigure.axes))
                 else:
-                    self.myfigure.axes.plot(row, mydata.y.datavalue, label=label)
+                    self.myfigure.axes.plot(row, ydata, label=label)
         else:
             label = mydata.x.text().split(":")[1] + " vs " + mydata.y.text().split(":")[1]
+            xdata = numpy.copy(mydata.x.datavalue)
+            ydata = numpy.copy(mydata.y.datavalue)
+            if oi is not None:
+                xdata = xdata[oi]
+                ydata = ydata[oi]
             if symbol:
-                self.myfigure.axes.plot(mydata.x.datavalue, mydata.y.datavalue,marker=symbol, lw=0, label=label)
+                self.myfigure.axes.plot(xdata, ydata,marker=symbol, lw=0, label=label)
+                self.lassos.append(make_lasso(xdata, ydata, self.onselect, label, self.myfigure.axes))
             else:
-                self.myfigure.axes.errorbar(mydata.x.datavalue, mydata.y.datavalue, yerr=mydata.yerr.datavalue,
+                self.myfigure.axes.errorbar(xdata, ydata, yerr=mydata.yerr.datavalue,
                                         xerr=mydata.xerr.datavalue, label=label)
         try:
             ai.add_interactivity(fig=self.myfigure.fig, ax=self.myfigure.axes, nodrag=False, legsize=7)
@@ -527,6 +587,9 @@ class Fast1D(QMainWindow):
             print("it seems that add_interactivity is not loaded. Check if the file is in pythonpath")
         self.myfigure.draw()
 
+def make_lasso(xdata, ydata, mfunc, label, axis):
+    myfunc = mfunc(label, xdata, ydata)
+    return LassoSelector(axis, myfunc)
 
 class Fast3D(QMainWindow):
     def __init__(self, mydata, parent=None, mname=None, filename=None, dark=False, **kwargs):

@@ -32,13 +32,17 @@ call as
   * "e" data set as error on x for line plot
   * "u" data set as error on y for line plot
 
-  In the table, multiple rows or columns can be selected for y or x (and also for both). If so, yerr (or xerr) is ignored. If only x or only y is selected, that variable is plotted as a function of its index (index is always on the x-axis).
+  In the table, multiple rows or columns can be selected for y or x (and also for both). If for both of them more than one are selected, it
+  needs to be the same number. If only one has more than 1 selected, the other one is plotted against this single one for each of the chosen
+  rows/ columns. If either has more than one row/ column selected, yerr (or xerr) is ignored. If only x or only y is selected,
+  that variable is plotted as a function of its index (index is always on the x-axis).
 
   To remove any of x, y, xerr, yerr or misc, click on its name below the "hold" and "plot" buttons. However, all but "misc" will be automatically overwritten once a new "x", "y", "z", "e" or "u" is pressed. 
   
   Buttons:
 
-  * "hold" --> "release" to keep plotting in same window or to open a new. If there is no current window, "plot" has no effect if hold button shows "release".
+  * "hold" --> "release" to keep plotting in same window or to open a new. If there is no current window (
+  the current value can be chosen with the button "make active" in the corresponding window), "plot" has no effect if hold button shows "release".
   * "plot line" to plot current selection of x, y, xerr and yerr with lines.
   * "plot symbol" to plot current selection of x  and y with symbols, no line. If no key is pressed, the symbol is ".". Supported keys: .o+xv^<>123hHdp (they have their usual matplotlib marker interpretation).
 
@@ -51,6 +55,10 @@ call as
  * left click a line/ marker while arrow up to make line thicker (marker larger), arrow down to make it thinner (marker smaller).
  * left click legend while arrow left: make legend text smaller, right arrow to make it bigger
  * move legend by drag and drop
+
+If the plot was performed via "plot symbol", a lasso selector is activated. If used, the indices and the values of x 
+and y are written to the terminal and the indices can be used to restrict future plots (press button "use idxs?" in the main window before
+the next plot.)
 
  ### 2D, 3D and 4D plotting
 
