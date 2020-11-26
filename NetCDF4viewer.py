@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWi
                              QTableView, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
                              QSlider, QLabel, QStatusBar, QLineEdit)
 import numpy as np
+import matplotlib
 try:
     from .Fastplot import Fast3D, Fast2D, Fast1D
 except (ImportError, ModuleNotFoundError):
@@ -29,7 +30,7 @@ except:
 from numpy import array, arange, squeeze, nansum
 
 CONFIGPATH = ""
-
+C_LINES = None
 __version__ = "0.0.1"
 __author__ = "Martina M. Friedrich"
 
@@ -743,6 +744,8 @@ class App(QMainWindow):
         self.plotsymbol = MyQButton("plot symbol")
         self.useidx = MyQButton("use idxs?")
         self.useidx.clicked.connect(self.use_indices)
+        self.plotclines = MyQButton("add country lines")
+        self.plotclines.clicked.connect(self.plot_country)
         self.holdbutton.clicked.connect(self.holdit)
         plotbutton.clicked.connect(self.plotit)
         self.plotsymbol.clicked.connect(self.plotitsymbol)
@@ -750,8 +753,21 @@ class App(QMainWindow):
         self.plotaeralayout.addWidget(plotbutton)
         self.plotaeralayout.addWidget(self.plotsymbol)
         self.plotaeralayout.addWidget(self.useidx)
+        self.plotaeralayout.addWidget(self.plotclines)
         plotarea.setLayout(self.plotaeralayout)
         return plotarea
+
+    def plot_country(self):
+        global C_LINES
+        if C_LINES is None:
+            C_LINES = []
+            here = os.path.dirname(os.path.abspath(__file__))
+            with netCDF4.Dataset(os.path.join(here, "country_lines.h5")) as fid:
+                for k in fid.variables:
+                    C_LINES.append(fid[k][:])
+        ln_coll = matplotlib.collections.LineCollection(C_LINES, colors="k", linewidths=0.8)
+        self.openplots[-1].myfigure.axes.add_collection(ln_coll)
+        self.openplots[-1].myfigure.draw()
 
     def make_design(self):
         """setup the layout of the Main window"""
