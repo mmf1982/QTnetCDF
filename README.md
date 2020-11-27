@@ -56,9 +56,14 @@ call as
  * left click legend while arrow left: make legend text smaller, right arrow to make it bigger
  * move legend by drag and drop
 
-If the plot was performed via "plot symbol", a lasso selector is activated. If used, the indices and the values of x 
-and y are written to the terminal and the indices can be used to restrict future plots (press button "use idxs?" in the main window before
+* "use idxs?" --> If the plot was performed via "plot symbol", a lasso selector is activated. If used, the indices and the values of x 
+and y are written to the terminal and the indices can be used to restrict future plots with this button. Press button "use idxs?" in the main window before
 the next plot.)
+
+* "add country lines" --> this only makes sense if the plot is a lon-lat plot. It adds country outlines and coast lines to the plot.
+
+* "broadcast plot"  --> If more than one file was opened at the same time, the first window has this extra button. If a line plot is open and active, press this button to plot into it from other windows.
+
 
  ### 2D, 3D and 4D plotting
 
@@ -111,9 +116,8 @@ preceded by a "-" without a space:
 
  # Nice to have, not implemented yet:
  I collect some ideas here for implementation. Please contact me if you have more suggestions.
- * Assigning a condition on one variable to transform it to a mask to use on other variables
+ * Assigning a condition on one variable to transform it to a mask to use on other variables: This can now be done indirectly with the "use idxs?" and lasso selector.
  * Having the possibility of scaling variables with a scale factor
  * Make pcolormesh also workable for 3D variables (without the possibility of slicing, mapping decided automatically (?))
- * Loading contour lines to put overlay pcolormesh maps
  
 
