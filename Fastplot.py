@@ -1,6 +1,7 @@
 import sys
 import os
 import numpy
+from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 import matplotlib.pyplot as plt
@@ -31,6 +32,8 @@ try:
 except (ImportError, ModuleNotFoundError):
     from Menues import center, HelpWindow
 
+SIZEVALS = numpy.array([0.1, 0.2, 0.5, 1, 2, 3, 4, 5, 8, 15, 20, 30 , 50, 80, 150])
+
 class Easyerrorbar(axs.Axes):
     """ Circumvent problem with normal matplotlib errorbar():
 
@@ -58,7 +61,7 @@ class Easyerrorbar(axs.Axes):
 
 
 class MplCanvas(FigureCanvasQTAgg):
-    def __init__(self, parent=None, width=4, height=4, dpi=150, plotscheme="default", **kwargs):
+    def __init__(self, parent=None, width=4, height=4, dpi=150, plotscheme="default", scatter_dot_size=5, **kwargs):
         try:
             plt.style.use(plotscheme)
         except:
@@ -75,6 +78,11 @@ class MplCanvas(FigureCanvasQTAgg):
         proj.register_projection(Easyerrorbar)  # this is needed for 1D errorbars.
         self.axes = self.fig.add_subplot(111, projection='easyerrorbar')
         super(MplCanvas, self).__init__(self.fig)
+        self.scatter_dot_size = scatter_dot_size
+        self.change_size = QSlider(Qt.Horizontal)
+        self.change_size.setRange(0, len(SIZEVALS)-1)
+        self.change_size.setValue(numpy.argmin(numpy.abs(self.scatter_dot_size - SIZEVALS)))
+        self.change_size.valueChanged.connect(self.change_scatter_size)
         self.toolbar = NavigationToolbar(self, parent)
         self.im = None
         self.cb = None
@@ -114,6 +122,11 @@ class MplCanvas(FigureCanvasQTAgg):
         self.cb = self.fig.colorbar(self.im, ax=self.axes)
         return
 
+    def change_scatter_size(self, value):
+        self.scatter_dot_size = SIZEVALS[value]
+        self.im.set_sizes([SIZEVALS[value]])
+        self.draw()
+
     def pcolormesh(self, x, y, z):
         try:
             self.cb.remove()
@@ -121,7 +134,8 @@ class MplCanvas(FigureCanvasQTAgg):
             pass
         try:
             if z.datavalue.ndim == 1:
-                self.im = self.axes.scatter(x.datavalue, y.datavalue, c=z.datavalue)
+                self.im = self.axes.scatter(x.datavalue, y.datavalue, c=z.datavalue, s=self.scatter_dot_size)
+                self.toolbar.addWidget(self.change_size)
             else:
                 self.im = self.axes.pcolormesh(x.datavalue, y.datavalue, z.datavalue)
         except Exception as exc1:
@@ -243,10 +257,6 @@ class DataChooser(QWidget):
         try:
             idx = int(self.entry.text())
             if self.mparent.shape[self.active_dimension] <= idx:
-                print(self.mparent.shape)
-                print(self.active_dimension)
-                print(idx)
-                print("end")
                 HelpWindow(self, "the index you chose is too large for this dimension")
                 return
             self.active_index = idx
@@ -591,12 +601,11 @@ def make_lasso(xdata, ydata, mfunc, label, axis):
     myfunc = mfunc(label, xdata, ydata)
     return LassoSelector(axis, myfunc)
 
+
 class Fast3D(QMainWindow):
     def __init__(self, mydata, parent=None, mname=None, filename=None, dark=False, **kwargs):
-        print("here")
         if mydata.ndim == 4:
             self.is4d = True
-            print("is 4D")
         else:
             self.is4d = False
         super(Fast3D, self).__init__(parent)
@@ -662,7 +671,6 @@ class Fast3D(QMainWindow):
             return False
         if dim2 is not None:
             if dim2 <= dimension:
-                print(dim2, dimension)
                 HelpWindow(self, "you have to choose the second dimension larger than the first.")
                 return False
             try:

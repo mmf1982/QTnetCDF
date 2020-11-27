@@ -659,8 +659,6 @@ class App(QMainWindow):
         self.holdbutton = None
         self.filetype = None
         self.load_file(this_file)
-
-        print(self.plotaeralayout)
         self.setMenuBar(FileMenu(self))
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.resize(self.config["Startingsize"]["Mainwindow"]["width"],
@@ -695,8 +693,8 @@ class App(QMainWindow):
                         return
                     if self.mdata.z.datavalue.ndim <= 2:
                         temp = Fast2D(
-                            self.mdata, **self.config["Startingsize"]["2Dplot"],
-                            mname=self.mdata.z.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
+                            self.mdata, **self.config["Startingsize"]["2Dplot"], **self.config["Plotsettings"],
+                            mname=self.mdata.z.name,  filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
                     self.openplots.append(temp)
                 else:
                     if self.only_indices:
@@ -765,7 +763,7 @@ class App(QMainWindow):
             with netCDF4.Dataset(os.path.join(here, "country_lines.h5")) as fid:
                 for k in fid.variables:
                     C_LINES.append(fid[k][:])
-        ln_coll = matplotlib.collections.LineCollection(C_LINES, colors="k", linewidths=0.8)
+        ln_coll = matplotlib.collections.LineCollection(C_LINES, colors=self.config["Plotsettings"]["country_line_color"], linewidths=0.8)
         self.openplots[-1].myfigure.axes.add_collection(ln_coll)
         self.openplots[-1].myfigure.draw()
 
@@ -833,7 +831,7 @@ class App(QMainWindow):
                 self.openplots.append(temp)
             elif self.mdata.misc.datavalue.ndim == 2:
                 temp = Fast2D(self.mdata.misc.datavalue,
-                    parent=self, **self.config["Startingsize"]["2Dplot"],
+                    parent=self, **self.config["Startingsize"]["2Dplot"], **self.config["Plotsettings"],
                     mname=self.mdata.misc.name_value, filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
                 self.openplots.append(temp)
             elif self.mdata.misc.datavalue.ndim == 1:
@@ -927,7 +925,7 @@ class App(QMainWindow):
             self.openplots.append(temp)
         elif mydata.ndim == 2:
             temp = Fast2D(
-                mydata, parent=self, **self.config["Startingsize"]["2Dplot"],
+                mydata, parent=self, **self.config["Startingsize"]["2Dplot"], **self.config["Plotsettings"],
                 mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
             self.openplots.append(temp)
         elif mydata.ndim == 1:
@@ -943,7 +941,6 @@ class App(QMainWindow):
                 self.active1D = temp
                 self.openplots.append(temp)
         else:
-            print(thisdata.ndim)
             HelpWindow(self, "nothing to plot, it seems to be a scalar")
 
     def walk_down_netcdf(self, currentlevel, currentitemlevel):

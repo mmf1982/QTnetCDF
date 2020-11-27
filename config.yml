@@ -14,9 +14,9 @@ Headers:  # in pixels
     Date Modified: 140
 
 Startingsize:
-  Fontsize: 13
+  Fontsize: 9
   Mainwindow:  # in pixels,
-    width: 1600  # should be equal or larger than sum of Headers
+    width: 1500  # should be equal or larger than sum of Headers
     height: 600
   2Dplot:  # in inches
     width: 5
@@ -36,24 +36,28 @@ Startingsize:
 
 Tableview:
   location: bottom  # top, left, right, bottom
-  stacking: vertical  # horizontal, vertical
+  stacking: horizontal  # horizontal, vertical
   tabbing: True  # False, True
 
 # not necessarily needed. One can set the colorscheme for the app and for the plots here. The
 # plots can be configured with the normal rc file in matplotlib, or with standard matplotlib style sheets.
 Colorscheme:
   App: light #dark   # dark, light
-  # plots: [stylesheet.mplstyle] #seaborn-ticks, classic, Solarize_Light2, dark_background] #, seaborn-colorblind]
-  # plots: dark_background
+  #plots: [stylesheet.mplstyle] #seaborn-ticks, classic, Solarize_Light2, dark_background] #, seaborn-colorblind]
+  #plots: dark_background
   # any combination from plt.style.available, check also here:
   # https://matplotlib.org/3.2.1/gallery/style_sheets/style_sheets_reference.html
   # if an own file is set, this needs to be last and located in the same folder as app
 
 # not necessarily needed. This is to override colors in "dark" color scheme for "App"
 Colors:
-  WHITE: [245, 245, 245]  # --> font in tree, table, buttons
-  BLACK: [30, 30, 0]  # --> font in highlighted tree and table
+  WHITE: [245, 245, 215]  # --> font in tree, table, buttons
+  BLACK: [50, 50, 80]  # --> font in highlighted tree and table
   BRIGHT: [255, 0, 0]  # for bright text, but not used now
-  PRIMARY: [80, 80, 80]  #  --> main layout, also in figures
-  SECONDARY: [60, 60, 60]   # --> tree and table background
-  TERTIARY: [142, 142, 170]  # --> highlighted in tree and table
+  PRIMARY: [60, 60, 110]  #  --> main layout, also in figures
+  SECONDARY: [40, 40, 80]   # --> tree and table background
+  TERTIARY: [192, 192, 230]  # --> highlighted in tree and table
+
+Plotsettings:
+  scatter_dot_size: 0.5
+  country_line_color: gray
