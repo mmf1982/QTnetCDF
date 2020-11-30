@@ -1,9 +1,9 @@
+import copy
 import sys
 import os
 import numpy
-from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QFont
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from matplotlib.widgets import LassoSelector
@@ -33,6 +33,38 @@ except (ImportError, ModuleNotFoundError):
     from Menues import center, HelpWindow
 
 SIZEVALS = numpy.array([0.1, 0.2, 0.5, 1, 2, 3, 4, 5, 8, 15, 20, 30 , 50, 80, 150])
+
+class MyQLabel(QLabel):
+    """
+    implements clickable QLabel that performs action on itself: delete text and associated value.
+    """
+
+    def __init__(self, dataname, datavalue, extra=": "):
+        super(MyQLabel, self).__init__()
+        self.datavalue = datavalue
+        self.setText(dataname.ljust(5) + extra)
+        self.name = dataname.ljust(5)
+        newfont = QFont("Mono", 8, QFont.Normal)
+        self.setFont(newfont)
+        self.name_value = ""
+
+    def set(self, value, name):
+        self.setText(self.name + ": " + name)
+        self.datavalue = value
+        self.name_value = name
+
+    def mousePressEvent(self, event):
+        self.setText(self.name + ": ")
+        self.datavalue = None
+
+    def copy(self):
+        class Dummy(object):
+            def __init__(self, nme, val):
+                self.name_value = nme
+                self.datavalue = val
+        newobj = Dummy(self.name_value, self.datavalue)
+        return newobj
+
 
 class Easyerrorbar(axs.Axes):
     """ Circumvent problem with normal matplotlib errorbar():
@@ -127,14 +159,21 @@ class MplCanvas(FigureCanvasQTAgg):
         self.im.set_sizes([SIZEVALS[value]])
         self.draw()
 
-    def pcolormesh(self, x, y, z):
+    def pcolormesh(self, x, y, z, only_indices=None):
         try:
             self.cb.remove()
         except AttributeError:
             pass
         try:
             if z.datavalue.ndim == 1:
-                self.im = self.axes.scatter(x.datavalue, y.datavalue, c=z.datavalue, s=self.scatter_dot_size)
+                xx = x.datavalue
+                yy = y.datavalue
+                cc = z.datavalue
+                if only_indices is not None:
+                    xx = xx[only_indices]
+                    yy = yy[only_indices]
+                    cc = cc[only_indices]
+                self.im = self.axes.scatter(xx, yy, c=cc, s=self.scatter_dot_size)
                 self.toolbar.addWidget(self.change_size)
             else:
                 self.im = self.axes.pcolormesh(x.datavalue, y.datavalue, z.datavalue)
@@ -406,15 +445,21 @@ class DataChooser(QWidget):
                 self.slice_label2.setText("slice = " + str(self.active_index2) + "/ 0-" + str(
                     self.mparent.shape[self.active_dimension2]-1))
 
+
 class Fast2D(QMainWindow):
-    def __init__(self, mydata,  parent=None, mname=None, filename=None, dark=False, **kwargs):
+    def __init__(self, master, mydata, parent=None, mname=None, filename=None, dark=False, only_indices=None, **kwargs):
         super(Fast2D, self).__init__(parent)
         self.isimage = True
+        self.master = master
         if (mydata.__class__.__name__) == ("Data"):
             self.isimage = False
-            self.x = mydata.x
-            self.y = mydata.y
-            mydata = mydata.z
+            self.x = mydata.x.copy()
+            self.y = mydata.y.copy()
+            mydata = mydata.z.copy()
+            if not only_indices is None:
+                self.x.datavalue = self.x.datavalue[only_indices]
+                self.y.datavalue = self.y.datavalue[only_indices]
+                mydata.datavalue = mydata.datavalue[only_indices]
         if mname is None:
             mname = '2D Viewer'
         self.mydata = mydata
@@ -426,16 +471,19 @@ class Fast2D(QMainWindow):
         # self.setWindowIcon(QIcon("web.png"))
         self.myfigure = MplCanvas(parent=self, **kwargs)
         my_slider = DataChooser(self, is3d=False)
+        self.active_button = QPushButton("make active")
+        self.active_button.clicked.connect(self.make_active)
         mainwindow = QWidget()
         layout = QVBoxLayout()
         layout.addWidget(self.myfigure.toolbar)
+        layout.addWidget(self.active_button)
         layout.addWidget(self.myfigure, stretch=1)
         layout.addWidget(my_slider)
         mainwindow.setLayout(layout)
         if self.isimage:
             self.myfigure.image(mydata)
         else:
-            worked = self.myfigure.pcolormesh(self.x, self.y, mydata)
+            worked = self.myfigure.pcolormesh(self.x, self.y, mydata) # , only_indices)
             if not worked:
                 self.show()
                 return
@@ -449,6 +497,38 @@ class Fast2D(QMainWindow):
             palette = QDarkPalette()
             self.setPalette(palette)
         self.show()
+
+    def add_to_plot(self, mydata, only_indices=None):
+        if only_indices is not None:
+            newx = mydata.x.copy()
+            newy = mydata.y.copy()
+            newz = mydata.z.copy()
+            newx.datavalue = newx.datavalue[only_indices]
+            newy.datavalue = newy.datavalue[only_indices]
+            newz.datavalue = newz.datavalue[only_indices]
+        else:
+            newx = mydata.x
+            newy = mydata.y
+            newz = mydata.z
+        if self.mydata.datavalue.ndim > 1:
+            HelpWindow("cannot update image plot")
+            return
+        else:
+            if newz.datavalue.ndim > 1:
+                HelpWindow("cannot update plot with z value of ndim > 1, only scatter plot type")
+                return
+            self.x.datavalue = numpy.r_[self.x.datavalue, newx.datavalue]
+            self.y.datavalue = numpy.r_[self.y.datavalue, newy.datavalue]
+            self.mydata.datavalue = numpy.r_[self.mydata.datavalue, newz.datavalue]
+            self.myfigure.im.remove()
+            worked = self.myfigure.pcolormesh(self.x, self.y, self.mydata)
+            self.myfigure.draw()
+            if not worked:
+                self.show()
+                return
+
+    def make_active(self):
+        self.master.active1D = self
 
     def update_plot(self, is_log=False):
         if is_log:
@@ -494,7 +574,7 @@ class Fast1D(QMainWindow):
         try:
             self.update_plot(mydata, symbol, only_indices)
         except ValueError as valerr:
-            help = HelpWindow(self, "Probably you chose to plot x-y with different dimensions? Errormessage:"+
+            help = HelpWindow(self, "Probably you chose to plot x-y with different dimensions? Errormessage: "+
                               str(valerr))
         self.myfigure.axes.set_xlabel(mydata.x.text().split(":")[1])
         center(self)
