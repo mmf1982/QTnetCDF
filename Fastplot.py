@@ -4,6 +4,7 @@ import os
 import numpy
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QFont
+from numpy import ma
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from matplotlib.widgets import LassoSelector
@@ -177,10 +178,25 @@ class MplCanvas(FigureCanvasQTAgg):
                 self.toolbar.addWidget(self.change_size)
             else:
                 self.im = self.axes.pcolormesh(x.datavalue, y.datavalue, z.datavalue)
-        except Exception as exc1:
+        except TypeError as exc1:
             try:
                 self.im = self.axes.pcolormesh(x.datavalue, y.datavalue, z.datavalue.T)
                 HelpWindow(self, "careful: z data is transposed to fit x and y")
+            except ValueError as exc2:
+                try:
+                    HelpWindow(self,
+                        "There are masked values in the grid coordinats.\n pcolor used instead of pcolormesh\n This is slow!")
+                    self.im = self.axes.pcolor(x.datavalue, y.datavalue, z.datavalue.T)
+                except Exception as exc3:
+                    HelpWindow(self, "Tried to use pcolor and to transpose. Still not working, errors: ", exc1, exc2, exc3)
+        except ValueError as exc1:
+            try:
+                if (ma.is_masked(x.datavalue)) or (ma.ismaked(y.datavalue)):
+                    HelpWindow(self, "There are masked values in the grid coordinats.\n"
+                                     " pcolor used instead of pcolormesh\n This is slow!")
+                    self.im = self.axes.pcolor(x.datavalue, y.datavalue, z.datavalue)
+                else:
+                    HelpWindow(self, "The following error occured: ", exc1)
             except Exception as exc2:
                 HelpWindow(self.mparent, "one of the following errors occured:" + str(exc1) + str(exc2))
                 return False
