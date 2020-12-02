@@ -35,36 +35,7 @@ except (ImportError, ModuleNotFoundError):
 
 SIZEVALS = numpy.array([0.1, 0.2, 0.5, 1, 2, 3, 4, 5, 8, 15, 20, 30 , 50, 80, 150])
 
-class MyQLabel(QLabel):
-    """
-    implements clickable QLabel that performs action on itself: delete text and associated value.
-    """
 
-    def __init__(self, dataname, datavalue, extra=": "):
-        super(MyQLabel, self).__init__()
-        self.datavalue = datavalue
-        self.setText(dataname.ljust(5) + extra)
-        self.name = dataname.ljust(5)
-        newfont = QFont("Mono", 8, QFont.Normal)
-        self.setFont(newfont)
-        self.name_value = ""
-
-    def set(self, value, name):
-        self.setText(self.name + ": " + name)
-        self.datavalue = value
-        self.name_value = name
-
-    def mousePressEvent(self, event):
-        self.setText(self.name + ": ")
-        self.datavalue = None
-
-    def copy(self):
-        class Dummy(object):
-            def __init__(self, nme, val):
-                self.name_value = nme
-                self.datavalue = val
-        newobj = Dummy(self.name_value, self.datavalue)
-        return newobj
 
 
 class Easyerrorbar(axs.Axes):
@@ -119,6 +90,7 @@ class MplCanvas(FigureCanvasQTAgg):
         self.toolbar = NavigationToolbar(self, parent)
         self.im = None
         self.cb = None
+        self.sc_size_slider = None
         self.mpl_connect('key_press_event', self.on_key_press)
         self.setFocusPolicy(Qt.StrongFocus)
         self.mparent = parent
@@ -165,6 +137,8 @@ class MplCanvas(FigureCanvasQTAgg):
             self.cb.remove()
         except AttributeError:
             pass
+        except KeyError:
+            pass
         try:
             if z.datavalue.ndim == 1:
                 xx = x.datavalue
@@ -175,7 +149,8 @@ class MplCanvas(FigureCanvasQTAgg):
                     yy = yy[only_indices]
                     cc = cc[only_indices]
                 self.im = self.axes.scatter(xx, yy, c=cc, s=self.scatter_dot_size)
-                self.toolbar.addWidget(self.change_size)
+                if self.sc_size_slider is None:
+                    self.sc_size_slider = self.toolbar.addWidget(self.change_size)
             else:
                 self.im = self.axes.pcolormesh(x.datavalue, y.datavalue, z.datavalue)
         except TypeError as exc1:
@@ -188,15 +163,20 @@ class MplCanvas(FigureCanvasQTAgg):
                         "There are masked values in the grid coordinats.\n pcolor used instead of pcolormesh\n This is slow!")
                     self.im = self.axes.pcolor(x.datavalue, y.datavalue, z.datavalue.T)
                 except Exception as exc3:
-                    HelpWindow(self, "Tried to use pcolor and to transpose. Still not working, errors: ", exc1, exc2, exc3)
+                    HelpWindow(self, "Tried to use pcolor and to transpose. Still not working, errors: "+ str(exc1) + str(exc2) +str(exc3))
+                    return False
+            except TypeError as exc2:
+                HelpWindow(self, "The dimensions seem not to match, even after transposing z:"+str(exc1))
+                return False
         except ValueError as exc1:
             try:
-                if (ma.is_masked(x.datavalue)) or (ma.ismaked(y.datavalue)):
+                if (ma.is_masked(x.datavalue)) or (ma.is_masked(y.datavalue)):
                     HelpWindow(self, "There are masked values in the grid coordinats.\n"
                                      " pcolor used instead of pcolormesh\n This is slow!")
                     self.im = self.axes.pcolor(x.datavalue, y.datavalue, z.datavalue)
                 else:
-                    HelpWindow(self, "The following error occured: ", exc1)
+                    HelpWindow(self, "The following error occured: " +  str(exc1))
+                    return False
             except Exception as exc2:
                 HelpWindow(self.mparent, "one of the following errors occured:" + str(exc1) + str(exc2))
                 return False
@@ -536,6 +516,7 @@ class Fast2D(QMainWindow):
             self.x.datavalue = numpy.r_[self.x.datavalue, newx.datavalue]
             self.y.datavalue = numpy.r_[self.y.datavalue, newy.datavalue]
             self.mydata.datavalue = numpy.r_[self.mydata.datavalue, newz.datavalue]
+            self.myfigure.cb.remove()
             self.myfigure.im.remove()
             worked = self.myfigure.pcolormesh(self.x, self.y, self.mydata)
             self.myfigure.draw()

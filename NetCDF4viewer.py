@@ -11,9 +11,9 @@ from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWi
 import numpy as np
 import matplotlib
 try:
-    from .Fastplot import Fast3D, Fast2D, Fast1D, MyQLabel
+    from .Fastplot import Fast3D, Fast2D, Fast1D
 except (ImportError, ModuleNotFoundError):
-    from Fastplot import Fast3D, Fast2D, Fast1D, MyQLabel
+    from Fastplot import Fast3D, Fast2D, Fast1D
 try:
     from .Menues import FileMenu, HelpWindow
 except (ImportError, ModuleNotFoundError):
@@ -33,6 +33,39 @@ CONFIGPATH = ""
 C_LINES = None
 __version__ = "0.0.1"
 __author__ = "Martina M. Friedrich"
+
+class MyQLabel(QLabel):
+    """
+    implements clickable QLabel that performs action on itself: delete text and associated value.
+    """
+    def __init__(self, dataname, datavalue, extra=": "):
+        super(MyQLabel, self).__init__()
+        self.datavalue = datavalue
+        self.setText(dataname.ljust(5) + extra)
+        self.name = dataname.ljust(5)
+        newfont = QFont("Mono", 8, QFont.Normal)
+        self.setFont(newfont)
+        self.name_value = ""
+        self.path = ""
+
+    def set(self, value, name, path=""):
+        self.setText(self.name + ": " + name)
+        self.datavalue = value
+        self.name_value = name
+        self.path = "/".join([path, self.name_value])
+
+    def mousePressEvent(self, event):
+        self.setText(self.name + ": ")
+        self.datavalue = None
+
+    def copy(self):
+        class Dummy(object):
+            def __init__(self, nme, val):
+                self.name_value = nme
+                self.datavalue = val
+        newobj = Dummy(self.name_value, self.datavalue)
+        return newobj
+
 
 class Pointer(QStandardItem):
     """
@@ -65,6 +98,10 @@ class MyQTreeView(QTreeView):
         idx = self.currentIndex()
         current_pointer = self.model().itemFromIndex(idx)
         try:
+            try:
+                mypath = current_pointer.mdata.group().path
+            except:
+                mypath = ""
             if event.text() == "d":
                 print("   ")
                 print("     INFO on ", current_pointer.name)
@@ -112,15 +149,15 @@ class MyQTreeView(QTreeView):
                 if last_tab is not None and self.master.config["Tableview"]["tabbing"]:
                     self.master.tabifyDockWidget(last_tab, self.tab)
             elif event.text() == "x":
-                self.master.mdata.x.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
+                self.master.mdata.x.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath)
             elif event.text() == "y":
-                self.master.mdata.y.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
+                self.master.mdata.y.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath)
             elif event.text() == "z":
-                self.master.mdata.z.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
+                self.master.mdata.z.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath)
             elif event.text() == "u":
-                self.master.mdata.yerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
+                self.master.mdata.yerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath)
             elif event.text() == "e":
-                self.master.mdata.xerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name)
+                self.master.mdata.xerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath)
             elif event.text() == "m":
                 if self.master.mdata.misc.datavalue is None:
                     self.master.mdata.misc.set(
@@ -588,9 +625,6 @@ class Data(object):
             setattr(self, key, MyQLabel(key, None))
         self.__dict__.update(kwargs)
         self.misc_op = "+"
-
-
-
 
 
 class MyQButton(QPushButton):
@@ -1107,11 +1141,13 @@ class App2(QWidget):
         self.windows = []
         self.layout = QVBoxLayout()
         self.plus = QPushButton("broadcast plot")
+        self.ssd = QPushButton("set same data")
         self.plus.clicked.connect(self.broadcast)
+        self.ssd.clicked.connect(self.set_same_data)
         self.layout.addWidget(self.plus)
+        self.layout.addWidget(self.ssd)
         for file in files:
             self.windows.append(App(file))
-
         if len(files) > 1:
             self.setLayout(self.layout)
             self.windows[0].plotaeralayout.addWidget(self)
@@ -1126,13 +1162,18 @@ class App2(QWidget):
             for ii in range(1, len(self.windows)):
                 self.windows[ii].active1D = self.windows[0].active1D
         else:
-            #try:
             self.windows[0].active1D = self.windows[0].openplots[-1]
             for ii in range(1, len(self.windows)):
                 self.windows[ii].active1D = self.windows[0].active1D
-            #except:
-            #    print("window 1 has no open plot")
 
+    def set_same_data(self):
+        for which in ["x", "y", "z", "xerr", "yerr", "misc"]:
+            name = self.windows[0].mdata.__dict__[which].name_value
+            path = self.windows[0].mdata.__dict__[which].path
+            for idx in range(1, len(self.windows)):
+                if len(path)> 0:
+                    mdata = self.windows[idx].mfile[path]
+                    self.windows[idx].mdata.__dict__[which].set(mdata, name, path)
 
 if __name__ == '__main__':
     mfile = sys.argv[1:]
