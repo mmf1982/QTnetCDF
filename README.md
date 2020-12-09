@@ -9,10 +9,10 @@ call as
     python3.7 -m NetCDF4viewer whatever_is_your_test_filename.nc_or_hdf_or_h5_or_hdf4
 
   In the file representation that opens, a click on the triangle infront of a group (or main file level), opens the group.
-  The following keys are activated on the tree:
-  * double click on variable: plot Supported are 1D, 2D and 3D variables.
+  The following keys are activated on the tree (always on the entry in the first column!):
+  * double click on variable: plot Supported are 1D, 2D, 3D and 4D variables.
   * "d" key is pressed on selected line, attribute information of that group or variable is prited.
-  * "s" key is pressed on selected variable opens it as a detachable table view (for 0D, 1D, 2D, 3D and 4D variables. Higher dimensions are not supported. 4D variables with large grids might cause problems because a complete variable is read into memory). If the variable is 3D it shows slice 0 along the zeroth dimension, This can be changed by a slicer bar and "+"/ "-" buttons. If the variable is 4D, the slice is as for 3D and additionally slice 0 along the first dimension. Note that the second slicer always needs have a dimension at least one higher than the first. Each slicer also has an entry field where the field number can be entered directly (hit enter key to confirm). 
+  * "s" key is pressed on selected variable opens it as a detachable table view (for 0D, 1D, 2D, 3D and 4D variables. Higher dimensions are not supported. 4D variables with large grids might cause problems because a complete variable is read into memory). If the variable is 3D it shows slice 0 along the zeroth dimension, This can be changed by a slicer bar and "+"/ "-" buttons and an entry field. If the variable is 4D, the slice is as for 3D and additionally slice 0 along the first dimension. Note that the second slicer always needs have a dimension at least one higher than the first. Each slicer also has an entry field where the field number can be entered directly (hit enter key to confirm). 
   * "x" data set as x for line plot
   * "y" data set as y for line plot
   * "e" data set as error on x for line plot
@@ -25,28 +25,32 @@ call as
 
   ### 1D plotting
 
-  If a variable is 1D, a double click will automatically plot it over its index. However, x, y, xerr and yerr can also be set. Either as a 1D variable as described above, or from the table view (after "s" on a 0, 1, 2, 3 or 4D variable) on which the following keys are activated: 
+  If a variable is 1D, a double click will automatically plot it over its index. However, x, y, xerr and yerr can also be set. Either as a 1D variable as described above, or from the table view (after "s" on a 1, 2, 3 or 4D variable) on which the following keys are activated: 
 
   * "x" data set as x for line plot
   * "y" data set as y for line plot
   * "e" data set as error on x for line plot
   * "u" data set as error on y for line plot
+  * "m" to load to misc and combine it with other data
 
-  In the table, multiple rows or columns can be selected for y or x (and also for both). If for both of them more than one are selected, it
-  needs to be the same number. If only one has more than 1 selected, the other one is plotted against this single one for each of the chosen
-  rows/ columns. If either has more than one row/ column selected, yerr (or xerr) is ignored. If only x or only y is selected,
-  that variable is plotted as a function of its index (index is always on the x-axis).
+  In the table, multiple rows or columns can be selected for y or x (and also for both). How the data is interpreted and plot depends on whether there are  
+  multiple rows/ columns are selected for both variables or not: 
+  
+  * If for both of them more than one are selected, it needs to be the same number and they are each plotted against each other as x[i] : y[i]
+  * If only one has more than 1 selected, the single one is plotted against each of the chosen rows/ columns.
+  * If either has more than one row/ column selected, yerr (or xerr) is ignored.
+  * If only x or only y is selected that variable is plotted as a function of its index (index is always on the x-axis).
 
-  To remove any of x, y, xerr, yerr or misc, click on its name below the "hold" and "plot" buttons. However, all but "misc" will be automatically overwritten once a new "x", "y", "z", "e" or "u" is pressed. 
+  To remove any of x, y, xerr, yerr or misc, click on its name below the "hold" and "plot" buttons. However, all but "misc" will be automatically overwritten once 
+  a new "x", "y", "z", "e" or "u" is pressed. 
   
   Buttons:
 
-  * "hold" --> "release" to keep plotting in same window or to open a new. If there is no current window (
-  the current value can be chosen with the button "make active" in the corresponding window), "plot" has no effect if hold button shows "release".
-  * "plot line" to plot current selection of x, y, xerr and yerr with lines.
-  * "plot symbol" to plot current selection of x  and y with symbols, no line. If no key is pressed, the symbol is ".". Supported keys: .o+xv^<>123hHdp (they have their usual matplotlib marker interpretation).
+  * *hold* --> "release": to keep plotting in the same window (button has to read "release") or to open a new plot window (if button reads "hold"). If there is no current window (the current window can be chosen with the button "make active" in the corresponding window), "plot" has no effect if hold button shows "release".
+  * *plot line*: to plot current selection of x, y, xerr and yerr with lines. If "z" variable is selected, "plot line" and "plot symbol" are identical, see below.
+  * *plot symbol*: to plot current selection of x  and y with symbols, no line. If no key is pressed, the symbol is ".". Supported keys: .o+xv^<>123hHdp (they have their usual matplotlib marker interpretation).
 
- The plots support the usual matplotlib shortcuts (l,k,L,  g,G,...) and the QT backend possibility to change the axes and lines. However, if the line style is changed, there are currently some inconsistences with the legend (if add_interactivity is used in conjunction).
+ The plots support the usual matplotlib shortcuts (l,k,L,  g,G,..., see https://matplotlib.org/3.1.1/users/navigation_toolbar.html) and the QT backend possibility to change the axes and lines. However, if the line style is changed, there are currently some inconsistences with the legend (if add_interactivity is used in conjunction).
 
  Line/ marker plots also have some of the functionality from add_interactivity (if it is installed), namely:
 
@@ -56,40 +60,40 @@ call as
  * left click legend while arrow left: make legend text smaller, right arrow to make it bigger
  * move legend by drag and drop
 
-* "use idxs?" --> If the plot was performed via "plot symbol", a lasso selector is activated. If used, the indices and the values of x 
-and y are written to the terminal and the indices can be used to restrict future plots with this button. Press button "use idxs?" in the main window before
-the next plot.)
+* *use idxs?* --> If the plot was performed via "plot symbol", a lasso selector is activated (only for x-y plots, not x-y-z scatter plots). If used, the indices and the values of x and y are written to the terminal and the indices can be used to restrict future plots with this button. Press button "use idxs?" in the main window before the next plot.)
 
-* "add country lines" --> this only makes sense if the plot is a lon-lat plot. It adds country outlines and coast lines to the plot.
+* *add country lines* --> this only makes sense if the plot is a lon-lat plot. It adds country outlines and coast lines to the plot.
 
-* "broadcast plot"  --> If more than one file was opened at the same time, the first window has this extra button. If a line plot is open and active, press this button to plot into it from other windows.
+* *broadcast plot* & *set same data*  --> If more than one file was opened at the same time, the first window has these extra buttons. If a line or scatter plot is open (x-y or x-y-z, but not image or pcolormesh) and active, press this button to plot into it from other windows (in the other windows, one still needs to press the *hold* button to enable plotting in the same plot window. *set same data* sets the same data (same variable and same slice/ row/ column, but not same indices if chosen) to the other open windows. Of course, this only works for files that have the same type of structure. This feature is currently not supported for hdf4 files.
 
 
  ### 2D, 3D and 4D plotting
 
  Currently, only 2D, 3D or 4D variables can be plotted by directly clicking on them in the TreeView (or usining misc, see above. Hitting the "plot misc" button does the same to the "misc" variable as double clicking a variable).
 
- 2D/ 3D/ 4D plots have the usual QT possibility of changing color map and limits. There is now also a "plot log" which converts the data to log. x, y axis can be converted to log with "k" and "l", as usual.
+ 2D/ 3D/ 4D plots have the usual QT possibility of changing color map and limits. There is now also a *plot log* button in the plot window which converts the data to log, however the z-limits cannot be 0 or negative and might need adjusting before. x, y axis can be converted to log with "k" and "l", as usual, see matplotlib shortcuts.
 
- For 3D plots, you can slice along x, y or z and use the "+" and "-" buttons to go forward or backward in the variable, or write a slice number in the entry field and hit the enter key to confirm.
+ For 3D plots, you can slice along x, y or z and use the "+" and "-" buttons to go forward or backward in the variable, or write a slice number in the entry field and hit the enter key to confirm. This is in analogy to the table view of 3D variables.
 
- While 4D plots are implemented (there are two slicers now, the upper one always has to be at a "higher" axis than the lower, default is first is 0, second is 1), it's use is discouraged since the whole 4D variable is loaded at once and the program might get really slow or even unresponsive.
+ While plots of 4D variables are implemented (there are two slicers then, the upper one always has to be at a "higher" axis than the lower, default is first is 0, second is 1), it's use is discouraged since the whole 4D variable is loaded at once and the program might get really slow or even unresponsive. This is in analogy to the table view of 4D variables.
 
  For 2D plotting, instead of simple image plot (via double click), x and y axis can be set (with "x" and "y", see above) and then the z data can be set via "z".
- Here, x and y can be 1 or 2 dimensional (but they have to be consistent, i.e. if x is 1D, y has to be 1D, too). If they are 1 dimensional and do not fit the data, the z data is transposed to
- try if the data fits that way. A warning is displayed. You need to press either of the two "plot" buttons, there is no difference between them for 2D plots.
-
- The 2D plotting with x, y and z also supports all 3 variables as 1D. In this case, a scatter plot is attempted.
+ The type of plot performed depends on the dimensionalit of the variabels:
+ 
+ * no x and y set, plot via double click on 2D variable: image plot of variable
+ * x, y and z set, all 1D: A scatter plot is performed where the z value sets the colour of each scatter point
+ * x, y 1D and z 2D: pcolormesh performed, if z data only fits x and y if it is transposed, it will be transposed
+ * x, y and z 2D: pcolormesh, the shape has to be identical
+ * x, y and z 2D, with x and y having nan values: pcolor is performed: this is considerably slower and might lead to speed issues.
 
  # Crashes
 
- Currently, the program might be a bit debil, it crashes:
- * currently no know crashes, please report and send the example file.
+ There are currently no crashes reported, please report together with the file and description of the action that caused the crash.
 
  # other functionality
 
- * In table view, if a row(s) or column(s) is selected and "+" is pressed, the row or column is summed and the value printed in the terminal
- * Two (or more) files can be opened at the same time (passing more than one file path as command line argument, separated by a space). In that case, the window of the first file has an extra button (to the left of the "plot symbol" button), called "broadcast plot". If a 1D plot is performed from that window, and then the "broadcast plot" button is pushed, that same plot window becomes visible by the other windows (from the other open files). If you press the "hold" button in the other open window, the plot will be carried out in that very same plot window. 
+ * In table view, if a row(s) or column(s) is selected and "+" is pressed, the row or column is summed and the value printed in the terminal, however there is an issue with fill values at the moment which might not be interpreted correctly.
+ * Two (or more) files can be opened at the same time (passing more than one file path as command line argument, separated by a space). In that case, the window of the first file has 2 extra buttons (to the left of the "plot symbol" button), called *broadcast plot* and *set same data*: If a line or scatter plot is performed from that window, and then the "broadcast plot" button is pushed, that same plot window becomes visible by the other windows (from the other open files). If you press the "hold" button in the other open window, the plot will be carried out in that very same plot window. The *set same data* button broadcasts the path of variabels to be used. This does currently not support hdf4 files. 
 
  This is useful if you have 2 versions of supposedly the same data, processed slightly differently. This allows you to easily plot both together in one figure.
 
