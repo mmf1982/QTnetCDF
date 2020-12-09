@@ -226,7 +226,14 @@ class MyTable(QWidget):
         super(MyTable, self).__init__()
         self.master = master
         self.name = data.name
-        self.table = MyQTableView(self.master)
+        try:
+            path = data.mdata.group().path
+        except:
+            # print("making table")
+            # print(data.mdata)
+            # print(data.mdata.myref)
+            path = ""
+        self.table = MyQTableView(self.master, path)
         self.c_idx = 0
         self.c_dim = 0
         self.c_idx2 = 0
@@ -482,8 +489,9 @@ class MyQTableView(QTableView):
     TODO: as for main variables, maybe add functionality of double click to plot data directly? Difficult....
     """
 
-    def __init__(self, master):
+    def __init__(self, master, path):
         super(MyQTableView, self).__init__()
+        self.path = path
         self.currentData = None
         self.master = master
         self.curridx = None
@@ -497,15 +505,15 @@ class MyQTableView(QTableView):
     def keyPressEvent(self, event):
         try:
             if event.text() == "x":
-                self.master.mdata.x.set(self.currentData, " ".join([self.model().name, self.curridx]))
+                self.master.mdata.x.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
             elif event.text() == "y":
-                self.master.mdata.y.set(self.currentData, " ".join([self.model().name, self.curridx]))
+                self.master.mdata.y.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
             elif event.text() == "z":
-                self.master.mdata.z.set(self.currentData, " ".join([self.model().name, self.curridx]))
+                self.master.mdata.z.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
             elif event.text() == "u":
-                self.master.mdata.yerr.set(self.currentData, " ".join([self.model().name, self.curridx]))
+                self.master.mdata.yerr.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
             elif event.text() == "e":
-                self.master.mdata.xerr.set(self.currentData, " ".join([self.model().name, self.curridx]))
+                self.master.mdata.xerr.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
             elif event.text() == "+":
                 print("adding up ", " ".join([self.model().name, self.curridx]), nansum(self.currentData))
             elif event.text() == "m":
@@ -722,6 +730,7 @@ class App(QMainWindow):
                             try:
                                 temp = Fast2D(self,
                                     self.mdata, **self.config["Startingsize"]["2Dplot"],
+
                                     **self.config["Plotsettings"], mname=self.mdata.z.name,
                                     filename=self.name, dark=self.dark, plotscheme=self.plotscheme,
                                     only_indices=self.current_idx)
@@ -1162,9 +1171,12 @@ class App2(QWidget):
             for ii in range(1, len(self.windows)):
                 self.windows[ii].active1D = self.windows[0].active1D
         else:
-            self.windows[0].active1D = self.windows[0].openplots[-1]
-            for ii in range(1, len(self.windows)):
-                self.windows[ii].active1D = self.windows[0].active1D
+            try:
+                self.windows[0].active1D = self.windows[0].openplots[-1]
+                for ii in range(1, len(self.windows)):
+                    self.windows[ii].active1D = self.windows[0].active1D
+            except IndexError:
+                HelpWindow(self, "it seems there are no open plot windows that are broadcastable")
 
     def set_same_data(self):
         for which in ["x", "y", "z", "xerr", "yerr", "misc"]:
@@ -1172,8 +1184,52 @@ class App2(QWidget):
             path = self.windows[0].mdata.__dict__[which].path
             for idx in range(1, len(self.windows)):
                 if len(path)> 0:
-                    mdata = self.windows[idx].mfile[path]
-                    self.windows[idx].mdata.__dict__[which].set(mdata, name, path)
+                    try:
+                        mdata = self.windows[idx].mfile[path][:]
+                        thisname = path
+                    except TypeError as te:
+                        HelpWindow(self, "setting same variables for x, y, z, ... is currently not supported for hdf4")
+                        return
+                        # print(te)
+                        # print(path)
+                        # print(self.windows[idx].mfile.struct)
+                    except IndexError:
+                        try:
+                            thisname, col = path.split(" col ")
+                            mdata = self.windows[idx].mfile[thisname][:, int(col)]
+                        except (ValueError, IndexError):
+                            try:
+                                thisname, row = path.split(" row ")
+                                mdata = self.windows[idx].mfile[thisname][int(row), :]
+                            except (IndexError, ValueError):
+                                if "slice" in path:
+                                    thisname, rest = path.split(" slice ")
+                                    slice, rest = rest.split(" in dim ")
+                                    try:
+                                        dim, row = rest.split(" row ")
+                                        if dim == "0":
+                                            mdata = self.windows[idx].mfile[thisname][slice, row, :]
+                                        elif dim == "1":
+                                            mdata = self.windows[idx].mfile[thisname][row, slice, :]
+                                        elif dim == "2":
+                                            mdata = self.windows[idx].mfile[thisname][row, :, slice]
+                                        else:
+                                            HelpWindow(self, "currently, set same data only supports base data up to 3 dimensions")
+                                            print("not supported right now")
+                                            return
+                                    except ValueError:
+                                        dim, col = rest.split(" col ")
+                                        if dim == "0":
+                                            mdata = self.windows[idx].mfile[thisname][slice, :, col]
+                                        elif dim == "1":
+                                            mdata = self.windows[idx].mfile[thisname][:, slice, col]
+                                        elif dim == "2":
+                                            mdata = self.windows[idx].mfile[thisname][:, col, slice]
+                                        else:
+                                            HelpWindow(self, "currently, set same data only supports base data up to 3 dimensions")
+                                            print("not supported right now")
+                                            return
+                    self.windows[idx].mdata.__dict__[which].set(mdata, name, thisname)
 
 if __name__ == '__main__':
     mfile = sys.argv[1:]
