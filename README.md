@@ -1,14 +1,41 @@
 # QTnetCDF
 
-Can open netCDF4, hdf5 and hdf4 files. For hdf4 files, it tries to remove the vdata that only represents sd variable attributes or dimensions.
+QTnetCDF is a hdf/ netCDF4 viewer with emphasis on plotting. It is implemented in plotting and uses QT. 
+It can open netCDF4, hdf5 and hdf4 files. For hdf4 files, it tries to remove the vdata that only represents sd variable attributes or dimensions.
+
+It is tested with python3.7 and python3.8. Under windows, it works with installing the needed packages via anaconda and python3.8. Under linux, it is recommended to use the setup scripts in conjuction with pip and python3.7, see Quick start below. 
+
+
+## Quick start
+
+Create and activate a virtual environment:
+
+    python3.7 -m venv newenv_test
+    source newenv_test/bin/activate
+
+download both QTnetCDF and add_interactivity:
+
+    git clone  https://github.com/mmf1982/QTnetCDF
+    git clone  https://github.com/mmf1982/add_interactivity
+
+inside the respecitve directories, run:
+
+    python3.7 setup.py install
+
+It might be that the package pyhdf needed for QTnetCDF throws an error. If so, try manually to do:
+
+    python3.7 -m pip install pyhdf
+and then redo the installation of QTnetCDF.
 
 Download for example a h5/ hdf/ nc file from here: https://hdfeos.org/zoo/index_openNSIDC_Examples.php  
 
-call as 
+and then call as 
 
     python3.7 -m NetCDF4viewer whatever_is_your_test_filename.nc_or_hdf_or_h5_or_hdf4
 
-  In the file representation that opens, a click on the triangle infront of a group (or main file level), opens the group.
+## Basic functionality
+
+  In the file representation that opens after opening a file, a click on the triangle infront of a group (or main file level), opens the group.
   The following keys are activated on the tree (always on the entry in the first column!):
   * double click on variable: plot Supported are 1D, 2D, 3D and 4D variables.
   * "d" key is pressed on selected line, attribute information of that group or variable is prited.
@@ -19,9 +46,15 @@ call as
   * "u" data set as error on y for line plot
   * "m" to loaded to misc. Data can then be combined with other data via the "/", "*", "+" and "-" buttons. Note that a+b/c will be calculated as (a+b)/c. The data set here (either as a full 1, 2, 3 or 4 D variable or a 1D or 2D subset) can either be set as x, y or z (as x etc) variable or directly plotted (plot misc) 
 
+  ## New features:
+  * More than one file can be opened and plots can be made in a common window
+  * If the same variables (same path to the variables) should be plotted from different files, they only need to be set in the first file.
+  * A simple country and coast line plot can be overlayed on longitude-latitude plots
+  * variables can be multiplied, divided, added and subtracted before plotting
+
   ## Plotting
 
-  The main thing about this tool is the plotting, you can do line/ marker plots, image or pcolormesh or scatter plots.
+  The main thing about this tool is the plotting, you can do line/ marker plots, image, pcolormesh or scatter plots. Data is supported up to 4 dimensions.
 
   ### 1D plotting
 
