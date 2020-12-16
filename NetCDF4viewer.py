@@ -226,6 +226,7 @@ class MyTable(QWidget):
         super(MyTable, self).__init__()
         self.master = master
         self.name = data.name
+        fillvalue = np.nan
         try:
             path = data.mdata.group().path
         except:
@@ -233,7 +234,16 @@ class MyTable(QWidget):
             # print(data.mdata)
             # print(data.mdata.myref)
             path = ""
-        self.table = MyQTableView(self.master, path)
+        try:
+            fillvalue = data.mdata._FillValue
+        except AttributeError:
+            try:
+                for key in data.mdata.attributes:
+                    if "fillvalue" in key.lower() or "fill_value" in key.lower():
+                        fillvalue = data.mdata.attributes[key]
+            except AttributeError:
+                pass
+        self.table = MyQTableView(self.master, path, fillvalue)
         self.c_idx = 0
         self.c_dim = 0
         self.c_idx2 = 0
@@ -489,8 +499,9 @@ class MyQTableView(QTableView):
     TODO: as for main variables, maybe add functionality of double click to plot data directly? Difficult....
     """
 
-    def __init__(self, master, path):
+    def __init__(self, master, path, fillvalue):
         super(MyQTableView, self).__init__()
+        self.fillvalue = fillvalue
         self.path = path
         self.currentData = None
         self.master = master
@@ -515,7 +526,8 @@ class MyQTableView(QTableView):
             elif event.text() == "e":
                 self.master.mdata.xerr.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
             elif event.text() == "+":
-                print("adding up ", " ".join([self.model().name, self.curridx]), nansum(self.currentData))
+                print(self.model())
+                print("adding up ", " ".join([self.model().name, self.curridx]), nansum(self.currentData[self.currentData != self.fillvalue]))
             elif event.text() == "m":
                 mdata = self.currentData
                 mname = " ".join([self.model().name, self.curridx])
@@ -1190,9 +1202,9 @@ class App2(QWidget):
                     except TypeError as te:
                         HelpWindow(self, "setting same variables for x, y, z, ... is currently not supported for hdf4")
                         return
-                        # print(te)
-                        # print(path)
-                        # print(self.windows[idx].mfile.struct)
+                    except KeyError as ke:
+                        HelpWindow(self, "probably it was tried to set a variable as x,y,z, xerror or yerror that does not exist. The error message is: "+str(ke))
+                        return
                     except IndexError:
                         try:
                             thisname, col = path.split(" col ")
