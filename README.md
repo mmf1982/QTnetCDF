@@ -1,12 +1,12 @@
 # QTnetCDF
 
-QTnetCDF is a hdf/ netCDF4 viewer with emphasis on plotting. It is implemented in plotting and uses QT. 
-It can open netCDF4, hdf5 and hdf4 files. For hdf4 files, it tries to remove the vdata that only represents sd variable attributes or dimensions.
+QTnetCDF is a hdf/ netCDF4 viewer with emphasis on plotting. It is implemented in python and uses QT. 
+It can open netCDF4, hdf5 and hdf4 files. For hdf4 files, it tries to remove the vdata that only represents sd variable attributes or dimensions. The functionality for hdf4 files is somewhat reduced. 
 
-It is tested with python3.7 and python3.8. Under windows, it works with installing the needed packages via anaconda and python3.8. Under linux, it is recommended to use the setup scripts in conjuction with pip and python3.7, see Quick start below. 
+It is tested with python3.7 (on linux) and python3.8 on windows. Under windows, it works with installing the needed packages via anaconda and python3.8. Under linux, it is recommended to use the setup scripts in conjuction with pip and python3.7, see Quick start below. 
 
 
-## Quick start
+## Quick start for linux
 
 Create and activate a virtual environment:
 
@@ -25,7 +25,7 @@ inside the respecitve directories, run:
 It might be that the package pyhdf needed for QTnetCDF throws an error. If so, try manually to do:
 
     python3.7 -m pip install pyhdf
-and then redo the installation of QTnetCDF.
+and then redo the installation of QTnetCDF (phython3.7 setup.py install in the QTnetCDF4 directory).
 
 Download for example a h5/ hdf/ nc file from here: https://hdfeos.org/zoo/index_openNSIDC_Examples.php  
 
@@ -41,11 +41,18 @@ you can leave the virtual environment again. OF course you do not need to work w
 
 ## Basic functionality
 
-  In the file representation that opens after opening a file, a click on the triangle infront of a group (or main file level), opens the group.
-  The following keys are activated on the tree (always on the entry in the first column!):
+  The file representation that opens after opening a file looks like this:
+  
+  ![File when opened](/images/collapsed_file.png)
+    
+  A click on the triangle infront of a group (or main file level), opens the group.
+  
+  ![Expanend group](/images/open_file.png)
+  
+  The following keys are activated on the tree (always on the entry in the first column, marked with the red oval above!):
   * double click on variable: plot Supported are 1D, 2D, 3D and 4D variables.
   * "d" key is pressed on selected line, attribute information of that group or variable is prited.
-  * "s" key is pressed on selected variable opens it as a detachable table view (for 0D, 1D, 2D, 3D and 4D variables. Higher dimensions are not supported. 4D variables with large grids might cause problems because a complete variable is read into memory). If the variable is 3D it shows slice 0 along the zeroth dimension, This can be changed by a slicer bar and "+"/ "-" buttons and an entry field. If the variable is 4D, the slice is as for 3D and additionally slice 0 along the first dimension. Note that the second slicer always needs have a dimension at least one higher than the first. Each slicer also has an entry field where the field number can be entered directly (hit enter key to confirm). 
+  * "s" key is pressed on selected variable opens it as a detachable table view ![Table view](/images/open_table.png) (for 0D, 1D, 2D, 3D and 4D variables. Higher dimensions are not supported. 4D variables with large grids might cause problems because a complete variable is read into memory). If the variable is 3D it shows slice 0 along the zeroth dimension, This can be changed by a slicer bar and "+"/ "-" buttons and an entry field. If the variable is 4D, the slice is as for 3D and additionally slice 0 along the first dimension. Note that the second slicer always needs have a dimension at least one higher than the first. Each slicer also has an entry field where the field number can be entered directly (hit enter key to confirm). 
   * "x" data set as x for line plot
   * "y" data set as y for line plot
   * "e" data set as error on x for line plot
@@ -53,10 +60,12 @@ you can leave the virtual environment again. OF course you do not need to work w
   * "m" to loaded to misc. Data can then be combined with other data via the "/", "*", "+" and "-" buttons. Note that a+b/c will be calculated as (a+b)/c. The data set here (either as a full 1, 2, 3 or 4 D variable or a 1D or 2D subset) can either be set as x, y or z (as x etc) variable or directly plotted (plot misc) 
 
 ## New features:
-  * More than one file can be opened and plots can be made in a common window
-  * If the same variables (same path to the variables) should be plotted from different files, they only need to be set in the first file.
+  * More than one file can be opened and plots can be made in a common window, this adds two extra buttons to the window of the first file: ![Extra buttons](/images/extra_button.png), one to make the plot window available (*broadcast plot*), the other, *set same data*, see following point.
+  
+  * If the same variables (same path to the variables) should be plotted from different files, they only need to be set in the first file (not supported for hdf4) and can then be set for all other windows with the *set same data* button.
   * A simple country and coast line plot can be overlayed on longitude-latitude plots
   * variables can be multiplied, divided, added and subtracted before plotting
+  * the scrolling wheel can be used to scroll in and out.
 
 ## Plotting
 
@@ -89,7 +98,7 @@ you can leave the virtual environment again. OF course you do not need to work w
   * *plot line*: to plot current selection of x, y, xerr and yerr with lines. If "z" variable is selected, "plot line" and "plot symbol" are identical, see below.
   * *plot symbol*: to plot current selection of x  and y with symbols, no line. If no key is pressed, the symbol is ".". Supported keys: .o+xv^<>123hHdp (they have their usual matplotlib marker interpretation).
 
- The plots support the usual matplotlib shortcuts (l,k,L,  g,G,..., see https://matplotlib.org/3.1.1/users/navigation_toolbar.html) and the QT backend possibility to change the axes and lines. However, if the line style is changed, there are currently some inconsistences with the legend (if add_interactivity is used in conjunction).
+ The plots support the usual matplotlib shortcuts (l, k, L,  g, G, ..., see https://matplotlib.org/3.1.1/users/navigation_toolbar.html) and the QT backend possibility to change the axes and lines. However, if the line style is changed, there are currently some inconsistences with the legend (if add_interactivity is used in conjunction).
 
  Line/ marker plots also have some of the functionality from add_interactivity (if it is installed), namely:
 
