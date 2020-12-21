@@ -706,7 +706,7 @@ class App(QMainWindow):
             self.mdata.x.set(arange((self.mdata.y.datavalue.shape[-1])), "index")
 
     def plotit(self, symbol=False):
-        #try:
+        try:
             if self.mdata.z.datavalue is None:
                 self.fix1d_data()
             if self.holdon:
@@ -767,9 +767,9 @@ class App(QMainWindow):
                               filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
                     self.openplots.append(temp)
                     self.active1D = temp
-        #except AttributeError:
-        #    HelpWindow(self, "It seems you have not set anything to plot. You need to mark row(s) or column(s)\n"
-        #                     "and then hit at least x or y to have some plottable data. Try again")
+        except AttributeError:
+            HelpWindow(self, "It seems you have not set anything to plot. You need to mark row(s) or column(s)\n"
+                             "and then hit at least x or y to have some plottable data. Try again")
 
     def plotitsymbol(self):
         if self.plotsymbol.symbol in ["o", "x", "<", ">", "*", ".", "^", "v", "1", "2", "3", "p", "h", "H", "D", "+"]:

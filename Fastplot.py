@@ -94,6 +94,32 @@ class MplCanvas(FigureCanvasQTAgg):
         self.mpl_connect('key_press_event', self.on_key_press)
         self.setFocusPolicy(Qt.StrongFocus)
         self.mparent = parent
+        self.scroll_zoom()
+
+    def scroll_zoom(self, base_scale=2.):
+        def zooming(event):
+            xlim = self.axes.get_xlim()
+            ylim = self.axes.get_ylim()
+            xdat = event.xdata
+            ydat = event.ydata
+            x_ext_r = (xlim[1] - xdat)
+            x_ext_l = (xdat-xlim[0])
+            y_ext_o = (ylim[1] - ydat)
+            y_ext_u = (ydat-ylim[0])
+            if event.button == 'up':
+                # zoom in
+                scale_factor = 1 / base_scale
+            elif event.button == 'down':
+                # zoom out
+                scale_factor = base_scale
+            else:
+                scale_factor = 1
+                print(event.button)
+            self.axes.set_xlim([xdat - x_ext_l * scale_factor, xdat + x_ext_r * scale_factor])
+            self.axes.set_ylim([ydat - y_ext_u * scale_factor, ydat + y_ext_o * scale_factor])
+            self.axes.figure.canvas.draw_idle()
+        self.mpl_connect('scroll_event', zooming)
+        return zooming
 
     def on_key_press(self, event):
         try:
