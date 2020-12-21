@@ -50,20 +50,21 @@ you can leave the virtual environment again. OF course you do not need to work w
   ![Expanend group](/images/open_file.png)
   
   The following keys are activated on the tree (always on the entry in the first column, marked with the red oval above!):
-  * double click on variable: plot Supported are 1D, 2D, 3D and 4D variables.
+  * double click on variable: plots supported data, supported are 1D, 2D, 3D and 4D variables. 2D, 3D and 4D are plotted as image, 3D with a slider and 4D with two sliders.
   * "d" key is pressed on selected line, attribute information of that group or variable is prited.
   * "s" key is pressed on selected variable opens it as a detachable table view ![Table view](/images/open_table.png) (for 0D, 1D, 2D, 3D and 4D variables. Higher dimensions are not supported. 4D variables with large grids might cause problems because a complete variable is read into memory). If the variable is 3D it shows slice 0 along the zeroth dimension, This can be changed by a slicer bar and "+"/ "-" buttons and an entry field. If the variable is 4D, the slice is as for 3D and additionally slice 0 along the first dimension. Note that the second slicer always needs have a dimension at least one higher than the first. Each slicer also has an entry field where the field number can be entered directly (hit enter key to confirm). 
-  * "x" data set as x for line plot
-  * "y" data set as y for line plot
+  * "x" data set as x for line/ scatter plot
+  * "y" data set as y for line/scatter plot
+  * "z" data set as z for scatter plot
   * "e" data set as error on x for line plot
   * "u" data set as error on y for line plot
-  * "m" to loaded to misc. Data can then be combined with other data via the "/", "*", "+" and "-" buttons. Note that a+b/c will be calculated as (a+b)/c. The data set here (either as a full 1, 2, 3 or 4 D variable or a 1D or 2D subset) can either be set as x, y or z (as x etc) variable or directly plotted (plot misc) ![Misc](/images/misc.png)
+  * "m" to loaded to misc. Data can then be combined with other data via the "/", "*", "+" and "-" buttons. Note that a+b/c will be calculated as (a+b)/c. The data set here (either as a full 1, 2, 3 or 4 D variable or a 1D or 2D subset) can either be set as x, y or z (*as x* etc) variable or directly plotted (*plot misc*) ![Misc](/images/misc.png)
  
 
 ## New features:
   * More than one file can be opened and plots can be made in a common window, this adds two extra buttons to the window of the first file: ![Extra buttons](/images/extra_button.png), one to make the plot window available (*broadcast plot*), the other, *set same data*, see following point.
   
-  * If the same variables (same path to the variables) should be plotted from different files, they only need to be set in the first file (not supported for hdf4) and can then be set for all other windows with the *set same data* button.
+  * If the same variables (same path to the variables) should be plotted from different files, they only need to be set in the first file (not supported for hdf4) and can then be set for all other windows with the *set same data* button. This is for example usefull if one wants to plot several satellite overpass files in a single plot.
   * A simple country and coast line plot can be overlayed on longitude-latitude plots, button *add country lines* above. This is possible to pcolormesh plots (so if x, y and z are all 2D or if x and y are 1D but z is 2D) and also to scatter plots (so if x, y and z are all 1D):
   
    scatter                   |  pcolormesh
@@ -72,8 +73,8 @@ you can leave the virtual environment again. OF course you do not need to work w
   
   (note the slider for the pixel size in the scatter plot)
   * variables can be multiplied, divided, added and subtracted before plotting, see "m" above. 
-  * the scrolling wheel can be used to zoom in and out in a plot.
-  * If a plot was made with button *plot symbol*, the lasso selector can be used:
+  * the scrolling wheel can be used to zoom in and out of a plot.
+  * If a plot was made with button *plot symbol*, the lasso selector is active:
   ![Lasso Selector](/images/choose.png) 
   
   Together with button *use idxs?* which turns into *using idxs only*, this can be used to restrict the indices in following plots, like here were values for x, y and z has been chosen:
@@ -83,7 +84,7 @@ you can leave the virtual environment again. OF course you do not need to work w
   The result is a scatter plot only containing indices that were chosen with the lasso selector, in the displayed case, for which the validity is 100:  
   ![Scatter Plot](/images/chosen.png). 
   
-  Also note the slider with which the size of the scatter plots can be adjusted. 
+  Also note the slider which sets the size of the dots in scatter plots. 
 
 ## Plotting
 
@@ -107,23 +108,23 @@ you can leave the virtual environment again. OF course you do not need to work w
   * If either has more than one row/ column selected, yerr (or xerr) is ignored.
   * If only x or only y is selected that variable is plotted as a function of its index (index is always on the x-axis).
 
-  To remove any of x, y, xerr, yerr or misc, click on its name below the "hold" and "plot" buttons. However, all but "misc" will be automatically overwritten once 
-  a new "x", "y", "z", "e" or "u" is pressed. 
+  To remove any of x, y, xerr, yerr or misc, click on its name (below the *hold* and *plot* buttons). However, all but *misc* will be automatically overwritten once 
+  a new *x*, *y*, *z*, *e* or *u* is pressed. 
   
   Buttons:
 
-  * *hold* --> "release": to keep plotting in the same window (button has to read "release") or to open a new plot window (if button reads "hold"). If there is no current window (the current window can be chosen with the button "make active" in the corresponding window), "plot" has no effect if hold button shows "release".
-  * *plot line*: to plot current selection of x, y, xerr and yerr with lines. If "z" variable is selected, "plot line" and "plot symbol" are identical, see below.
+  * *hold* --> *release*: to keep plotting in the same window (button has to read "release") or to open a new plot window (if button reads *hold*). If there is no current window (the current window can be chosen with the button *make active* in the corresponding window), *plot* has no effect if hold button shows *release*.
+  * *plot line*: to plot current selection of x, y, xerr and yerr with lines. If a *z* variable is selected, *plot line* and *plot symbol* are identical, see below.
   * *plot symbol*: to plot current selection of x  and y with symbols, no line. If no key is pressed, the symbol is ".". Supported keys: .o+xv^<>123hHdp (they have their usual matplotlib marker interpretation).
 
- The plots support the usual matplotlib shortcuts (l, k, L,  g, G, ..., see https://matplotlib.org/3.1.1/users/navigation_toolbar.html) and the QT backend possibility to change the axes and lines. However, if the line style is changed, there are currently some inconsistences with the legend (if add_interactivity is used in conjunction).
+ The plots support the usual matplotlib shortcuts (l, k, L,  g, G, ..., see https://matplotlib.org/3.1.1/users/navigation_toolbar.html) and the QT backend possibility to change the axes and lines. If the line/ marker style is changed via the normal QT backend GUI, a new interactive legend is created automatically (if add_interactivity package is installed, too).
 
- Line/ marker plots also have some of the functionality from add_interactivity (if it is installed), namely:
+ Line/ marker plots also have some of the functionality from add_interactivity (if it is installed https://github.com/mmf1982/add_interactivity), namely:
 
  * left click a line/ marker to toggle
  * right click a line/ marker to bring it to front
- * left click a line/ marker while arrow up to make line thicker (marker larger), arrow down to make it thinner (marker smaller).
- * left click legend while arrow left: make legend text smaller, right arrow to make it bigger
+ * left click a line/ marker while arrow up key pressed: make line thicker (marker larger), arrow down key pressed: make it thinner (marker smaller).
+ * left click legend while arrow left key pressed: make legend text smaller, right arrow key pressed: to make it bigger
  * move legend by drag and drop
 
 * *use idxs?* --> If the plot was performed via "plot symbol", a lasso selector is activated (only for x-y plots, not x-y-z scatter plots). If used, the indices and the values of x and y are written to the terminal and the indices can be used to restrict future plots with this button. Press button "use idxs?" in the main window before the next plot.)
