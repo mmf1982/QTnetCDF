@@ -72,7 +72,7 @@ you can leave the virtual environment again. OF course you do not need to work w
   
   (note the slider for the pixel size in the scatter plot)
   * variables can be multiplied, divided, added and subtracted before plotting, see "m" above. 
-  * the scrolling wheel can be used to scroll in and out.
+  * the scrolling wheel can be used to zoom in and out in a plot.
   * If a plot was made with button *plot symbol*, the lasso selector can be used:
   ![Lasso Selector](/images/choose.png) 
   
