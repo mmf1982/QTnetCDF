@@ -557,6 +557,10 @@ class Fast1D(QMainWindow):
         self.only_indices = only_indices
         self.setWindowIcon(QIcon("web.png"))
         self.myfigure = MplCanvas(self, **kwargs)
+        try:
+            self.myfigure.toolbar.actions()[7].triggered.connect(self.add_interactivity)
+        except:
+            pass
         self.lassos = []
         self.current_idx = []
         self.active_button = QPushButton("make active")
@@ -672,6 +676,11 @@ class Fast1D(QMainWindow):
             ai.add_interactivity(fig=self.myfigure.fig, ax=self.myfigure.axes, nodrag=False, legsize=7)
         except:
             print("it seems that add_interactivity is not loaded. Check if the file is in pythonpath")
+        self.myfigure.draw()
+
+    def add_interactivity(self):
+        self.myfigure.axes.get_legend().remove()
+        ai.add_interactivity(fig=self.myfigure.fig, ax=self.myfigure.axes, nodrag=False, legsize=7)
         self.myfigure.draw()
 
 def make_lasso(xdata, ydata, mfunc, label, axis):
