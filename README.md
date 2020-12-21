@@ -57,15 +57,17 @@ you can leave the virtual environment again. OF course you do not need to work w
   * "y" data set as y for line plot
   * "e" data set as error on x for line plot
   * "u" data set as error on y for line plot
-  * "m" to loaded to misc. Data can then be combined with other data via the "/", "*", "+" and "-" buttons. Note that a+b/c will be calculated as (a+b)/c. The data set here (either as a full 1, 2, 3 or 4 D variable or a 1D or 2D subset) can either be set as x, y or z (as x etc) variable or directly plotted (plot misc) 
+  * "m" to loaded to misc. Data can then be combined with other data via the "/", "*", "+" and "-" buttons. Note that a+b/c will be calculated as (a+b)/c. The data set here (either as a full 1, 2, 3 or 4 D variable or a 1D or 2D subset) can either be set as x, y or z (as x etc) variable or directly plotted (plot misc) ![Misc](/images/misc.png)
+ 
 
 ## New features:
   * More than one file can be opened and plots can be made in a common window, this adds two extra buttons to the window of the first file: ![Extra buttons](/images/extra_button.png), one to make the plot window available (*broadcast plot*), the other, *set same data*, see following point.
   
   * If the same variables (same path to the variables) should be plotted from different files, they only need to be set in the first file (not supported for hdf4) and can then be set for all other windows with the *set same data* button.
-  * A simple country and coast line plot can be overlayed on longitude-latitude plots
-  * variables can be multiplied, divided, added and subtracted before plotting
+  * A simple country and coast line plot can be overlayed on longitude-latitude plots, button *add country lines* above.
+  * variables can be multiplied, divided, added and subtracted before plotting, see "m" above. 
   * the scrolling wheel can be used to scroll in and out.
+  * If a plot was made with button *plot symbol*, the lasso selector can be used. ![Lasso Selector](/images/choose.png) Together with button *use idxs?* which turns into *using idxs only*, this can be used to restrict the indices in following plots, like here were values for x, y and z has been chosen: ![Choise](/images/choice.png). The result is a scatter plot only containing indices that were chosen with the lasso selector, in the displayed case, for which the validity is 100:  ![Scatter Plot](/images/chosen.png). Also note the slider with which the size of the scatter plots can be adjusted. 
 
 ## Plotting
 
