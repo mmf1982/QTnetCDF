@@ -64,7 +64,13 @@ you can leave the virtual environment again. OF course you do not need to work w
   * More than one file can be opened and plots can be made in a common window, this adds two extra buttons to the window of the first file: ![Extra buttons](/images/extra_button.png), one to make the plot window available (*broadcast plot*), the other, *set same data*, see following point.
   
   * If the same variables (same path to the variables) should be plotted from different files, they only need to be set in the first file (not supported for hdf4) and can then be set for all other windows with the *set same data* button.
-  * A simple country and coast line plot can be overlayed on longitude-latitude plots, button *add country lines* above.
+  * A simple country and coast line plot can be overlayed on longitude-latitude plots, button *add country lines* above. This is possible to pcolormesh plots (so if x, y and z are all 2D or if x and y are 1D but z is 2D) and also to scatter plots (so if x, y and z are all 1D):
+  
+   scatter                   |  pcolormesh
+  ---------------------------|-------------------------
+  ![Scatter](/images/scatter_countries.png) | ![Pcolormesh](/images/pcolormesh_country.png)
+  
+  (note the slider for the pixel size in the scatter plot)
   * variables can be multiplied, divided, added and subtracted before plotting, see "m" above. 
   * the scrolling wheel can be used to scroll in and out.
   * If a plot was made with button *plot symbol*, the lasso selector can be used:
