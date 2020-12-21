@@ -67,7 +67,17 @@ you can leave the virtual environment again. OF course you do not need to work w
   * A simple country and coast line plot can be overlayed on longitude-latitude plots, button *add country lines* above.
   * variables can be multiplied, divided, added and subtracted before plotting, see "m" above. 
   * the scrolling wheel can be used to scroll in and out.
-  * If a plot was made with button *plot symbol*, the lasso selector can be used. ![Lasso Selector](/images/choose.png) Together with button *use idxs?* which turns into *using idxs only*, this can be used to restrict the indices in following plots, like here were values for x, y and z has been chosen: ![Choise](/images/choice.png). The result is a scatter plot only containing indices that were chosen with the lasso selector, in the displayed case, for which the validity is 100:  ![Scatter Plot](/images/chosen.png). Also note the slider with which the size of the scatter plots can be adjusted. 
+  * If a plot was made with button *plot symbol*, the lasso selector can be used:
+  ![Lasso Selector](/images/choose.png) 
+  
+  Together with button *use idxs?* which turns into *using idxs only*, this can be used to restrict the indices in following plots, like here were values for x, y and z has been chosen:
+  
+  ![Choise](/images/choice.png)
+  
+  The result is a scatter plot only containing indices that were chosen with the lasso selector, in the displayed case, for which the validity is 100:  
+  ![Scatter Plot](/images/chosen.png). 
+  
+  Also note the slider with which the size of the scatter plots can be adjusted. 
 
 ## Plotting
 
