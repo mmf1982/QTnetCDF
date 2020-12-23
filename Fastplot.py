@@ -779,7 +779,9 @@ class Fast3D(QMainWindow):
             elif dimension == 2:
                 newdata = self.mydata[:, :, index]
             else:
-                raise ValueError("dimensionality is too high")
+                HelpWindow(self,
+                           "dimension 1 cannot be larger than 3, because the second slider has to have a higher dimension")
+                return False
         except (IndexError):
             HelpWindow(self, "It seems you chose an index that does not exist. Maybe you changed slicing at high index")
             return False

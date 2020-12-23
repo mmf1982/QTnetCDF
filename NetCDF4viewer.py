@@ -870,6 +870,31 @@ class App(QMainWindow):
                     layout_xyz.addWidget(self.mdata.__dict__[entr])
                 else:
                     misc_layout.addWidget(self.mdata.__dict__[entr])
+        entry = QLineEdit()
+        def get_number():
+            try:
+                num = float(entry.text())
+                if self.mdata.misc.datavalue is None:
+                    self.mdata.misc.set(num, str(num))
+                else:
+                    #try:
+                    if "+" in self.mdata.misc_op:
+                        mdata = self.mdata.misc.datavalue + num
+                    elif "-" in self.mdata.misc_op:
+                        mdata = self.mdata.misc.datavalue - num
+                    elif "/" in self.mdata.misc_op:
+                        mdata = self.mdata.misc.datavalue / num
+                    elif "*" in self.mdata.misc_op:
+                        mdata = self.mdata.misc.datavalue * num
+                    mname = self.mdata.misc.name_value+self.mdata.misc_op+str(num)
+                    self.mdata.misc.set(mdata, mname)
+                print(num)
+            except ValueError:
+                pass
+        entry.returnPressed.connect(get_number)
+        entry.setFixedWidth(40)
+        # self.entry.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        misc_layout.addWidget(entry) #, alignment=QtCore.Qt.AlignHCenter)
         for el in ["+", "-", "/", "*"]:
             button = QPushButton(el)
             width = button.fontMetrics().boundingRect(el).width() + 8
@@ -893,10 +918,10 @@ class App(QMainWindow):
                 elif "z" in which:
                     self.mdata.z.set(val, name)
             button.clicked.connect(lambda state, w=use_as: funcxyz(w))
-        button = QPushButton("plot misc")
-        width = button.fontMetrics().boundingRect("plot misc").width() + 8
-        button.setMaximumWidth(width)
-        misc_layout.addWidget(button)
+        button_plot = QPushButton("plot misc")
+        width = button_plot.fontMetrics().boundingRect("plot misc").width() + 8
+        button_plot.setMaximumWidth(width)
+        misc_layout.addWidget(button_plot)
         def plotmisc():
             if self.mdata.misc.datavalue.ndim >= 3:
                 temp = Fast3D(self.mdata.misc.datavalue,
@@ -932,7 +957,7 @@ class App(QMainWindow):
                             filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
                     self.active1D = temp
                     self.openplots.append(temp)
-        button.clicked.connect(plotmisc)
+        button_plot.clicked.connect(plotmisc)
         #plus_button.resize(plus_button.sizeHint().width(), plus_button.sizeHint().height())
         misc_widget.setLayout(misc_layout)
         showall_layout.addWidget(misc_widget)
