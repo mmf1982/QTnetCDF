@@ -91,6 +91,7 @@ you can leave the virtual environment again. OF course you do not need to work w
 * if more than two files are opened at the same time, the title of each window is the name of the respective file
 * windows with x-y-z plots get the name of the z value as title
 * behaviour of x-y plot if only x variable specified changed: Now x-variable is plotted on x and index on y. In order to get variable plotted as y, set variable as y and leave x empty.
+* add updated interactive legend after chaning line/ marker style/ color/ size with matplotlib gui.
 
 ## Plotting
 
