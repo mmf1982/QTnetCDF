@@ -86,6 +86,12 @@ you can leave the virtual environment again. OF course you do not need to work w
   
   Also note the slider which sets the size of the dots in scatter plots. 
 
+## Latest fixes:
+* undocked table takes color scheme specified for main window
+* if more than two files are opened at the same time, the title of each window is the name of the respective file
+* windows with x-y-z plots get the name of the z value as title
+* behaviour of x-y plot if only x variable specified changed: Now x-variable is plotted on x and index on y. In order to get variable plotted as y, set variable as y and leave x empty.
+
 ## Plotting
 
   The main thing about this tool is the plotting, you can do line/ marker plots, image, pcolormesh or scatter plots. Data is supported up to 4 dimensions.
