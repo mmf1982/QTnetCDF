@@ -26,9 +26,12 @@ class QDarkPalette(QPalette):
         self.setColor(QPalette.BrightText,      BRIGHT)
         self.setColor(QPalette.Link,            TERTIARY)
         self.setColor(QPalette.Highlight,       TERTIARY)
+        # self.setColor(QPalette.Background,      TERTIARY)
+        # self.setColor(QPalette.WindowText,          PRIMARY)
+        # self.setColor(QPalette.Base, PRIMARY)
         self.setColor(QPalette.HighlightedText, BLACK)
 
 def reset_colors(mdict):
-    global WHITE, BLACK, RED, PRIMARY, SECONDARY, TERTIARY
+    global WHITE, BLACK, PRIMARY, SECONDARY, TERTIARY
     for key in mdict.keys():
         globals()[key] = QColor(*mdict[key])

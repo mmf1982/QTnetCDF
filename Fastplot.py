@@ -604,6 +604,7 @@ class Fast1D(QMainWindow):
             help = HelpWindow(self, "Probably you chose to plot x-y with different dimensions? Errormessage: "+
                               str(valerr))
         self.myfigure.axes.set_xlabel(mydata.x.text().split(":")[1])
+        self.myfigure.axes.set_ylabel(mydata.y.text().split(":")[1])
         center(self)
         if filename is not None:
             statusbar = QStatusBar()
@@ -612,6 +613,7 @@ class Fast1D(QMainWindow):
         if dark:
             palette = QDarkPalette()
             self.setPalette(palette)
+        self.myfigure.fig.set_tight_layout(True)
         self.show()
 
     def make_active(self):

@@ -191,6 +191,8 @@ class MyQTreeView(QTreeView):
 
     def open_table(self, current_p):
         dock_widget = QDockWidget(current_p.name)
+        if self.master.dark:
+            dock_widget.setPalette(QDarkPalette())
         table_widget = MyTable(self.master, current_p)
         dock_widget.setWidget(table_widget)
         if "hor" in self.master.config["Tableview"]["stacking"].lower():
@@ -225,6 +227,8 @@ class MyTable(QWidget):
         """
         super(MyTable, self).__init__()
         self.master = master
+        if master.dark:
+            self.setPalette(QDarkPalette())
         self.name = data.name
         fillvalue = np.nan
         try:
@@ -664,6 +668,7 @@ class App(QMainWindow):
     def __init__(self, this_file):
         super(App, self).__init__()
         name = os.path.basename(this_file)
+        self.setWindowTitle(name)
         self.mfile = None
         self.model = None
         self.name = name
@@ -699,9 +704,10 @@ class App(QMainWindow):
 
     def fix1d_data(self):
         if self.mdata.y.datavalue is None:
-            self.mdata.y.set(self.mdata.x.datavalue, self.mdata.x.text().split(": ")[1])
-            self.mdata.x.set(arange((self.mdata.x.datavalue.shape[-1])), "index")
-            self.mdata.yerr.set(self.mdata.xerr.datavalue, self.mdata.xerr.text().split(": ")[1])
+            self.mdata.y.set(arange((self.mdata.x.datavalue.shape[-1])), "index")
+            # self.mdata.y.set(self.mdata.x.datavalue, self.mdata.x.text().split(": ")[1])
+            # self.mdata.x.set(arange((self.mdata.x.datavalue.shape[-1])), "index")
+            # self.mdata.yerr.set(self.mdata.xerr.datavalue, self.mdata.xerr.text().split(": ")[1])
         if self.mdata.x.datavalue is None:
             self.mdata.x.set(arange((self.mdata.y.datavalue.shape[-1])), "index")
 
@@ -743,7 +749,7 @@ class App(QMainWindow):
                                 temp = Fast2D(self,
                                     self.mdata, **self.config["Startingsize"]["2Dplot"],
 
-                                    **self.config["Plotsettings"], mname=self.mdata.z.name,
+                                    **self.config["Plotsettings"], mname=self.mdata.z.name_value,
                                     filename=self.name, dark=self.dark, plotscheme=self.plotscheme,
                                     only_indices=self.current_idx)
                             except AttributeError:
@@ -752,7 +758,7 @@ class App(QMainWindow):
                         else:
                             temp = Fast2D(self,
                                 self.mdata, **self.config["Startingsize"]["2Dplot"],
-                                **self.config["Plotsettings"], mname=self.mdata.z.name,
+                                **self.config["Plotsettings"], mname=self.mdata.z.name_value,
                                 filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
                     self.openplots.append(temp)
                     if self.mdata.z.datavalue.ndim == 1:
@@ -827,7 +833,7 @@ class App(QMainWindow):
             with netCDF4.Dataset(os.path.join(here, "country_lines.h5")) as fid:
                 for k in fid.variables:
                     C_LINES.append(fid[k][:])
-        ln_coll = matplotlib.collections.LineCollection(C_LINES, colors=self.config["Plotsettings"]["country_line_color"], linewidths=0.8)
+        ln_coll = matplotlib.collections.LineCollection(C_LINES, colors=self.config["Plotsettings"]["country_line_color"], linewidths=self.config["Plotsettings"]["country_line_thickness"])
         if self.active1D is None:
             self.openplots[-1].myfigure.axes.add_collection(ln_coll)
             self.openplots[-1].myfigure.draw()
@@ -1136,7 +1142,6 @@ class App(QMainWindow):
 def main(myfile):
     global CONFIGPATH
     if myfile[0][0] == "-":
-        CONFIGPATH = myfile[0][1:]
         CONFIGPATH = myfile[0][1:]
         myfile = myfile[1:]
     else:

@@ -42,7 +42,7 @@ Tableview:
 # not necessarily needed. One can set the colorscheme for the app and for the plots here. The
 # plots can be configured with the normal rc file in matplotlib, or with standard matplotlib style sheets.
 Colorscheme:
-  App: light #dark   # dark, light
+  App: dark   # dark, light
   #plots: [stylesheet.mplstyle] #seaborn-ticks, classic, Solarize_Light2, dark_background] #, seaborn-colorblind]
   #plots: dark_background
   # any combination from plt.style.available, check also here:
@@ -61,3 +61,4 @@ Colors:
 Plotsettings:
   scatter_dot_size: 0.5
   country_line_color: gray
+  country_line_thickness: 0.4
