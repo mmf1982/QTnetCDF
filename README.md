@@ -85,7 +85,8 @@ you can leave the virtual environment again. OF course you do not need to work w
   ![Scatter Plot](/images/chosen.png). 
   
   Also note the slider which sets the size of the dots in scatter plots. 
-
+  * using misc, it is now possible to add/ subtract/ divide/ multiply a constant factor of a variable: enter a float in the entry field marked red below, choose an operator and then mark a variable and press *m*, as described above under basic functionality. It is also possible to first choose the variable and the operator. In either case, press enter after entering the float in the input field. ![Constant factor](/images/input_field.png) 
+  
 ## Latest fixes:
 * undocked table takes color scheme specified for main window
 * if more than two files are opened at the same time, the title of each window is the name of the respective file
@@ -190,7 +191,6 @@ preceded by a "-" without a space:
  ## Nice to have, not implemented yet:
  I collect some ideas here for implementation. Please contact me if you have more suggestions.
  * Assigning a condition on one variable to transform it to a mask to use on other variables: This can now be done indirectly with the "use idxs?" and lasso selector.
- * Having the possibility of scaling variables with a scale factor
  * Make pcolormesh also workable for 3D variables (without the possibility of slicing, mapping decided automatically (?))
  
 
