@@ -533,11 +533,11 @@ class Fast2D(QMainWindow):
             newy = mydata.y
             newz = mydata.z
         if self.mydata.datavalue.ndim > 1:
-            HelpWindow("cannot update image plot")
+            HelpWindow(self, "cannot update image plot")
             return
         else:
             if newz.datavalue.ndim > 1:
-                HelpWindow("cannot update plot with z value of ndim > 1, only scatter plot type")
+                HelpWindow(self, "cannot update plot with z value of ndim > 1, only scatter plot type")
                 return
             self.x.datavalue = numpy.r_[self.x.datavalue, newx.datavalue]
             self.y.datavalue = numpy.r_[self.y.datavalue, newy.datavalue]
