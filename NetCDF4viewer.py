@@ -29,8 +29,8 @@ except:
 
 from numpy import array, arange, squeeze, nansum
 
-#CONFIGPATH = ""
-#C_LINES = None
+CONFIGPATH = ""
+C_LINES = None
 #__version__ = "0.0.1"
 #__author__ = "Martina M. Friedrich"
 
