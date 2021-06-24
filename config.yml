@@ -60,5 +60,5 @@ Colors:
 
 Plotsettings:
   scatter_dot_size: 0.5
-  country_line_color: gray
-  country_line_thickness: 0.4
+  country_line_color: lightgray
+  country_line_thickness: 0.8

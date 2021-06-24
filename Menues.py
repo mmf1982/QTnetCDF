@@ -2,13 +2,14 @@ from PyQt5 import QtCore
 from PyQt5.QtGui import QIcon, QKeySequence, QFont
 from PyQt5.QtWidgets import QAction, QMenuBar, qApp, QTreeView, QFileSystemModel, QMainWindow, QLabel, QDesktopWidget
 import pathlib
-import netCDF4
 import os
+
+
 def center(window):
     """
     simple function put the window in the center of the screen
 
-    :param window: window on which to act
+    :param window: window handle to window on which to act
     :return: None
     """
     qr = window.frameGeometry()  # where it currently is in upper left corner
@@ -16,18 +17,26 @@ def center(window):
     qr.moveCenter(cp)  # move the center of the geometry (not the object itself) to center of screen
     window.move(qr.topLeft())  # move the object itself to the top-left corner of that geometry
 
+
 class MyQFileSystemModel(QFileSystemModel):
     def __init__(self):
         super(MyQFileSystemModel, self).__init__()
-    def data(self, QModelIndex, role=None):  # real signature unknown; restored from __doc__
-        if (role == QtCore.Qt.TextAlignmentRole):
-            return QFileSystemModel.data(self, QModelIndex, role=QtCore.Qt.AlignLeft)
+
+    def data(self, qmodelindex, role=None):  # real signature unknown; restored from __doc__
+        if role == QtCore.Qt.TextAlignmentRole:
+            return QFileSystemModel.data(self, qmodelindex, role=QtCore.Qt.AlignLeft)
         else:
-            return QFileSystemModel.data(self, QModelIndex, role=role)
+            return QFileSystemModel.data(self, qmodelindex, role=role)
 
 
 class HelpWindow(QMainWindow):
     def __init__(self, master, mytext):
+        """
+        Open a window to show an error that occurred
+
+        :param master:  Qt master application which calls this help window
+        :param mytext: str Message to write in the winodw
+        """
         super().__init__(master)
         self.setStyleSheet("background-color: red")
         mylabel = QLabel(mytext)
@@ -36,6 +45,7 @@ class HelpWindow(QMainWindow):
         mylabel.setFont(newfont)
         self.setCentralWidget(mylabel)
         self.show()
+
 
 class Files(QMainWindow):
     def __init__(self, master):
@@ -62,7 +72,7 @@ class Files(QMainWindow):
         self.treeview.doubleClicked.connect(self.open_file)
         self.setCentralWidget(self.treeview)
         self.resize(self.master.config["Startingsize"]["Filemenu"]["width"],
-                            self.master.config["Startingsize"]["Filemenu"]["height"])
+                    self.master.config["Startingsize"]["Filemenu"]["height"])
         self.treeview.setUniformRowHeights(True)
         for idx, key in enumerate(self.master.config["Headers"]["Filemenu"]):
             width = self.master.config["Headers"]["Filemenu"][key]
@@ -89,7 +99,7 @@ class FileMenu(QMenuBar):
         next_menu.addAction(self.previous)
 
     def open_menu(self):
-        w = Files(self.master)
+        _ = Files(self.master)
 
     @property
     def open_file(self):
@@ -147,6 +157,6 @@ class FileMenu(QMenuBar):
         if old_idx > 0:
             new_idx = old_idx - 1
         else:
-            new_idx = len(allfiles)-1
+            new_idx = len(allfiles) - 1
         newfile = allfiles[new_idx]
         self.master.load_file(os.path.join(newp, newfile))

@@ -11,17 +11,17 @@ from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWi
 import numpy as np
 import matplotlib
 try:
-    from .Fastplot import Fast3D, Fast2D, Fast1D
+    from .Fastplot import Fast3D, Fast2D, Fast1D, Fast2Dplus
 except (ImportError, ModuleNotFoundError):
-    from Fastplot import Fast3D, Fast2D, Fast1D
+    from Fastplot import Fast3D, Fast2D, Fast1D, Fast2Dplus
 try:
     from .Menues import FileMenu, HelpWindow
 except (ImportError, ModuleNotFoundError):
     from Menues import FileMenu, HelpWindow
 try:
-    from .Converters import hdf4_object, Table
+    from .Converters import Hdf4Object, Table
 except (ImportError, ModuleNotFoundError):
-    from Converters import hdf4_object, Table
+    from Converters import Hdf4Object, Table
 try:
     from .Colorschemes import QDarkPalette, reset_colors
 except:
@@ -29,10 +29,10 @@ except:
 
 from numpy import array, arange, squeeze, nansum
 
-CONFIGPATH = ""
-C_LINES = None
-__version__ = "0.0.1"
-__author__ = "Martina M. Friedrich"
+#CONFIGPATH = ""
+#C_LINES = None
+#__version__ = "0.0.1"
+#__author__ = "Martina M. Friedrich"
 
 class MyQLabel(QLabel):
     """
@@ -47,11 +47,13 @@ class MyQLabel(QLabel):
         self.setFont(newfont)
         self.name_value = ""
         self.path = ""
+        self.dimension = None
 
-    def set(self, value, name, path=""):
+    def set(self, value, name, path="", dimension=None):
         self.setText(self.name + ": " + name)
         self.datavalue = value
         self.name_value = name
+        self.dimension = dimension
         self.path = "/".join([path, self.name_value])
 
     def mousePressEvent(self, event):
@@ -60,10 +62,14 @@ class MyQLabel(QLabel):
 
     def copy(self):
         class Dummy(object):
-            def __init__(self, nme, val):
+            def __init__(self, nme, val, dim):
                 self.name_value = nme
                 self.datavalue = val
-        newobj = Dummy(self.name_value, self.datavalue)
+                self.dimension = dim
+            def copy(self):
+                newobj = Dummy(self.name_value, self.datavalue, self.dimension)
+                return newobj
+        newobj = Dummy(self.name_value, self.datavalue, self.dimension)
         return newobj
 
 
@@ -149,11 +155,14 @@ class MyQTreeView(QTreeView):
                 if last_tab is not None and self.master.config["Tableview"]["tabbing"]:
                     self.master.tabifyDockWidget(last_tab, self.tab)
             elif event.text() == "x":
-                self.master.mdata.x.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath)
+                self.master.mdata.x.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath,
+                                        dimension=current_pointer.mdata.dimensions)
             elif event.text() == "y":
-                self.master.mdata.y.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath)
+                self.master.mdata.y.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath,
+                                        dimension=current_pointer.mdata.dimensions)
             elif event.text() == "z":
-                self.master.mdata.z.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath)
+                self.master.mdata.z.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath,
+                                        dimension=current_pointer.mdata.dimensions)
             elif event.text() == "u":
                 self.master.mdata.yerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath)
             elif event.text() == "e":
@@ -649,6 +658,10 @@ class Data(object):
             setattr(self, key, MyQLabel(key, None))
         self.__dict__.update(kwargs)
         self.misc_op = "+"
+    def copy(self):
+        new = Data(x=self.x.copy(), y=self.y.copy(), z=self.z.copy(), xerr=self.xerr.copy(),
+                   yerr=self.yerr.copy(), misc=self.misc.copy())
+        return new
 
 
 class MyQButton(QPushButton):
@@ -726,9 +739,15 @@ class App(QMainWindow):
                         HelpWindow(self, "Probably you chose to plot x-y with different dimensions? Errormessage:" +
                                 str(valerr))
                     except TypeError as terr:
-                        HelpWindow(self, "You try to add to a plot. This caused an error. Maybe that was not what you intended: " + str(terr))
-                elif self.mdata.z.datavalue.ndim < 1 or self.mdata.z.datavalue.ndim > 2:
-                        HelpWindow(self, "dimensionality of z value has to be 2 for now")
+                        try:
+                            if self.only_indices:
+                                self.active1D.add_to_plot(self.mdata, only_indices=self.current_idx, symbol=symbol)
+                            else:
+                                self.active1D.add_to_plot(self.mdata, symbol=symbol)
+                        except TypeError as terr2:
+                            HelpWindow(self, "You try to add to a plot. This caused an error. Maybe that was not what you intended: " + str(terr))
+                elif self.mdata.z.datavalue.ndim < 1 or self.mdata.z.datavalue.ndim > 3:
+                        HelpWindow(self, "dimensionality of z value has to be 1,2,3 for now")
                         self.show()
                         return
                 else:
@@ -738,8 +757,8 @@ class App(QMainWindow):
                         self.active1D.add_to_plot(self.mdata)
             else:
                 if self.mdata.z.datavalue is not None:
-                    if self.mdata.z.datavalue.ndim < 1 or self.mdata.z.datavalue.ndim > 2:
-                        HelpWindow(self, "dimensionality of z value has to be 2 for now")
+                    if self.mdata.z.datavalue.ndim < 1 or self.mdata.z.datavalue.ndim > 3:
+                        HelpWindow(self, "dimensionality of z value has to be 1,2,3 for now")
                         self.show()
                         return
                     if self.mdata.z.datavalue.ndim <= 2:
@@ -748,7 +767,6 @@ class App(QMainWindow):
                             try:
                                 temp = Fast2D(self,
                                     self.mdata, **self.config["Startingsize"]["2Dplot"],
-
                                     **self.config["Plotsettings"], mname=self.mdata.z.name_value,
                                     filename=self.name, dark=self.dark, plotscheme=self.plotscheme,
                                     only_indices=self.current_idx)
@@ -760,9 +778,15 @@ class App(QMainWindow):
                                 self.mdata, **self.config["Startingsize"]["2Dplot"],
                                 **self.config["Plotsettings"], mname=self.mdata.z.name_value,
                                 filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
+                    elif self.mdata.z.datavalue.ndim > 2:
+                        temp = Fast2Dplus(self,
+                                self.mdata, **self.config["Startingsize"]["2Dplot"],
+                                **self.config["Plotsettings"], mname=self.mdata.z.name_value,
+                                filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
+                        self.show()
                     self.openplots.append(temp)
-                    if self.mdata.z.datavalue.ndim == 1:
-                        self.active1D = temp
+                    #if self.mdata.z.datavalue.ndim == 1:
+                    self.active1D = temp
                 else:
                     if self.only_indices:
                         temp = Fast1D(
@@ -993,7 +1017,7 @@ class App(QMainWindow):
             self.filetype = "netcdf4"
         except (OSError, UnicodeError):
             try:
-                self.mfile = hdf4_object(m_file)
+                self.mfile = Hdf4Object(m_file)
                 self.filetype = "hdf4"
             except pyhdf.error.HDF4Error:
                 HelpWindow(
@@ -1012,6 +1036,10 @@ class App(QMainWindow):
     def get_data(self, signal):
         try:
             mydata = np.squeeze(self.model.itemFromIndex(signal).mdata[:])
+            try:
+                mydata_dims = self.model.itemFromIndex(signal).mdata.dimensions
+            except:
+                mydata_dims = None
             if mydata.ndim < 5:
                 thisdata = self.model.itemFromIndex(signal).mdata
             else:
@@ -1032,35 +1060,41 @@ class App(QMainWindow):
         if mydata.ndim >= 3:
             temp = Fast3D(
                 mydata, parent=self, **self.config["Startingsize"]["3Dplot"],
-                mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
+                mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme, mydata_dims=mydata_dims)
             self.openplots.append(temp)
         elif mydata.ndim == 2:
             if self.only_indices:
                 temp = Fast2D(self,
                     mydata, parent=self, **self.config["Startingsize"]["2Dplot"], **self.config["Plotsettings"],
-                    mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme, only_indices=self.current_idx)
+                    mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme, only_indices=self.current_idx, mydata_dims=mydata_dims)
             else:
                 temp = Fast2D(self,
                     mydata, parent=self, **self.config["Startingsize"]["2Dplot"], **self.config["Plotsettings"],
-                    mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
+                    mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme, mydata_dims=mydata_dims)
             self.openplots.append(temp)
         elif mydata.ndim == 1:
             mdata = Data()
             mdata.x.set(arange(len(mydata)), "index")
             mdata.y.set(mydata, thisdata.name)
             if self.holdon:
-                self.active1D.update_plot(mdata)
+                if isinstance(self.active1D, Fast2D):
+                    HelpWindow(self, "hold is on, but no suitable plot open. Plotting in 2D plots only with x or y set")
+                else:
+                    if self.active1D is not None:
+                        self.active1D.update_plot(mdata)
+                    else:
+                        HelpWindow(self, "hold is on, but no suitable plot open")
             else:
                 if self.only_indices:
                     temp = Fast1D(self,
                         mdata, **self.config["Startingsize"]["1Dplot"],
                         mname=thisdata.name, filename=self.name,
-                        dark=self.dark, plotscheme=self.plotscheme, only_indices=self.current_idx)
+                        dark=self.dark, plotscheme=self.plotscheme, only_indices=self.current_idx, mydata_dims=mydata_dims)
                 else:
                     temp = Fast1D(self,
                         mdata, **self.config["Startingsize"]["1Dplot"],
                         mname=thisdata.name, filename=self.name,
-                        dark=self.dark, plotscheme=self.plotscheme)
+                        dark=self.dark, plotscheme=self.plotscheme, mydata_dims=mydata_dims)
                 self.active1D = temp
                 self.openplots.append(temp)
         else:
