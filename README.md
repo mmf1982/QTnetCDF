@@ -37,7 +37,7 @@ with
 
     deactivate
     
-you can leave the virtual environment again. OF course you do not need to work within a virual environment in the frist place, but it might be the saver option if you just want to give it a try. 
+you can leave the virtual environment again. Of course you do not need to work within a virual environment in the frist place, but it might be the saver option if you just want to give it a try. 
 
 ## Basic functionality
 
@@ -52,18 +52,24 @@ you can leave the virtual environment again. OF course you do not need to work w
   The following keys are activated on the tree (always on the entry in the first column, marked with the red oval above!):
   * double click on variable: plots supported data, supported are 1D, 2D, 3D and 4D variables. 2D, 3D and 4D are plotted as image, 3D with a slider and 4D with two sliders.
   * "d" key is pressed on selected line, attribute information of that group or variable is prited.
-  * "s" key is pressed on selected variable opens it as a detachable table view ![Table view](/images/open_table.png) (for 0D, 1D, 2D, 3D and 4D variables. Higher dimensions are not supported. 4D variables with large grids might cause problems because a complete variable is read into memory). If the variable is 3D it shows slice 0 along the zeroth dimension, This can be changed by a slicer bar and "+"/ "-" buttons and an entry field. If the variable is 4D, the slice is as for 3D and additionally slice 0 along the first dimension. Note that the second slicer always needs have a dimension at least one higher than the first. Each slicer also has an entry field where the field number can be entered directly (hit enter key to confirm). 
-  * "x" data set as x for line/ scatter plot
-  * "y" data set as y for line/scatter plot
-  * "z" data set as z for scatter plot
+  * "s" key is pressed on selected variable opens it as a detachable table view ![Table view](/images/open_table.png) (for 0D, 1D, 2D, 3D and 4D variables. Higher dimensions are not supported. 4D variables with large grids might cause problems because a complete variable is read into memory). If the variable is 3D it shows slice 0 along the zeroth dimension, This can be changed by a slicer bar and "+"/ "-" buttons and an entry field. If the variable is 4D, the slice is as for 3D and additionally slice 0 along the first dimension. Note that the second slicer always needs to have a dimension at least one higher than the first. Each slicer also has an entry field where the field number can be entered directly (hit enter key to confirm). 
+  * "x" data set as x for line/ scatter/ 2D- or 3D pcolormesh plot
+  * "y" data set as y for line/scatter/ 2D- or 3D pcolormesh plot
+  * "z" data set as z for scatter plot/ 2D- or 3D pcolormesh
   * "e" data set as error on x for line plot
   * "u" data set as error on y for line plot
-  * "m" to loaded to misc. Data can then be combined with other data via the "/", "*", "+" and "-" buttons. Note that a+b/c will be calculated as (a+b)/c. The data set here (either as a full 1, 2, 3 or 4 D variable or a 1D or 2D subset) can either be set as x, y or z (*as x* etc) variable or directly plotted (*plot misc*) ![Misc](/images/misc.png)
+  * "m" to load to misc. Data can then be combined with other data via the "/", "*", "+" and "-" buttons. Note that a+b/c will be calculated as (a+b)/c. The data set here (either as a full 1, 2, 3 or 4 D variable or a 1D or 2D subset) can either be set as x, y or z (*as x* etc) variable or directly plotted (*plot misc*) ![Misc](/images/misc.png)
  
 
-## New features:
+## New features in 0.0.2:
+  * for x-y-z plots, z now also supports 3D data (as before x and y need either to be both 1D or 2D), but no slicing in other directions is possible. If there are different axis having the same dimensions, a pop-up window requires information on which axis to slice along.
+  * for x-y-z plots, nans in the x- and y- variables do not use pcolor any longer and hence there is a speed gain. However, these masked values are "transferred to the z values.
+  * for x-y-z plots, if x and y have the same dimensions (instead of M+1 and N+1) than z (M,N), the grid is extended as (x[0]- diff_x[0]/2, x+diff_x/2, x[-1]+diff_x[-1]/2)
+  * for double click plots, the information about dimension is shown on the axis and on the sliders.
+  * pcolormesh plots can now be overlayed with scatter plots or 1D line plots
+
+## Features added in the previous update:
   * More than one file can be opened and plots can be made in a common window, this adds two extra buttons to the window of the first file: ![Extra buttons](/images/extra_button.png), one to make the plot window available (*broadcast plot*), the other, *set same data*, see following point.
-  
   * If the same variables (same path to the variables) should be plotted from different files, they only need to be set in the first file (not supported for hdf4) and can then be set for all other windows with the *set same data* button. This is for example usefull if one wants to plot several satellite overpass files in a single plot.
   * A simple country and coast line plot can be overlayed on longitude-latitude plots, button *add country lines* above. This is possible to pcolormesh plots (so if x, y and z are all 2D or if x and y are 1D but z is 2D) and also to scatter plots (so if x, y and z are all 1D):
   
@@ -79,7 +85,7 @@ you can leave the virtual environment again. OF course you do not need to work w
   
   Together with button *use idxs?* which turns into *using idxs only*, this can be used to restrict the indices in following plots, like here were values for x, y and z has been chosen:
   
-  ![Choise](/images/choice.png)
+  ![Choice](/images/choice.png)
   
   The result is a scatter plot only containing indices that were chosen with the lasso selector, in the displayed case, for which the validity is 100:  
   ![Scatter Plot](/images/chosen.png). 
@@ -152,14 +158,15 @@ you can leave the virtual environment again. OF course you do not need to work w
 
  While plots of 4D variables are implemented (there are two slicers then, the upper one always has to be at a "higher" axis than the lower, default is first is 0, second is 1), it's use is discouraged since the whole 4D variable is loaded at once and the program might get really slow or even unresponsive. This is in analogy to the table view of 4D variables.
 
- For 2D plotting, instead of simple image plot (via double click), x and y axis can be set (with "x" and "y", see above) and then the z data can be set via "z".
+ For 2D and 3D plotting, instead of simple image plot (via double click), x and y axis can be set (with "x" and "y", see above) and then the z data can be set via "z".
  The type of plot performed depends on the dimensionalit of the variabels:
  
  * no x and y set, plot via double click on 2D variable: image plot of variable
- * x, y and z set, all 1D: A scatter plot is performed where the z value sets the colour of each scatter point
- * x, y 1D and z 2D: pcolormesh performed, if z data only fits x and y if it is transposed, it will be transposed
- * x, y and z 2D: pcolormesh, the shape has to be identical
- * x, y and z 2D, with x and y having nan values: pcolor is performed: this is considerably slower and might lead to speed issues.
+ * x, y and z set, all 1D: A scatter plot is performed where the z value sets the colour of each scatter point.
+ * x, y 1D and z 2D: pcolormesh performed, if z data only fits x and y if it is transposed, it will be transposed, a warning is displayed.
+ * x, y and z 2D: pcolormesh, the shape has to be identical (or x- y- grid each one longer, as to represent really the boundaries)
+ * x, y and z 2D, with x and y having nan values: a crude fix is applied that "moves" the nans to the z-data instead. However, since each x-y center coordinate is translated into four boundaries (above, below, left, right), and one missing x-y point means 4 missing boundaries, more nans are introduced in the field. However, x- and y- coordinates should not contain nans in the first place.
+ * x, y 1D or both 2D and z 3D: pcolormesh with slicing along the 3rd dimension, plus/ minus buttons and an entry field to change the slice are present.
 
  ## other functionality
 
