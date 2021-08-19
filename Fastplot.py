@@ -329,6 +329,7 @@ class MplCanvas(FigureCanvasQTAgg):
                                "Make a crude fix, pcolor is too slow!")
                         lon, lat, zdata = remove_mask(xnew, ynew, cc)
                         self.im = self.axes.pcolormesh(lon, lat, zdata)
+                        #self.im = self.axes.pcolor(lon, lat, zdata)
             elif (xx.ndim == 1) & (yy.ndim == 1):
                 # this sould mean that both xx and yy are 1D and together form the shape of cc
                 if xx.size in cc.shape:
@@ -799,6 +800,8 @@ class Fast2D(QMainWindow):
             self.myfigure.draw()
             try:
                 ai.add_interactivity(fig=self.myfigure.fig, ax=self.myfigure.axes, nodrag=False, legsize=7)
+                ai.enable_copy_paste(figs=[self.myfigure.fig], legsize=7)
+                self.myfigure.draw()
             except:
                 print("it seems that add_interactivity is not loaded. Check if the file is in pythonpath")
         elif newz.datavalue.ndim > 1:
@@ -1060,6 +1063,8 @@ class Fast1D(QMainWindow):
                                             xerr=mydata.xerr.datavalue, label=label)
         try:
             ai.add_interactivity(fig=self.myfigure.fig, ax=self.myfigure.axes, nodrag=False, legsize=7)
+            ai.enable_copy_paste(figs=[self.myfigure.fig], legsize=7)
+            self.myfigure.draw()
         except:
             print("it seems that add_interactivity is not loaded. Check if the file is in pythonpath")
         self.myfigure.draw()
@@ -1067,6 +1072,7 @@ class Fast1D(QMainWindow):
     def add_interactivity(self):
         self.myfigure.axes.get_legend().remove()
         ai.add_interactivity(fig=self.myfigure.fig, ax=self.myfigure.axes, nodrag=False, legsize=7)
+        ai.enable_copy_paste(figs=[self.myfigure.fig], legsize=7)
         self.myfigure.draw()
 
 
