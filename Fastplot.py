@@ -1062,17 +1062,19 @@ class Fast1D(QMainWindow):
                 self.myfigure.axes.errorbar(xdata, ydata, yerr=mydata.yerr.datavalue,
                                             xerr=mydata.xerr.datavalue, label=label)
         try:
-            ai.add_interactivity(fig=self.myfigure.fig, ax=self.myfigure.axes, nodrag=False, legsize=7)
-            ai.enable_copy_paste(figs=[self.myfigure.fig], legsize=7)
-            self.myfigure.draw()
-        except:
+            self.add_interactivity()
+        except Exception as exc:
+            print(exc)
             print("it seems that add_interactivity is not loaded. Check if the file is in pythonpath")
         self.myfigure.draw()
 
     def add_interactivity(self):
-        self.myfigure.axes.get_legend().remove()
+        try:
+            self.myfigure.axes.get_legend().remove()
+        except AttributeError:
+            pass
         ai.add_interactivity(fig=self.myfigure.fig, ax=self.myfigure.axes, nodrag=False, legsize=7)
-        ai.enable_copy_paste(figs=[self.myfigure.fig], legsize=7)
+        ai.enable_copy_paste(figs=[self.myfigure.fig])
         self.myfigure.draw()
 
 
