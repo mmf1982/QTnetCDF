@@ -433,7 +433,9 @@ class DataChooser(QWidget):
         dimensions = None
         if is3d or is3dspecial:
             if is3dspecial:
-                self.slice_label = QLabel("slice = 0" + "/ 0-" + str(is3dspecial[0] - 1)  + " of " + parent.mydata.dimension[is3dspecial[1]] )
+                is3dspeciallist = list(is3dspecial)
+                self.slice_label = QLabel(
+                    "slice = 0" + "/ 0-" + str(is3dspeciallist[0] - 1)  + " of " + list(parent.mydata.dimension)[is3dspeciallist[1]])
             else:
                 if self.dimnames:
                     self.slice_label = QLabel("slice = 0" + "/ 0-" + str(parent.shape[0] - 1) + " of " + self.dimnames[0])
@@ -676,7 +678,7 @@ class DataChooser(QWidget):
                                                  self.is_log)
                 if self.is3dspecial:
                     self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(
-                       self.is3dspecial[0] - 1) + " of " + str(self.mparent.mydata.dimension[self.is3dspecial[1]]))
+                       self.is3dspecial[0] - 1) + " of " + str(list(self.mparent.mydata.dimension)[self.is3dspecial[1]]))
                 else:
                     if self.dimnames:
                         self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(
@@ -901,11 +903,20 @@ class Fast2Dplus(Fast2D):
         self.myfigure.cb.remove()
         self.myfigure.im.remove() #set_visible(False)
         if self.my_ext_dim == 0:
-            self.mydata.datavalue = self.odata.z.datavalue[active_index]
+            if active_index < self.odata.z.datavalue.shape[0]:
+                self.mydata.datavalue = self.odata.z.datavalue[active_index]
+            else:
+                HelpWindow(self, "this dimension has not "+str(active_index)+ " entries. choose lower number")
         elif self.my_ext_dim == 1:
-            self.mydata.datavalue = self.odata.z.datavalue[:, active_index]
+            if active_index < self.odata.z.datavalue.shape[1]:
+                self.mydata.datavalue = self.odata.z.datavalue[:, active_index]
+            else:
+                HelpWindow(self, "this dimension has not "+str(active_index)+ " entries. choose lower number")
         elif self.my_ext_dim == 2:
-            self.mydata.datavalue = self.odata.z.datavalue[:, :, active_index]
+            if active_index < self.odata.z.datavalue.shape[2]:
+                self.mydata.datavalue = self.odata.z.datavalue[:, :, active_index]
+            else:
+                HelpWindow(self, "this dimension has not "+str(active_index)+ " entries. choose lower number")
         if frozen:
             worked = self.myfigure.pcolormesh(self.x, self.y, self.mydata)
             self.myfigure.set_axis_values(axesvalues)

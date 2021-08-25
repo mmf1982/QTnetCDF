@@ -37,7 +37,10 @@ class Table(numpy.ma.core.MaskedArray):
     """
 
     def __new__(cls, content, header, attr):
-        mval = numpy.ma.asarray(content).view(cls)
+        try:
+            mval = numpy.ma.masked_equal(content, attr["_FillValue"]).view(cls)
+        except:
+            mval = numpy.ma.asarray(content).view(cls)
         mval.header = header
         mval.attributes = attr
         return mval
@@ -347,7 +350,13 @@ class Representative:
                 attributes[head] = {key: data.field(head).attrinfo()[key][2] for key in data.field(head).attrinfo()} \
                     # data.field(head).attrinfo()
             attributes["general"] = {key: data.attrinfo()[key][2] for key in data.attrinfo()}  # data.attrinfo()
-            data = numpy.ma.array(data[:])
+            fillvalue = None
+            for k in attributes:
+                if "fillvalue" in k.lower() or "fill_value" in k.lower():
+                    fillvalue = data.mdata.attributes[key]
+                    break
+            attributes["_FillValue"] = fillvalue
+            data = numpy.ma.masked_equal(data[:], fillvalue)
             data = Table(data[:], header, attributes)
         elif self.tag == pyhdf.HDF.HC.DFTAG_NDG:
             try:
