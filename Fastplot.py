@@ -69,8 +69,8 @@ class Easyerrorbar(axs.Axes):
             x2 = numpy.array([[xc, xc, xc, xc, xc + eb, xc - eb, xc] for xc, eb in zip(x, xerr)]).flatten()
             y2 = numpy.array([[yc, yc + eb, yc - eb, yc, yc, yc, yc] for yc, eb in zip(y, yerr)]).flatten()
         else:
-            x2 = numpy.copy(x)
-            y2 = numpy.copy(y)
+            x2 = ma.copy(x)
+            y2 = ma.copy(y)
         super().plot(x2, y2, **kwargs)
 
 
@@ -146,7 +146,6 @@ class MplCanvas(FigureCanvasQTAgg):
                 scale_factor = base_scale
             else:
                 scale_factor = 1
-                print(event.button)
             self.axes.set_xlim([xdat - x_ext_l * scale_factor, xdat + x_ext_r * scale_factor])
             self.axes.set_ylim([ydat - y_ext_u * scale_factor, ydat + y_ext_o * scale_factor])
             self.axes.figure.canvas.draw_idle()
@@ -417,7 +416,6 @@ class MplCanvas(FigureCanvasQTAgg):
 class DataChooser(QWidget):
     """Class to handle data with 3 or 4 dimensions: includes sliders for the choice of 2D slides"""
     def __init__(self, parent, is3d=True, is4d=False, is3dspecial=False, dimnames=None, **kwargs):
-        print("in DataChooser", is3dspecial)
         super().__init__(**kwargs)
         layout4 = QHBoxLayout()
         layout5 = QVBoxLayout()
@@ -432,9 +430,6 @@ class DataChooser(QWidget):
         dimensions = None
         if is3d or is3dspecial:
             if is3dspecial:
-                print("here:", str(is3dspecial[0] - 1))
-                print("dd:", parent.mydata.dimension)
-                print("here2:", parent.mydata.dimension[is3dspecial[1]])
                 self.slice_label = QLabel("slice = 0" + "/ 0-" + str(is3dspecial[0] - 1)  + " of " + parent.mydata.dimension[is3dspecial[1]] )
             else:
                 if self.dimnames:
@@ -750,8 +745,8 @@ class Fast2D(QMainWindow):
         if self.isimage:
             self.myfigure.image(mydata)
             if mydata_dims and len(mydata_dims) == 2:
-                self.myfigure.axes.set_ylabel(mydata_dims[0])
-                self.myfigure.axes.set_xlabel(mydata_dims[1])
+                self.myfigure.axes.set_ylabel(list(mydata_dims)[0])
+                self.myfigure.axes.set_xlabel(list(mydata_dims)[1])
             self.myfigure.axes.set_title(mname)
         else:
             worked = self.myfigure.pcolormesh(self.x, self.y, mydata)  # , only_indices)
@@ -1018,7 +1013,7 @@ class Fast1D(QMainWindow):
                     else:
                         self.myfigure.axes.plot(col, row, label=label)
             else:
-                xdata = numpy.copy(mydata.x.datavalue)
+                xdata = ma.copy(mydata.x.datavalue)
                 if oi is not None:
                     xdata = xdata[oi]
                 for row, lab in zip(mydata.y.datavalue, labs):
@@ -1033,7 +1028,7 @@ class Fast1D(QMainWindow):
                     else:
                         self.myfigure.axes.plot(xdata, row, label=label)
         elif mydata.x.datavalue.ndim > 1:
-            ydata = numpy.copy(mydata.y.datavalue)
+            ydata = ma.copy(mydata.y.datavalue)
             if oi is not None:
                 ydata = ydata[oi]
             alllabel = mydata.x.text().split(":")[1].split("s.")[-1].split(" - ")
@@ -1050,8 +1045,8 @@ class Fast1D(QMainWindow):
                     self.myfigure.axes.plot(row, ydata, label=label)
         else:
             label = mydata.x.text().split(":")[1] + " vs " + mydata.y.text().split(":")[1]
-            xdata = numpy.copy(mydata.x.datavalue)
-            ydata = numpy.copy(mydata.y.datavalue)
+            xdata = ma.copy(mydata.x.datavalue)
+            ydata = ma.copy(mydata.y.datavalue)
             if oi is not None:
                 xdata = xdata[oi]
                 ydata = ydata[oi]
