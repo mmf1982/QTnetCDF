@@ -19,9 +19,9 @@ try:
 except (ImportError, ModuleNotFoundError):
     from Menues import FileMenu, HelpWindow
 try:
-    from .Converters import Hdf4Object, Table
+    from .Converters import Hdf4Object, Table, Representative
 except (ImportError, ModuleNotFoundError):
-    from Converters import Hdf4Object, Table
+    from Converters import Hdf4Object, Table, Representative
 try:
     from .Colorschemes import QDarkPalette, reset_colors
 except:
@@ -254,6 +254,7 @@ class MyTable(QWidget):
                 for key in data.mdata.attributes:
                     if "fillvalue" in key.lower() or "fill_value" in key.lower():
                         fillvalue = data.mdata.attributes[key]
+                        break
             except AttributeError:
                 pass
         self.table = MyQTableView(self.master, path, fillvalue)
@@ -273,7 +274,10 @@ class MyTable(QWidget):
         self.sliceinfo = None
         self.diminfo2 = None
         self.slcieinfo2 = None
-        self.all_data = squeeze(data.mdata[:])
+        if isinstance(data.mdata, Representative):
+            self.all_data = squeeze(data.mdata.get_value())
+        else:
+            self.all_data = squeeze(data.mdata[:])
         self.make_design()
         self.update_table()
 
@@ -1035,7 +1039,10 @@ class App(QMainWindow):
 
     def get_data(self, signal):
         try:
-            mydata = np.squeeze(self.model.itemFromIndex(signal).mdata[:])
+            if isinstance(self.model.itemFromIndex(signal).mdata, Representative):
+                mydata = np.squeeze(self.model.itemFromIndex(signal).mdata.get_value())
+            else:
+                mydata = np.squeeze(self.model.itemFromIndex(signal).mdata[:])
             try:
                 mydata_dims = self.model.itemFromIndex(signal).mdata.dimensions
             except:

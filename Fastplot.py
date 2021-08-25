@@ -422,7 +422,10 @@ class DataChooser(QWidget):
         self.is3d = is3d
         self.is4d = is4d
         self.is3dspecial = is3dspecial
-        self.dimnames = dimnames
+        try:
+            self.dimnames = list(dimnames)
+        except TypeError:
+            self.dimnames = dimnames
         slicings = QWidget()
         layout2 = QVBoxLayout()
         slider = None

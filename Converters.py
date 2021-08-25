@@ -31,13 +31,13 @@ DATATYPE = {pyhdf.SD.SDC().COMP_SZIP_RAW: "complex",
             }
 
 
-class Table(numpy.ndarray):
+class Table(numpy.ma.core.MaskedArray):
     """
     numpy array with header and attribute
     """
 
     def __new__(cls, content, header, attr):
-        mval = numpy.asarray(content).view(cls)
+        mval = numpy.ma.asarray(content).view(cls)
         mval.header = header
         mval.attributes = attr
         return mval
@@ -320,7 +320,20 @@ class Representative:
         return header
 
     def get_value(self):
-        return numpy.array(self.data[:])
+        try:
+            fillvalue = self.get_info[0]["FillValue"]
+        except KeyError:
+            try:
+                fillvalue = self.get_info[0]["_FillValue"]
+            except KeyError:
+                try:
+                    fillvalue = self.get_info[0]["VAR_FILL_VALUE"]
+                except KeyError:
+                    try:
+                        fillvalue = self.get_info[0]["_fillvalue"]
+                    except KeyError:
+                        return numpy.ma.array(self.data[:])
+        return numpy.ma.masked_equal(self.data[:], fillvalue)
 
     @property
     def data(self):
@@ -334,7 +347,7 @@ class Representative:
                 attributes[head] = {key: data.field(head).attrinfo()[key][2] for key in data.field(head).attrinfo()} \
                     # data.field(head).attrinfo()
             attributes["general"] = {key: data.attrinfo()[key][2] for key in data.attrinfo()}  # data.attrinfo()
-            data = numpy.array(data[:])
+            data = numpy.ma.array(data[:])
             data = Table(data[:], header, attributes)
         elif self.tag == pyhdf.HDF.HC.DFTAG_NDG:
             try:
