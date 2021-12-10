@@ -101,6 +101,7 @@ you can leave the virtual environment again. Of course you do not need to work w
 * add updated interactive legend after chaning line/ marker style/ color/ size with matplotlib gui.
 * after marking a variable (<=2D), "c" copies the data
 * a variable loaded into misc, can be averaged (mean or median, use respective button) along a dimension which needs to be specified in the input field. First, load the data into misc, then press "median" or "mean" button, then type the dimension and press enter. 
+* double click on the group opens the dimensions as variables in the table and dumps the content (dimension names, variable names, etc.) to the console.
 ## Plotting
 
   The main thing about this tool is the plotting, you can do line/ marker plots, image, pcolormesh or scatter plots. Data is supported up to 4 dimensions.
