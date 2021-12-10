@@ -99,7 +99,8 @@ you can leave the virtual environment again. Of course you do not need to work w
 * windows with x-y-z plots get the name of the z value as title
 * behaviour of x-y plot if only x variable specified changed: Now x-variable is plotted on x and index on y. In order to get variable plotted as y, set variable as y and leave x empty.
 * add updated interactive legend after chaning line/ marker style/ color/ size with matplotlib gui.
-
+* after marking a variable (<=2D), "c" copies the data
+* a variable loaded into misc, can be averaged (mean or median, use respective button) along a dimension which needs to be specified in the input field. First, load the data into misc, then press "median" or "mean" button, then type the dimension and press enter. 
 ## Plotting
 
   The main thing about this tool is the plotting, you can do line/ marker plots, image, pcolormesh or scatter plots. Data is supported up to 4 dimensions.
