@@ -3,6 +3,8 @@ import sys
 import netCDF4
 import yaml
 import pyhdf.error
+import pandas
+import subprocess
 from PyQt5 import QtCore
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QKeySequence
 from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWindow, QDockWidget,
@@ -33,6 +35,19 @@ CONFIGPATH = ""
 C_LINES = None
 #__version__ = "0.0.1"
 #__author__ = "Martina M. Friedrich"
+
+
+def dimming():
+    '''
+    dim screen for .1 second
+    '''
+    get = subprocess.check_output(["xrandr", "--verbose"]).decode("utf-8").split()
+    for s in [get[i-1] for i in range(len(get)) if get[i] == "connected"]:
+        br_data = float(get[get.index("Brightness:")+1])
+        brightness = lambda br: ["xrandr", "--output", s, "--brightness", br]
+        flash = ["sleep", "0.1"]
+        for cmd in [brightness(str(br_data-0.1)), flash, brightness(str(br_data))]:
+            subprocess.call(cmd)
 
 class MyQLabel(QLabel):
     """
@@ -154,6 +169,21 @@ class MyQTreeView(QTreeView):
                 self.tab = self.open_table(current_pointer)
                 if last_tab is not None and self.master.config["Tableview"]["tabbing"]:
                     self.master.tabifyDockWidget(last_tab, self.tab)
+            elif event.text() == "c":
+                if isinstance(current_pointer, Representative):
+                    tocopy = squeeze(current_pointer.mdata.get_value())
+                else:
+                    tocopy = squeeze(current_pointer.mdata[:])
+                try:
+                    (pandas.DataFrame(tocopy)).to_clipboard(index=False, header=False)
+                    dimming()
+                except Exception as exs:
+                    try:
+                        subprocess.run("xclip", universal_newlines=True, input=tocopy)
+                        dimming()
+                    except Exception as ecxs:
+                        print(ecxs)
+                        print("cannot copy")
             elif event.text() == "x":
                 self.master.mdata.x.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath,
                                         dimension=current_pointer.mdata.dimensions)
@@ -801,8 +831,8 @@ class App(QMainWindow):
                               filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
                     self.openplots.append(temp)
                     self.active1D = temp
-        except AttributeError:
-            HelpWindow(self, "It seems you have not set anything to plot. You need to mark row(s) or column(s)\n"
+        except AttributeError as  err:
+            HelpWindow(self, str(err)+"It seems you have not set anything to plot. You need to mark row(s) or column(s)\n"
                              "and then hit at least x or y to have some plottable data. Try again")
 
     def plotitsymbol(self):

@@ -19,9 +19,12 @@ try:
 except (ModuleNotFoundError, ImportError):
     try:
         from add_interactivity import add_interactivity as ai
+        if not "add_interactivity" in ai.__dir__():
+            import add_interactivity as ai
     except (ModuleNotFoundError, ImportError):
         print("add_interactivity is not loaded. This reduces the interactivity"
               "for 1D plots. Check if add_interactivity.py is in the current python path")
+
 try:
     from .Colorschemes import QDarkPalette
 except:

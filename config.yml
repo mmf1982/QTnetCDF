@@ -43,7 +43,7 @@ Tableview:
 # plots can be configured with the normal rc file in matplotlib, or with standard matplotlib style sheets.
 Colorscheme:
   App: dark   # dark, light
-  #plots: [stylesheet.mplstyle] #seaborn-ticks, classic, Solarize_Light2, dark_background] #, seaborn-colorblind]
+  plots: [stylesheet.mplstyle] #seaborn-ticks, classic, Solarize_Light2, dark_background] #, seaborn-colorblind]
   #plots: dark_background
   # any combination from plt.style.available, check also here:
   # https://matplotlib.org/3.2.1/gallery/style_sheets/style_sheets_reference.html
