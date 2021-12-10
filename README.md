@@ -198,6 +198,6 @@ preceded by a "-" without a space:
  ## Nice to have, not implemented yet:
  I collect some ideas here for implementation. Please contact me if you have more suggestions.
  * Assigning a condition on one variable to transform it to a mask to use on other variables: This can now be done indirectly with the "use idxs?" and lasso selector.
- * Make pcolormesh also workable for 3D variables (without the possibility of slicing, mapping decided automatically (?))
+ * Make pcolormesh also workable for 4D variables (without the possibility of slicing in the two set axis, mapping decided automatically for those as already done for 3D. This might be useful for map data with height and time dimension.)
  
 
