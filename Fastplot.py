@@ -298,6 +298,8 @@ class MplCanvas(FigureCanvasQTAgg):
             pass
         except KeyError:
             pass
+        except ValueError:
+            pass
         try:
             xx = x.datavalue
             yy = y.datavalue
@@ -388,6 +390,9 @@ class MplCanvas(FigureCanvasQTAgg):
                 return False
         except Exception as exc1:
             HelpWindow(self.mparent, "something went really wrong " + str(exc1))
+            print(type(xx))
+            print(type(yy))
+            print(type(zz))
             return False
         self.cb = self.fig.colorbar(self.im, ax=self.axes)
         self.axes.set_xlabel(x.name_value)
@@ -713,8 +718,8 @@ class DataChooser(QWidget):
                     self.slice_label2.setText("slice = " + str(self.active_index2) + "/ 0-" + str(
                         self.mparent.shape[self.active_dimension2] - 1))
 
-
-class Fast2D(QMainWindow):
+# TODO TODO TODO TODO
+class Fast2D(QMainWindow):  # only_indices does currently not work for 2D x-y-z plot, only for scatter or image.
     def __init__(self, master, mydata, parent=None, mname=None, filename=None, dark=False, only_indices=None, is3dsp=False, mydata_dims=None, **kwargs):
         if master is None:
             master = QApplication([])
@@ -726,10 +731,21 @@ class Fast2D(QMainWindow):
             self.x = mydata.x.copy()
             self.y = mydata.y.copy()
             mydata = mydata.z.copy()
-            if only_indices is not None:
+            if only_indices is not None and (mydata.datavalue.ndim == 1):
                 self.x.datavalue = self.x.datavalue[only_indices]
                 self.y.datavalue = self.y.datavalue[only_indices]
                 mydata.datavalue = mydata.datavalue[only_indices]
+        else: 
+            if only_indices is not None:
+                try:
+                    myindex = mydata.datavalue.shape.index(len(only_indices))
+                except:
+                    print(mydata.shape, len(only_indices))
+                    myindex = mydata.shape.index(len(only_indices))
+                if myindex == 0:
+                    mydata = mydata[only_indices]
+                else:
+                    mydata = mydata[:, only_indices]
         if mname is None:
             mname = '2D Viewer'
         self.mydata = mydata
@@ -757,6 +773,31 @@ class Fast2D(QMainWindow):
                 self.myfigure.axes.set_xlabel(list(mydata_dims)[1])
             self.myfigure.axes.set_title(mname)
         else:
+            if only_indices is not None:
+                try:
+                    if len(self.x.datavalue) == len(only_indices):
+                        self.x.datavalue = self.x.datavalue[only_indices]
+                    else:
+                        self.y.datavalue = self.y.datavalue[only_indices]
+                except:
+                    HelpWindow(self, "Maybe no x or y was set?")
+                    return
+                try:
+                    myindex = mydata.datavalue.shape.index(len(only_indices))
+                except:
+                    myindex = mydata.shape.index(len(only_indices))
+                if myindex == 0:
+                    try:
+                        mydata.datavalue = mydata.datavalue[only_indices]
+                    except:
+                        mydata = mydata[only_indices]
+                else:
+                    try:
+                        mydata.datavalue = mydata.datavalue[:, only_indices]
+                    except:
+                        mydata = mydata[:, only_indices]
+                
+                
             worked = self.myfigure.pcolormesh(self.x, self.y, mydata)  # , only_indices)
             if not worked:
                 self.show()
@@ -1002,8 +1043,8 @@ class Fast1D(QMainWindow):
             mask = numpy.full([len(pts), ], fill_value=False)
             mask[idxs] = True
             labelx, labely = [entr.strip() for entr in my_hh.split("vs")]
-            self.current_idx = idxs
-
+            self.current_idx = np.full(xdata.shape, False)
+            self.current_idx[idxs] = True
         return onsel
 
     def update_plot(self, mydata, symbol=False, oi=None):

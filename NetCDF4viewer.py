@@ -131,6 +131,8 @@ class MyQTreeView(QTreeView):
                     attributes = {key: current_pointer.mdata.getncattr(key) for key in
                                   current_pointer.mdata.ncattrs()}
                 else:
+                    print(current_pointer.mdata)
+                    print("\n\n\n")
                     try:
                         attributes = current_pointer.name.data.attributes
                     except AttributeError:
@@ -142,7 +144,7 @@ class MyQTreeView(QTreeView):
                         mdata = Table(attributes[attr], None, attr)
                         interm_pointer = Pointer(mdata, attr)
                         wids.append(self.open_table(interm_pointer))
-                    elif isinstance(attributes[attr], str) and len(attributes[attr]) > 2000:
+                    elif isinstance(attributes[attr], str) and len(attributes[attr]) > 50000:
                         print(attr, ":      is currently not displayed. It is a very long string, "
                                     "likely describing the structure.")
                     elif isinstance(attributes[attr], dict):
@@ -161,7 +163,7 @@ class MyQTreeView(QTreeView):
                         if self.master.config["Tableview"]["tabbing"]:
                             self.master.tabifyDockWidget(one, two)
                 except Exception as exc:
-                    print(exc)
+                    pass
                 print(" ")
             elif event.text() == "s":
                 # open tableview
@@ -177,10 +179,12 @@ class MyQTreeView(QTreeView):
                 try:
                     (pandas.DataFrame(tocopy)).to_clipboard(index=False, header=False)
                     dimming()
+                    print("copied", current_pointer.name)
                 except Exception as exs:
                     try:
                         subprocess.run("xclip", universal_newlines=True, input=tocopy)
                         dimming()
+                        print("copied", current_pointer.name)
                     except Exception as ecxs:
                         print(ecxs)
                         print("cannot copy")
@@ -220,8 +224,8 @@ class MyQTreeView(QTreeView):
         except TypeError:
             HelpWindow(self.master, "likely you clicked a group and pressed x, y, u or e. \n"
                                     "On groups, only d works to show details.")
-        except AttributeError:
-            HelpWindow(self.master,
+        except AttributeError as err:
+            HelpWindow(self.master, str(err)+
                        "something went wrong. Possibly you did not click in the first column of a variable\n"
                        " when clicking x,y,u,e or d. You have to be in the 'name' column when clicking.")
 
@@ -273,9 +277,6 @@ class MyTable(QWidget):
         try:
             path = data.mdata.group().path
         except:
-            # print("making table")
-            # print(data.mdata)
-            # print(data.mdata.myref)
             path = ""
         try:
             fillvalue = data.mdata._FillValue
@@ -294,9 +295,9 @@ class MyTable(QWidget):
         self.c_dim2 = 1
         try:
             self.maxidxs = squeeze(data.mdata[:]).shape
-        except (AttributeError, IndexError):
+        except (AttributeError, IndexError, TypeError):
             self.maxidxs = [1]
-        except TypeError:
+        except:
             HelpWindow(self, "You tried to open a group in table view or the variable has not data.\n"
                              " This is not possible. Open the group and view variables.")
             return
@@ -307,9 +308,13 @@ class MyTable(QWidget):
         if isinstance(data.mdata, Representative):
             self.all_data = squeeze(data.mdata.get_value())
         else:
-            self.all_data = squeeze(data.mdata[:])
+            try:
+                self.all_data = squeeze(data.mdata[:])
+            except:
+                self.all_data = np.array([data.mdata])
         self.make_design()
         self.update_table()
+
 
     def make_design(self):
         """
@@ -689,7 +694,15 @@ class Data(object):
 
     def __init__(self, **kwargs):
         for key in ["x", "y", "z", "xerr", "yerr", "misc"]:  # , "mask"]:
-            setattr(self, key, MyQLabel(key, None))
+            if key == "xerr":
+                key2 = "xerr(e)"
+            elif key == "yerr":
+                key2 = "yerr(u)"
+            elif key == "misc":
+                key2 = "misc(m)"
+            else:
+                key2 = key
+            setattr(self, key, MyQLabel(key2, None))
         self.__dict__.update(kwargs)
         self.misc_op = "+"
     def copy(self):
@@ -944,16 +957,61 @@ class App(QMainWindow):
                         mdata = self.mdata.misc.datavalue / num
                     elif "*" in self.mdata.misc_op:
                         mdata = self.mdata.misc.datavalue * num
-                    mname = self.mdata.misc.name_value+self.mdata.misc_op+str(num)
+                    elif "mean" in self.mdata.misc_op:
+                        num = int(num)
+                        print("here:", self.only_indices, self.mdata.misc.datavalue.shape[num], len(self.current_idx))
+                        if (self.only_indices) and self.mdata.misc.datavalue.shape[num] == len(self.current_idx):
+                            mdata = self.mdata.misc.datavalue.data
+                            if num == 0:
+                                mdata = mdata[self.current_idx]
+                            elif num == 1:
+                                mdata = mdata[:, self.current_idx,...]
+                            elif num == 2:
+                                mdata = mdata[:, :, self.current_idx,...]
+                            elif num == 3:
+                                mdata = mdata[:, :, :, self.current_idx,...]
+                            elif num == 4:
+                                mdata = mdata[:, :, :, :, self.current_idx,...]
+                            else:
+                                HelpWindow(self, "please choose a number that is smaller than the current dimension")
+                                return
+                            self.only_indices = False
+                            mdata = np.nanmean(mdata, axis=num)
+                        else:
+                            mdata = np.nanmean(self.mdata.misc.datavalue, axis=num)
+                        mdata = np.nanmean(self.mdata.misc.datavalue, axis=num)
+                        num = " along axis "+str(num)
+                    elif "median" in self.mdata.misc_op:
+                        num = int(num)
+                        if (self.only_indices) and self.mdata.misc.datavalue.shape[num] == len(self.current_idx):
+                            mdata = self.mdata.misc.datavalue.data
+                            if num == 0:
+                                mdata = mdata[self.current_idx]
+                            elif num == 1:
+                                mdata = mdata[:, self.current_idx,...]
+                            elif num == 2:
+                                mdata = mdata[:, :, self.current_idx,...]
+                            elif num == 3:
+                                mdata = mdata[:, :, :, self.current_idx,...]
+                            elif num == 4:
+                                mdata = mdata[:, :, :, :, self.current_idx,...]
+                            else:
+                                HelpWindow(self, "please choose a number that is smaller than the current dimension")
+                                return
+                            self.only_indices = False
+                            mdata = np.nanmedian(mdata, axis=num)
+                        else:
+                            mdata = np.nanmedian(self.mdata.misc.datavalue.data, axis=num)
+                        num = " along axis "+str(num)
+                    mname = self.mdata.misc.name_value+" "+self.mdata.misc_op + str(num)
                     self.mdata.misc.set(mdata, mname)
-                print(num)
             except ValueError:
                 pass
         entry.returnPressed.connect(get_number)
         entry.setFixedWidth(40)
         # self.entry.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         misc_layout.addWidget(entry) #, alignment=QtCore.Qt.AlignHCenter)
-        for el in ["+", "-", "/", "*"]:
+        for el in ["+", "-", "/", "*", "mean", "median"]:
             button = QPushButton(el)
             width = button.fontMetrics().boundingRect(el).width() + 8
             button.setMaximumWidth(width)
@@ -1006,6 +1064,7 @@ class App(QMainWindow):
                     self.active1D.update_plot(mdata)
                 else:
                     if self.only_indices:
+                        print("my shape: ", mdata.shape)
                         temp = Fast1D(
                             self, mdata, **self.config["Startingsize"]["1Dplot"], mname=self.mdata.misc.name_value,
                             filename=self.name, dark=self.dark, plotscheme=self.plotscheme, only_indices=self.current_idx)
@@ -1092,7 +1151,17 @@ class App(QMainWindow):
                 "It seems you tried to plot a group (double click plots). To open the group, click on the triangle")
             return
         except TypeError:
-            HelpWindow(self, "It seems that there is no data.... maybe only attributes?")
+            try:
+                #HelpWindow(self, "No data. Info on this element printed to console, dimensions and variables opened as variables")
+                print("\n", self.model.itemFromIndex(signal).mdata)
+                for dim in self.model.itemFromIndex(signal).mdata.dimensions:
+                    temp = Pointer(self.model.itemFromIndex(signal).mdata.dimensions[dim].size, dim)
+                    last_tab = self.view.tab
+                    self.view.tab = self.view.open_table(temp)
+                    if last_tab is not None and self.config["Tableview"]["tabbing"]:
+                        self.tabifyDockWidget(last_tab, self.view.tab)
+            except Exception as ex:
+                HelpWindow(self, str(ex)+"cannot plot data or display information")
             return
         if mydata.ndim >= 3:
             temp = Fast3D(
@@ -1239,7 +1308,10 @@ def main(myfile):
     global CONFIGPATH
     if myfile[0][0] == "-":
         CONFIGPATH = myfile[0][1:]
-        myfile = myfile[1:]
+        try:
+            myfile = myfile[1:]
+        except:
+            myfile = "empty.nc"
     else:
         here = os.path.dirname(os.path.abspath(__file__))
         CONFIGPATH = os.path.join(here, "config.yml")
@@ -1292,7 +1364,7 @@ class App2(QWidget):
                 HelpWindow(self, "it seems there are no open plot windows that are broadcastable")
 
     def set_same_data(self):
-        for which in ["x", "y", "z", "xerr", "yerr", "misc"]:
+        for which in ["x", "y", "z", "xerr(e)", "yerr(u)", "misc(m)"]:
             name = self.windows[0].mdata.__dict__[which].name_value
             path = self.windows[0].mdata.__dict__[which].path
             for idx in range(1, len(self.windows)):
@@ -1345,5 +1417,9 @@ class App2(QWidget):
                     self.windows[idx].mdata.__dict__[which].set(mdata, name, thisname)
 
 if __name__ == '__main__':
+    
     mfile = sys.argv[1:]
-    main(mfile)
+    if len(mfile) > 0:
+        main(mfile)
+    else:
+        main(["empty.nc"])
