@@ -1365,8 +1365,8 @@ class App2(QWidget):
 
     def set_same_data(self):
         for which in ["x", "y", "z", "xerr(e)", "yerr(u)", "misc(m)"]:
-            name = self.windows[0].mdata.__dict__[which].name_value
-            path = self.windows[0].mdata.__dict__[which].path
+            name = self.windows[0].mdata.__dict__[which.split("(")[0]].name_value
+            path = self.windows[0].mdata.__dict__[which.split("(")[0]].path
             for idx in range(1, len(self.windows)):
                 if len(path)> 0:
                     try:
@@ -1414,7 +1414,7 @@ class App2(QWidget):
                                             HelpWindow(self, "currently, set same data only supports base data up to 3 dimensions")
                                             print("not supported right now")
                                             return
-                    self.windows[idx].mdata.__dict__[which].set(mdata, name, thisname)
+                    self.windows[idx].mdata.__dict__[which.split("(")[0]].set(mdata, name, thisname)
 
 if __name__ == '__main__':
     
