@@ -390,9 +390,6 @@ class MplCanvas(FigureCanvasQTAgg):
                 return False
         except Exception as exc1:
             HelpWindow(self.mparent, "something went really wrong " + str(exc1))
-            print(type(xx))
-            print(type(yy))
-            print(type(zz))
             return False
         self.cb = self.fig.colorbar(self.im, ax=self.axes)
         self.axes.set_xlabel(x.name_value)
@@ -444,13 +441,14 @@ class DataChooser(QWidget):
                 is3dspeciallist = list(is3dspecial)
                 self.slice_label = QLabel(
                     "slice = 0" + "/ 0-" + str(is3dspeciallist[0] - 1)  + " of " + list(parent.mydata.dimension)[is3dspeciallist[1]])
+                self.active_dimension = is3dspeciallist[1]
             else:
                 if self.dimnames:
                     self.slice_label = QLabel("slice = 0" + "/ 0-" + str(parent.shape[0] - 1) + " of " + self.dimnames[0])
                 else:
                     self.slice_label = QLabel("slice = 0" + "/ 0-" + str(parent.shape[0] - 1))
+                self.active_dimension = 0
             self.active_index = 0
-            self.active_dimension = 0
             self.frozen = False
             self.entry = QLineEdit()
             self.entry.editingFinished.connect(self.on_click)
@@ -534,8 +532,12 @@ class DataChooser(QWidget):
 
     def on_click(self):
         try:
+            if self.is3dspecial:
+                mymax = self.is3dspecial[0]
+            else:
+                mymax = self.mparent.shape[self.active_dimension]
             idx = int(self.entry.text())
-            if self.mparent.shape[self.active_dimension] <= idx:
+            if mymax <= idx:
                 HelpWindow(self, "the index you chose is too large for this dimension")
                 return
             self.active_index = idx
@@ -740,7 +742,6 @@ class Fast2D(QMainWindow):  # only_indices does currently not work for 2D x-y-z 
                 try:
                     myindex = mydata.datavalue.shape.index(len(only_indices))
                 except:
-                    print(mydata.shape, len(only_indices))
                     myindex = mydata.shape.index(len(only_indices))
                 if myindex == 0:
                     mydata = mydata[only_indices]
@@ -896,9 +897,8 @@ class Fast2Dplus(Fast2D):
     the third dimension.
     '''
     def __init__(self, master, mydat, parent=None, mname=None, filename=None, dark=False, only_indices=None, **kwargs):
-        print (kwargs)
         mydata = mydat.copy()
-        self.odata = mydat
+        self.odata = mydata.copy()
         if master is None:
             master = QApplication([])
         # Try to figure out which dimension is the extra dimension
@@ -907,11 +907,11 @@ class Fast2Dplus(Fast2D):
         # if there are duplicated dimensions, let the user choose
         if len(different_ones)< 3:
             extraid, _ = QInputDialog.getText(master, 'Set z-dimension', 'There are duplicated dimensions.\n'
-                                              'Current dimensions of z are: '+ str(mydat.z.dimension) + '\n'
+                                              'Current dimensions of z are: '+ str(mydata.z.dimension) + '\n'
                                               'Type (0,1,2) for the dimension along which to slice, i.e.\n'
                                               'that are not x- and y-. \n'
-                                              'x-dimension is:' + str(mydat.x.dimension) +
-                                              '\ny-dimension is:' + str(mydat.y.dimension))
+                                              'x-dimension is:' + str(mydata.x.dimension) +
+                                              '\ny-dimension is:' + str(mydata.y.dimension))
             extraid = int(extraid)
         else:
             in_z = []
@@ -923,16 +923,16 @@ class Fast2Dplus(Fast2D):
             if len(in_z) == 2:
                 extraid = np.arange(3)[[x not in in_z for x in mydata.z.datavalue.shape]][0]
             else:  # unclear, let the user choose
-                extraid, _ = QInputDialog.getText(self, 'Set z-dimension', 'There are duplicated dimensions. Which (0,1,2) is z?')
+                extraid, _ = QInputDialog.getText(master, 'Set z-dimension', 'There are duplicated dimensions. Which (0,1,2) is z?')
         if extraid == 0:
             mydata.z.datavalue = mydata.z.datavalue[0]
-            ext_in_dir = mydat.z.datavalue.shape[0]
+            ext_in_dir = mydata.z.datavalue.shape[0]
         elif extraid == 1:
             mydata.z.datavalue = mydata.z.datavalue[:,0]
-            ext_in_dir = mydat.z.datavalue.shape[1]
+            ext_in_dir = mydata.z.datavalue.shape[1]
         elif extraid == 2:
             mydata.z.datavalue = mydata.z.datavalue[:,:,0]
-            ext_in_dir = mydat.z.datavalue.shape[2]
+            ext_in_dir = mydata.z.datavalue.shape[2]
         super(Fast2Dplus, self).__init__(master, mydata, parent, mname, filename, dark, only_indices, is3dsp=(ext_in_dir, extraid), **kwargs)
         self.master = master
         self.my_ext_dim = extraid
@@ -1171,7 +1171,7 @@ class Fast3D(QMainWindow):
             try:
                 self.shape = mydata.shape
             except Exception as exc:
-                print(exc)
+                print("shape couldn't be determined, why? ", exc)
             self.myfigure = MplCanvas(parent=self, **kwargs)
             self.my_slider = DataChooser(self, is4d=self.is4d, dimnames=mydata_dims)
             if self.is4d:

@@ -5,6 +5,7 @@ import yaml
 import pyhdf.error
 import pandas
 import subprocess
+import copy
 from PyQt5 import QtCore
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QKeySequence
 from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWindow, QDockWidget,
@@ -78,9 +79,9 @@ class MyQLabel(QLabel):
     def copy(self):
         class Dummy(object):
             def __init__(self, nme, val, dim):
-                self.name_value = nme
-                self.datavalue = val
-                self.dimension = dim
+                self.name_value = copy.deepcopy(nme)
+                self.datavalue = copy.deepcopy(val)
+                self.dimension = copy.deepcopy(dim)
             def copy(self):
                 newobj = Dummy(self.name_value, self.datavalue, self.dimension)
                 return newobj
@@ -203,8 +204,9 @@ class MyQTreeView(QTreeView):
                 self.master.mdata.xerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath)
             elif event.text() == "m":
                 if self.master.mdata.misc.datavalue is None:
+                    thisdims = tuple([mds for mds in current_pointer.mdata.dimensions if mds != 1])
                     self.master.mdata.misc.set(
-                        squeeze(current_pointer.mdata[:].astype("float")), current_pointer.mdata.name)
+                        squeeze(current_pointer.mdata[:].astype("float")), current_pointer.mdata.name, dimension=thisdims)
                 else:
                     try:
                         if "+" in self.master.mdata.misc_op:
@@ -220,10 +222,10 @@ class MyQTreeView(QTreeView):
                     except ValueError as verr:
                         HelpWindow(self, "likely dimensions that don't fit together: " + str(verr))
                     except Exception as exc:
-                        print(exc)
-        except TypeError:
+                        print("Something wen wrong:", exc)
+        except TypeError as te:
             HelpWindow(self.master, "likely you clicked a group and pressed x, y, u or e. \n"
-                                    "On groups, only d works to show details.")
+                                    "On groups, only d works to show details." + str(te))
         except AttributeError as err:
             HelpWindow(self.master, str(err)+
                        "something went wrong. Possibly you did not click in the first column of a variable\n"
@@ -578,7 +580,6 @@ class MyQTableView(QTableView):
             elif event.text() == "e":
                 self.master.mdata.xerr.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
             elif event.text() == "+":
-                print(self.model())
                 print("adding up ", " ".join([self.model().name, self.curridx]), nansum(self.currentData[self.currentData != self.fillvalue]))
             elif event.text() == "m":
                 mdata = self.currentData
@@ -587,7 +588,6 @@ class MyQTableView(QTableView):
                     self.master.mdata.misc.set(squeeze(mdata), mname)
                 else:
                     try:
-                        print(self.master.mdata.misc_op)
                         if "+" in self.master.mdata.misc_op:
                             mdata = self.master.mdata.misc.datavalue + mdata
                         elif "-" in self.master.mdata.misc_op:
@@ -601,7 +601,7 @@ class MyQTableView(QTableView):
                     except ValueError as verr:
                         HelpWindow(self, "likely dimensions that don't fit together: " + str(verr))
                     except Exception as exc:
-                        print(exc)
+                        print("check what s wrong ", exc)
         except TypeError:
             HelpWindow(self, "You need to 'select' a row(s) or column(s) first.\n"
                              "When you 'release' you have to be ontop of the header as well\n"
@@ -809,7 +809,7 @@ class App(QMainWindow):
                         self.show()
                         return
                     if self.mdata.z.datavalue.ndim <= 2:
-                        print(self.mdata.z.datavalue.shape)
+                        print("shape is", self.mdata.z.datavalue.shape)
                         if self.only_indices:
                             try:
                                 temp = Fast2D(self,
@@ -944,6 +944,11 @@ class App(QMainWindow):
         entry = QLineEdit()
         def get_number():
             try:
+                try:
+                    thisdims = list(self.mdata.misc.dimension)
+                except Exception as exs:
+                    print("in get number, no dimensions", exs)
+                    thisdims = []
                 num = float(entry.text())
                 if self.mdata.misc.datavalue is None:
                     self.mdata.misc.set(num, str(num))
@@ -959,7 +964,11 @@ class App(QMainWindow):
                         mdata = self.mdata.misc.datavalue * num
                     elif "mean" in self.mdata.misc_op:
                         num = int(num)
-                        print("here:", self.only_indices, self.mdata.misc.datavalue.shape[num], len(self.current_idx))
+                        try:
+                            _ = thisdims.pop(num)
+                        except IndexError:
+                            HelpWindow("Please check if you chose a dimension that fits the data chosen in misc")
+                            return
                         if (self.only_indices) and self.mdata.misc.datavalue.shape[num] == len(self.current_idx):
                             mdata = self.mdata.misc.datavalue.data
                             if num == 0:
@@ -983,6 +992,11 @@ class App(QMainWindow):
                         num = " along axis "+str(num)
                     elif "median" in self.mdata.misc_op:
                         num = int(num)
+                        try:
+                            _ = thisdims.pop(num)
+                        except IndexError:
+                            HelpWindow("Please check if you chose a dimension that fits the data chosen in misc")
+                            return
                         if (self.only_indices) and self.mdata.misc.datavalue.shape[num] == len(self.current_idx):
                             mdata = self.mdata.misc.datavalue.data
                             if num == 0:
@@ -1004,7 +1018,7 @@ class App(QMainWindow):
                             mdata = np.nanmedian(self.mdata.misc.datavalue.data, axis=num)
                         num = " along axis "+str(num)
                     mname = self.mdata.misc.name_value+" "+self.mdata.misc_op + str(num)
-                    self.mdata.misc.set(mdata, mname)
+                    self.mdata.misc.set(mdata, mname, dimension=thisdims)
             except ValueError:
                 pass
         entry.returnPressed.connect(get_number)
@@ -1027,12 +1041,13 @@ class App(QMainWindow):
             def funcxyz(which):
                 val = self.mdata.misc.datavalue
                 name = self.mdata.misc.name_value
+                dims = self.mdata.misc.dimension
                 if "x" in which:
-                    self.mdata.x.set(val, name)
+                    self.mdata.x.set(val, name, dimension=dims)
                 elif "y" in which:
-                    self.mdata.y.set(val, name)
+                    self.mdata.y.set(val, name, dimension=dims)
                 elif "z" in which:
-                    self.mdata.z.set(val, name)
+                    self.mdata.z.set(val, name, dimension=dims)
             button.clicked.connect(lambda state, w=use_as: funcxyz(w))
         button_plot = QPushButton("plot misc")
         width = button_plot.fontMetrics().boundingRect("plot misc").width() + 8
@@ -1153,7 +1168,6 @@ class App(QMainWindow):
         except TypeError:
             try:
                 #HelpWindow(self, "No data. Info on this element printed to console, dimensions and variables opened as variables")
-                print("\n", self.model.itemFromIndex(signal).mdata)
                 for dim in self.model.itemFromIndex(signal).mdata.dimensions:
                     temp = Pointer(self.model.itemFromIndex(signal).mdata.dimensions[dim].size, dim)
                     last_tab = self.view.tab
@@ -1251,7 +1265,7 @@ class App(QMainWindow):
                         QStandardItem(dtype), QStandardItem(attrs)]
                 currentitemlevel.appendRow(last)
             except Exception as exs:
-                print(exs)
+                print("walking down netcdf failed ", exs)
                 print(type(exs))
         return currentitemlevel
 
@@ -1304,8 +1318,11 @@ class App(QMainWindow):
         print("Close Viewer")
 
 
-def main(myfile):
+def main(myfile=None):
     global CONFIGPATH
+    if myfile is None:
+        here = os.path.dirname(os.path.abspath(__file__))
+        myfile = [os.path.join(here, "empty.nc")]
     if myfile[0][0] == "-":
         CONFIGPATH = myfile[0][1:]
         try:
@@ -1422,4 +1439,4 @@ if __name__ == '__main__':
     if len(mfile) > 0:
         main(mfile)
     else:
-        main(["empty.nc"])
+        main()
