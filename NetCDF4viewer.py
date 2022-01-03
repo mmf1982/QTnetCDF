@@ -81,7 +81,10 @@ class MyQLabel(QLabel):
             def __init__(self, nme, val, dim):
                 self.name_value = copy.deepcopy(nme)
                 self.datavalue = copy.deepcopy(val)
-                self.dimension = copy.deepcopy(dim)
+                try:
+                    self.dimension = copy.deepcopy(list(dim))
+                except TypeError:
+                    self.dimension = []
             def copy(self):
                 newobj = Dummy(self.name_value, self.datavalue, self.dimension)
                 return newobj
@@ -689,7 +692,7 @@ class TableModel(QtCore.QAbstractTableModel):
 
 class Data(object):
     """
-    Data for line plots with x, y and xerr and yerr
+    Data for line plots and 3,4 D pcolor with x, y and xerr and yerr
     """
 
     def __init__(self, **kwargs):
@@ -804,12 +807,11 @@ class App(QMainWindow):
                         self.active1D.add_to_plot(self.mdata)
             else:
                 if self.mdata.z.datavalue is not None:
-                    if self.mdata.z.datavalue.ndim < 1 or self.mdata.z.datavalue.ndim > 3:
-                        HelpWindow(self, "dimensionality of z value has to be 1,2,3 for now")
+                    if self.mdata.z.datavalue.ndim < 1 or self.mdata.z.datavalue.ndim > 4:
+                        HelpWindow(self, "dimensionality of z value has to be 1,2,3,4 for now")
                         self.show()
                         return
                     if self.mdata.z.datavalue.ndim <= 2:
-                        print("shape is", self.mdata.z.datavalue.shape)
                         if self.only_indices:
                             try:
                                 temp = Fast2D(self,
@@ -947,7 +949,6 @@ class App(QMainWindow):
                 try:
                     thisdims = list(self.mdata.misc.dimension)
                 except Exception as exs:
-                    print("in get number, no dimensions", exs)
                     thisdims = []
                 num = float(entry.text())
                 if self.mdata.misc.datavalue is None:

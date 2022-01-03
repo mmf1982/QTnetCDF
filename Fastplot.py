@@ -328,7 +328,7 @@ class MplCanvas(FigureCanvasQTAgg):
                         self.im = self.axes.pcolormesh(xnew, ynew, cc)
                     except ValueError:
                         print(
-                               "The data is same saize as the grid, a fix applied\n"
+                               "The data is same size as the grid, a fix applied\n"
                                "and there are masked values in the grid coordinats.\n "
                                "Make a crude fix, pcolor is too slow!")
                         lon, lat, zdata = remove_mask(xnew, ynew, cc)
@@ -389,7 +389,7 @@ class MplCanvas(FigureCanvasQTAgg):
                            str(yy.shape) + " zdim: " + str(xx.shape))
                 return False
         except Exception as exc1:
-            HelpWindow(self.mparent, "something went really wrong " + str(exc1))
+            HelpWindow(self.mparent, "something went really wrong, please report this error " + str(exc1))
             return False
         self.cb = self.fig.colorbar(self.im, ax=self.axes)
         self.axes.set_xlabel(x.name_value)
@@ -438,7 +438,7 @@ class DataChooser(QWidget):
         dimensions = None
         if is3d or is3dspecial:
             if is3dspecial:
-                is3dspeciallist = list(is3dspecial)
+                is3dspeciallist = [is3dspecial[0][0],is3dspecial[1][0]]
                 self.slice_label = QLabel(
                     "slice = 0" + "/ 0-" + str(is3dspeciallist[0] - 1)  + " of " + list(parent.mydata.dimension)[is3dspeciallist[1]])
                 self.active_dimension = is3dspeciallist[1]
@@ -470,12 +470,20 @@ class DataChooser(QWidget):
             self.entry2 = QLineEdit()
             self.entry2.editingFinished.connect(self.on_click2)
             self.entry2.setFixedWidth(self.entry2.fontMetrics().boundingRect("1000000").width())
-            if self.dimnames:
-                self.slice_label2 = QLabel("slice = 0" + "/ 0-" + str(parent.shape[1] - 1) + " of " + self.dimnames[1])
+            
+            
+            if is3dspecial:
+                is3dspeciallist = [is3dspecial[0][1],is3dspecial[1][1]]
+                self.slice_label2 = QLabel(
+                    "slice = 0" + "/ 0-" + str(is3dspeciallist[0] - 1)  + " of " + list(parent.mydata.dimension)[is3dspeciallist[1]])
+                self.active_dimension2 = is3dspeciallist[1]
             else:
-                self.slice_label2 = QLabel("slice = 0" + "/ 0-" + str(parent.shape[1] - 1))
+                if self.dimnames:
+                    self.slice_label2 = QLabel("slice = 0" + "/ 0-" + str(parent.shape[1] - 1) + " of " + self.dimnames[1])
+                else:
+                    self.slice_label2 = QLabel("slice = 0" + "/ 0-" + str(parent.shape[1] - 1))
+                self.active_dimension2 = 1
             self.active_index2 = 0
-            self.active_dimension2 = 1
             plus2 = QPushButton('+')
             minus2 = QPushButton('-')
             plus2.clicked.connect(self.on_plus2)
@@ -492,7 +500,7 @@ class DataChooser(QWidget):
             layout3 = QVBoxLayout()
             slider = QSlider(Qt.Horizontal)
             self.dim_label = QLabel("dim = 0")
-        if is4d:
+        if is4d and not is3dspecial:
             slider.setRange(0, len(parent.shape) - 2)
         if is3d:
             slider.setRange(0, len(parent.shape) - 1)
@@ -500,7 +508,7 @@ class DataChooser(QWidget):
             dimensions = QWidget()
             layout3.addWidget(slider, alignment=Qt.AlignVCenter)
             layout3.addWidget(self.dim_label, alignment=Qt.AlignHCenter)
-        if is4d:
+        if is4d and not is3dspecial:
             slider2 = QSlider(Qt.Horizontal)
             self.dim_label2 = QLabel("dim = 1")
             slider2.setRange(1, len(parent.shape) - 1)
@@ -533,7 +541,7 @@ class DataChooser(QWidget):
     def on_click(self):
         try:
             if self.is3dspecial:
-                mymax = self.is3dspecial[0]
+                mymax = self.is3dspecial[0][0]
             else:
                 mymax = self.mparent.shape[self.active_dimension]
             idx = int(self.entry.text())
@@ -548,7 +556,11 @@ class DataChooser(QWidget):
     def on_click2(self):
         try:
             idx = int(self.entry2.text())
-            if self.mparent.shape[self.active_dimension2] <= idx:
+            if self.is3dspecial:
+                mymax = self.is3dspecial[0][1]
+            else:
+                mymax = self.mparent.shape[self.active_dimension]
+            if mymax <= idx:
                 HelpWindow(self, "the index you chose is too large for this dimension")
                 return
             self.active_index2 = idx
@@ -639,7 +651,7 @@ class DataChooser(QWidget):
     def on_minus(self):
         if self.is3d or self.is3dspecial:
             if self.is3dspecial:
-                mymax = self.is3dspecial[0]
+                mymax = self.is3dspecial[0][0]
             else:
                 mymax = self.mparent.shape[self.active_dimension]
             if self.active_index > -(mymax-1):
@@ -649,7 +661,10 @@ class DataChooser(QWidget):
             self.update_slice()
 
     def on_minus2(self):
-        mymax = self.mparent.shape[self.active_dimension2]
+        if self.is3dspecial:
+            mymax = self.is3dspecial[0][1]
+        else:
+            mymax = self.mparent.shape[self.active_dimension2]
         if self.active_index2 > -(mymax-1):
             self.active_index2 -= 1
         else:
@@ -659,7 +674,7 @@ class DataChooser(QWidget):
     def on_plus(self):
         if self.is3d or self.is3dspecial:
             if self.is3dspecial:
-                mymax = self.is3dspecial[0]
+                mymax = self.is3dspecial[0][0]
             else:
                 mymax = self.mparent.shape[self.active_dimension]
             if self.active_index < mymax - 1:
@@ -670,7 +685,10 @@ class DataChooser(QWidget):
 
     def on_plus2(self):
         if self.is4d:
-            mymax = self.mparent.shape[self.active_dimension2]
+            if self.is3dspecial:
+                mymax = self.is3dspecial[0][1]
+            else:
+                mymax = self.mparent.shape[self.active_dimension2]
             if self.active_index2 < mymax - 1:
                 self.active_index2 += 1
             else:
@@ -688,7 +706,7 @@ class DataChooser(QWidget):
                                                  self.is_log)
                 if self.is3dspecial:
                     self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(
-                       self.is3dspecial[0] - 1) + " of " + str(list(self.mparent.mydata.dimension)[self.is3dspecial[1]]))
+                       self.is3dspecial[0][0] - 1) + " of " + str(list(self.mparent.mydata.dimension)[self.is3dspecial[1][0]]))
                 else:
                     if self.dimnames:
                         self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(
@@ -707,20 +725,26 @@ class DataChooser(QWidget):
                     _ = self.mparent.update_plot(self.active_index, self.active_dimension,
                                                  self.frozen, self.is_log, idx2=self.active_index2,
                                                  dim2=self.active_dimension2)
-                if self.dimnames:
+                
+                if self.is3dspecial:
                     self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(
-                        self.mparent.shape[self.active_dimension] - 1) + " of " +
-                                      self.dimnames[self.active_dimension])
+                       self.is3dspecial[0][0] - 1) + " of " + str(list(self.mparent.mydata.dimension)[self.is3dspecial[1][0]]))
                     self.slice_label2.setText("slice = " + str(self.active_index2) + "/ 0-" + str(
-                        self.mparent.shape[self.active_dimension2] - 1) + " of " +
-                                      self.dimnames[self.active_dimension2])
+                       self.is3dspecial[0][1] - 1) + " of " + str(list(self.mparent.mydata.dimension)[self.is3dspecial[1][1]]))
                 else:
-                    self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(
-                        self.mparent.shape[self.active_dimension] - 1))
-                    self.slice_label2.setText("slice = " + str(self.active_index2) + "/ 0-" + str(
-                        self.mparent.shape[self.active_dimension2] - 1))
+                    if self.dimnames:
+                        self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(
+                            self.mparent.shape[self.active_dimension] - 1) + " of " +
+                                        self.dimnames[self.active_dimension])
+                        self.slice_label2.setText("slice = " + str(self.active_index2) + "/ 0-" + str(
+                            self.mparent.shape[self.active_dimension2] - 1) + " of " +
+                                        self.dimnames[self.active_dimension2])
+                    else:
+                        self.slice_label.setText("slice = " + str(self.active_index) + "/ 0-" + str(
+                            self.mparent.shape[self.active_dimension] - 1))
+                        self.slice_label2.setText("slice = " + str(self.active_index2) + "/ 0-" + str(
+                            self.mparent.shape[self.active_dimension2] - 1))
 
-# TODO TODO TODO TODO
 class Fast2D(QMainWindow):  # only_indices does currently not work for 2D x-y-z plot, only for scatter or image.
     def __init__(self, master, mydata, parent=None, mname=None, filename=None, dark=False, only_indices=None, is3dsp=False, mydata_dims=None, **kwargs):
         if master is None:
@@ -757,7 +781,12 @@ class Fast2D(QMainWindow):  # only_indices does currently not work for 2D x-y-z 
         self.setWindowTitle(mname)
         # self.setWindowIcon(QIcon("web.png"))
         self.myfigure = MplCanvas(parent=self, **kwargs)
-        my_slider = DataChooser(self, is3d=False, is3dspecial=is3dsp)
+        if is3dsp:
+            is4d = len(is3dsp[0]) > 1
+        else:
+            is4d = False
+        my_slider = DataChooser(self, is3d=False, is4d=is4d, is3dspecial=is3dsp)
+        #my_slider2 = DataChooser(self, is3d=False, is3dspecial=is3dsp)
         self.active_button = QPushButton("make active")
         self.active_button.clicked.connect(self.make_active)
         mainwindow = QWidget()
@@ -766,6 +795,7 @@ class Fast2D(QMainWindow):  # only_indices does currently not work for 2D x-y-z 
         layout.addWidget(self.active_button)
         layout.addWidget(self.myfigure, stretch=1)
         layout.addWidget(my_slider)
+        #layout.addWidget(my_slider2)
         mainwindow.setLayout(layout)
         if self.isimage:
             self.myfigure.image(mydata)
@@ -898,41 +928,79 @@ class Fast2Dplus(Fast2D):
     '''
     def __init__(self, master, mydat, parent=None, mname=None, filename=None, dark=False, only_indices=None, **kwargs):
         mydata = mydat.copy()
-        self.odata = mydata.copy()
+        allclear = False
+        alldims = list(range(mydat.z.datavalue.ndim))
+        if mydata.x.dimension[0] in mydata.z.dimension:
+            x_idx = mydata.z.dimension.index(mydata.x.dimension[0])
+            allclear = True
+            _ = alldims.pop(x_idx)
+        if allclear and (mydata.y.dimension[0] in mydata.z.dimension):
+            y_idx = mydata.z.dimension.index(mydata.y.dimension[0])
+            if y_idx > x_idx:
+                mydata = np.swapaxes(mydata, y_idx, x_idx)
+            _ = alldims.pop(y_idx)
+            extraid = alldims
+        else:
+            allclear = False
         if master is None:
             master = QApplication([])
-        # Try to figure out which dimension is the extra dimension
-        one, two, three = mydata.z.datavalue.shape
-        different_ones = set([one, two, three])
-        # if there are duplicated dimensions, let the user choose
-        if len(different_ones)< 3:
-            extraid, _ = QInputDialog.getText(master, 'Set z-dimension', 'There are duplicated dimensions.\n'
-                                              'Current dimensions of z are: '+ str(mydata.z.dimension) + '\n'
-                                              'Type (0,1,2) for the dimension along which to slice, i.e.\n'
-                                              'that are not x- and y-. \n'
-                                              'x-dimension is:' + str(mydata.x.dimension) +
-                                              '\ny-dimension is:' + str(mydata.y.dimension))
-            extraid = int(extraid)
-        else:
-            in_z = []
-            for midx in different_ones:
-                if (midx in mydata.x.datavalue.shape) or (midx in mydata.y.datavalue.shape):
-                    in_z.append(midx)
-                elif (midx+1 in mydata.x.datavalue.shape) or (midx in mydata.y.datavalue.shape):
-                    in_z.append(midx)
-            if len(in_z) == 2:
-                extraid = np.arange(3)[[x not in in_z for x in mydata.z.datavalue.shape]][0]
-            else:  # unclear, let the user choose
-                extraid, _ = QInputDialog.getText(master, 'Set z-dimension', 'There are duplicated dimensions. Which (0,1,2) is z?')
-        if extraid == 0:
+        # Try to figure out which dimension(s) is the extra dimension
+        if not allclear:
+            mdims = mydata.z.datavalue.shape
+            different_ones = set(list(mdims))
+            # if there are duplicated dimensions, let the user choose
+            if len(different_ones)< len(mdims):
+                extraid, _ = QInputDialog.getText(
+                    master, "dimension order input", 'Set dimensions. There are duplicated dimensions.\n' +
+                    'Current dimensions of z are: '+ str(mydata.z.dimension) + '\n'
+                    'Write a coma separated list of the order which should be chosen as x-dimension,\n' +
+                    'y-dimension and lastly the dimension(s) in which to slice.\n' +
+                    'The dimension chosen currently as x-axis is :' + str(mydata.x.dimension) + '\n' +
+                    'The dimension chosen currently as y-axis is :' + str(mydata.y.dimension) + '\n\n' +
+                    'An example: \n' +
+                    "1,0,2 would mean: \n the extra dimenson, i.e. the slicing dimension, is" +
+                    str(mydata.z.dimension[2]) + "\n the x dimension is " + str(mydata.z.dimension[1]) +
+                    '\n the y-dimension is ' + str(mydata.z.dimension[0]))
+                inputlist = extraid.split(",")
+                extraid = [int(entry) for entry in inputlist[2:]]
+                yaxis_shouldbe = int(inputlist[1])
+                xaxis_shouldbe = int(inputlist[0])
+                if yaxis_shouldbe > xaxis_shouldbe:
+                    mydata.z.datavalue = np.swapaxes(mydata.z.datavalue, yaxis_shouldbe, xaxis_shouldbe)
+                    mydata.z.dimension[yaxis_shouldbe], mydata.z.dimension[xaxis_shouldbe] = mydata.z.dimension[xaxis_shouldbe], mydata.z.dimension[yaxis_shouldbe]
+        self.odata = mydata.copy()
+        ext_in_dir = []
+        reducedim = 0
+        if 0 in extraid:
+            ext_in_dir.append(mydata.z.datavalue.shape[0])
             mydata.z.datavalue = mydata.z.datavalue[0]
-            ext_in_dir = mydata.z.datavalue.shape[0]
-        elif extraid == 1:
-            mydata.z.datavalue = mydata.z.datavalue[:,0]
-            ext_in_dir = mydata.z.datavalue.shape[1]
-        elif extraid == 2:
-            mydata.z.datavalue = mydata.z.datavalue[:,:,0]
-            ext_in_dir = mydata.z.datavalue.shape[2]
+            reducedim = reducedim + 1
+        if 1 in extraid:
+            ext_in_dir.append(mydata.z.datavalue.shape[1-reducedim])
+            if reducedim == 0:
+                mydata.z.datavalue = mydata.z.datavalue[:,0]
+            elif reducedim == 1:
+                mydata.z.datavalue = mydata.z.datavalue[0]
+            else:
+                raise(ValueError("slicing went wrong in line 956"))
+            reducedim = reducedim + 1
+        if 2 in extraid:
+            ext_in_dir.append(mydata.z.datavalue.shape[2-reducedim])
+            if reducedim == 0:
+                mydata.z.datavalue = mydata.z.datavalue[:,:,0]
+            elif reducedim == 1:
+                mydata.z.datavalue = mydata.z.datavalue[:,0]
+            else:
+                raise(ValueError("slicing went wrong in line 965"))
+            reducedim = reducedim + 1
+        if 3 in extraid:
+            ext_in_dir.append(mydata.z.datavalue.shape[3-reducedim])
+            if reducedim == 0:
+                mydata.z.datavalue = mydata.z.datavalue[:,:,:,0]
+            elif reducedim == 1:
+                mydata.z.datavalue = mydata.z.datavalue[:,0]
+            else:
+                raise(ValueError("slicing went wrong in line 974"))
         super(Fast2Dplus, self).__init__(master, mydata, parent, mname, filename, dark, only_indices, is3dsp=(ext_in_dir, extraid), **kwargs)
         self.master = master
         self.my_ext_dim = extraid
@@ -942,25 +1010,56 @@ class Fast2Dplus(Fast2D):
         #temp = Fast2D(master, mydata, parent, mname, filename, dark, only_indices, is3dsp=True, **kwargs)
 
     def update_plot(self, active_index, active_dimension, frozen, is_log, idx2=None, dim2=None):
+        print("the indices to use are: ", active_index, idx2)
         if frozen:
             axesvalues = self.myfigure.get_axis_values
         self.myfigure.cb.remove()
         self.myfigure.im.remove() #set_visible(False)
-        if self.my_ext_dim == 0:
+        if 0 in self.my_ext_dim:
             if active_index < self.odata.z.datavalue.shape[0]:
                 self.mydata.datavalue = self.odata.z.datavalue[active_index]
             else:
                 HelpWindow(self, "this dimension has not "+str(active_index)+ " entries. choose lower number")
-        elif self.my_ext_dim == 1:
+            if 1 in self.my_ext_dim:
+                if idx2 < self.odata.z.datavalue.shape[1]:
+                    self.mydata.datavalue = self.odata.z.datavalue[active_index, idx2]
+                else:
+                    HelpWindow(self, "this dimension has not "+str(idx2)+ " entries. choose lower number")
+            if 2 in self.my_ext_dim:
+                if idx2 < self.odata.z.datavalue.shape[2]:
+                    self.mydata.datavalue = self.odata.z.datavalue[active_index, :, idx2]
+                else:
+                    HelpWindow(self, "this dimension has not "+str(idx2)+ " entries. choose lower number")
+            if 3 in self.my_ext_dim:
+                if idx2 < self.odata.z.datavalue.shape[3]:
+                    self.mydata.datavalue = self.odata.z.datavalue[active_index, :, :, idx2]
+                else:
+                    HelpWindow(self, "this dimension has not "+str(idx2)+ " entries. choose lower number")    
+        elif 1 in self.my_ext_dim:
             if active_index < self.odata.z.datavalue.shape[1]:
                 self.mydata.datavalue = self.odata.z.datavalue[:, active_index]
             else:
                 HelpWindow(self, "this dimension has not "+str(active_index)+ " entries. choose lower number")
-        elif self.my_ext_dim == 2:
+            if 2 in self.my_ext_dim:
+                if idx2 < self.odata.z.datavalue.shape[2]:
+                    self.mydata.datavalue = self.odata.z.datavalue[:, active_index, idx2]
+                else:
+                    HelpWindow(self, "this dimension has not "+str(idx2)+ " entries. choose lower number")
+            if 3 in self.my_ext_dim:
+                if idx2 < self.odata.z.datavalue.shape[3]:
+                    self.mydata.datavalue = self.odata.z.datavalue[:, active_index, :,idx2]
+                else:
+                    HelpWindow(self, "this dimension has not "+str(idx2)+ " entries. choose lower number")
+        elif 2 in self.my_ext_dim:
             if active_index < self.odata.z.datavalue.shape[2]:
                 self.mydata.datavalue = self.odata.z.datavalue[:, :, active_index]
             else:
                 HelpWindow(self, "this dimension has not "+str(active_index)+ " entries. choose lower number")
+            if 3 in self.my_ext_dim:
+                if idx2 < self.odata.z.datavalue.shape[3]:
+                    self.mydata.datavalue = self.odata.z.datavalue[:, :, active_index, idx2]
+                else:
+                    HelpWindow(self, "this dimension has not "+str(idx2)+ " entries. choose lower number")
         if frozen:
             worked = self.myfigure.pcolormesh(self.x, self.y, self.mydata)
             self.myfigure.set_axis_values(axesvalues)
