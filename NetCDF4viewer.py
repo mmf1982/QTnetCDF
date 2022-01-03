@@ -906,6 +906,10 @@ class App(QMainWindow):
             with netCDF4.Dataset(os.path.join(here, "country_lines.h5")) as fid:
                 for k in fid.variables:
                     C_LINES.append(fid[k][:])
+                    temp = fid[k][:].copy()
+                    temp[:,0] = temp[:,0]+360
+                    C_LINES.append(temp)
+                   
         ln_coll = matplotlib.collections.LineCollection(C_LINES, colors=self.config["Plotsettings"]["country_line_color"], linewidths=self.config["Plotsettings"]["country_line_thickness"])
         if self.active1D is None:
             self.openplots[-1].myfigure.axes.add_collection(ln_coll)
