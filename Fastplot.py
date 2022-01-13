@@ -301,6 +301,7 @@ class MplCanvas(FigureCanvasQTAgg):
         except ValueError:
             pass
         try:
+            
             xx = x.datavalue
             yy = y.datavalue
             cc = z.datavalue
@@ -804,11 +805,11 @@ class Fast2D(QMainWindow):  # only_indices does currently not work for 2D x-y-z 
                 self.myfigure.axes.set_xlabel(list(mydata_dims)[1])
             self.myfigure.axes.set_title(mname)
         else:
-            if only_indices is not None:
+            if (only_indices is not None) and (mydata.datavalue.ndim != 1):
                 try:
                     if len(self.x.datavalue) == len(only_indices):
                         self.x.datavalue = self.x.datavalue[only_indices]
-                    else:
+                    elif len(self.y.datavalue) == len(only_indices):
                         self.y.datavalue = self.y.datavalue[only_indices]
                 except:
                     HelpWindow(self, "Maybe no x or y was set?")
@@ -827,7 +828,6 @@ class Fast2D(QMainWindow):  # only_indices does currently not work for 2D x-y-z 
                         mydata.datavalue = mydata.datavalue[:, only_indices]
                     except:
                         mydata = mydata[:, only_indices]
-                
                 
             worked = self.myfigure.pcolormesh(self.x, self.y, mydata)  # , only_indices)
             if not worked:

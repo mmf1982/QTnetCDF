@@ -819,8 +819,8 @@ class App(QMainWindow):
                                     **self.config["Plotsettings"], mname=self.mdata.z.name_value,
                                     filename=self.name, dark=self.dark, plotscheme=self.plotscheme,
                                     only_indices=self.current_idx)
-                            except AttributeError:
-                                HelpWindow(self, "it seems there are no indices to use")
+                            except AttributeError as exdf:
+                                HelpWindow(self, "it seems there are no indices to use"+str(exdf))
                                 return
                         else:
                             temp = Fast2D(self,
