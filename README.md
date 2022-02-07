@@ -3,14 +3,14 @@
 QTnetCDF is a hdf/ netCDF4 viewer with emphasis on plotting. It is implemented in python and uses QT. 
 It can open netCDF4, hdf5 and hdf4 files. For hdf4 files, it tries to remove the vdata that only represents sd variable attributes or dimensions. The functionality for hdf4 files is somewhat reduced. 
 
-It is tested with python3.7 (on linux) and python3.8 on windows. Under windows, it works with installing the needed packages via anaconda and python3.8. Under linux, it is recommended to use the setup scripts in conjuction with pip and python3.7, see Quick start below. 
+It is tested with python3.7, python3.8 and python3.9 (on linux) and python3.8 on windows. Under windows, it works with installing the needed packages via anaconda and python3.8. Under linux, it is recommended to use the setup scripts in conjuction with pip and python3.7 or python3.8, see Quick start below. 
 
 
 ## Quick start for linux
 
-Create and activate a virtual environment:
+Create and activate a virtual environment (only needed if you actually want to run it in the virtual environment, skip otherwise):
 
-    python3.7 -m venv newenv_test
+    python3.8 -m venv newenv_test
     source newenv_test/bin/activate
 
 download both QTnetCDF and add_interactivity:
@@ -20,24 +20,34 @@ download both QTnetCDF and add_interactivity:
 
 inside the respecitve directories, run:
 
-    python3.7 setup.py install
+    python3.8 setup.py install
 
 It might be that the package pyhdf needed for QTnetCDF throws an error. If so, try manually to do:
 
-    python3.7 -m pip install pyhdf
-and then redo the installation of QTnetCDF (phython3.7 setup.py install in the QTnetCDF4 directory).
+    python3.8 -m pip install pyhdf
 
+It might also be that you have some issues with the qt5 packages, it might help to force a reinstall of the libraries via:
+
+    sudo apt install --reinstall libqt5widgets5 libqt5gui5 libqt5dbus5 libqt5network5 libqt5core5a
+
+You can also try to install a specific version of PyQt5. E.g. by:
+    
+    python3.8 -m pip install PyQt5==5.15.1    
+and then redo the installation of QTnetCDF (phython3.8 setup.py install in the QTnetCDF4 directory).
+    
 Download for example a h5/ hdf/ nc file from here: https://hdfeos.org/zoo/index_openNSIDC_Examples.php  
 
 and then call as 
 
-    python3.7 -m NetCDF4viewer whatever_is_your_test_filename.nc_or_hdf_or_h5_or_hdf4
+    python3.8 -m NetCDF4viewer whatever_is_your_test_filename.nc_or_hdf_or_h5_or_hdf4
 
-with
+In case you used the virtual environment, with
 
     deactivate
     
-you can leave the virtual environment again. Of course you do not need to work within a virual environment in the frist place, but it might be the saver option if you just want to give it a try. 
+you can leave the virtual environment again. Of course you do not need to work within a virual environment in the frist place, but it might be the saver option if you just want to give it a try.
+
+If you received a warning that add_interactivity could not be found, the easiest is maybe to include a softlink inside the QTnetCDF folder to the appropriate file inside add_interactivity. However, if both packages are inside your python path, this should not be necessary.
 
 ## Basic functionality
 
@@ -59,8 +69,13 @@ you can leave the virtual environment again. Of course you do not need to work w
   * "e" data set as error on x for line plot
   * "u" data set as error on y for line plot
   * "m" to load to misc. Data can then be combined with other data via the "/", "*", "+" and "-" buttons. Note that a+b/c will be calculated as (a+b)/c. The data set here (either as a full 1, 2, 3 or 4 D variable or a 1D or 2D subset) can either be set as x, y or z (*as x* etc) variable or directly plotted (*plot misc*) ![Misc](/images/misc.png)
+  * "f" to load to flag. This variable together with "<" or ">" and a value typed in the corresponding field can be used to select only data (for x, y, z or m) for which the flag condition is fullfilled. To use this, first load a specific variable as flag (by pressing flag on a variable), then press either "<" or ">" and then type a value in the field and then press enter. Use this flag on either x,y,z or m. Note: The dimensions must agree. Only those data points for which the flag condition is fulfilled are plotted. Other values of the chosen variable (for x, y, z or m) are set to Nan. Note: This means also that the variable is converted to float for the purpose of plotting.
  
-
+## New features in 0.0.3:
+  * The just described feature to flag out data with pressing "f" on a variable and setting its limits:
+    "f" to load to flag. This variable together with "<" or ">" and a value typed in the corresponding field can be used to select only data (for x, y, z or m) for which the flag condition is fullfilled. To use this, first load a specific variable as flag (by pressing flag on a variable), then press either "<" or ">" and then type a value in the field and then press enter. Use this flag on either x,y,z or m. Note: The dimensions must agree. Only those data points for which the flag condition is fulfilled are plotted. Other values of the chosen variable (for x, y, z or m) are set to Nan. Note: This means also that the variable is converted to float for the purpose of plotting. This cannot currently be combined with the lasso selector. Note that "f" is currently not activated on the table view; this means that only "full variables" can be used for flags.
+  * Support for matplotlib > 3.4
+  * for x-y-z plots, z now also supports 4D data (as before x and y need either to be both 1D or 2D).
 ## New features in 0.0.2:
   * for x-y-z plots, z now also supports 3D data (as before x and y need either to be both 1D or 2D), but no slicing in other directions is possible. If there are different axis having the same dimensions, a pop-up window requires information on which axis to slice along.
   * for x-y-z plots, nans in the x- and y- variables do not use pcolor any longer and hence there is a speed gain. However, these masked values are "transferred to the z values.
@@ -93,7 +108,7 @@ you can leave the virtual environment again. Of course you do not need to work w
   Also note the slider which sets the size of the dots in scatter plots. 
   * using misc, it is now possible to add/ subtract/ divide/ multiply a constant factor of a variable: enter a float in the entry field marked red below, choose an operator and then mark a variable and press *m*, as described above under basic functionality. It is also possible to first choose the variable and the operator. In either case, press enter after entering the float in the input field. ![Constant factor](/images/input_field.png) 
   
-## Latest fixes:
+## Latest fixes (prior to 0.0.3):
 * undocked table takes color scheme specified for main window
 * if more than two files are opened at the same time, the title of each window is the name of the respective file
 * windows with x-y-z plots get the name of the z value as title
@@ -109,7 +124,7 @@ you can leave the virtual environment again. Of course you do not need to work w
 
   ### 1D plotting
 
-  If a variable is 1D, a double click will automatically plot it over its index. However, x, y, xerr and yerr can also be set. Either as a 1D variable as described above, or from the table view (after "s" on a 1, 2, 3 or 4D variable) on which the following keys are activated: 
+  If a variable is 1D, a double click will automatically plot it over its index. However, x, y, xerr and yerr can also be set. Either as a 1D variable as described above, or from the table view (after "s" on a 1, 2, 3 or 4D variable) on which the following keys are activated, note: "f" is currently not activated: 
 
   * "x" data set as x for line plot
   * "y" data set as y for line plot
@@ -138,11 +153,13 @@ you can leave the virtual environment again. Of course you do not need to work w
 
  Line/ marker plots also have some of the functionality from add_interactivity (if it is installed https://github.com/mmf1982/add_interactivity), namely:
 
- * left click a line/ marker to toggle
- * right click a line/ marker to bring it to front
- * left click a line/ marker while arrow up key pressed: make line thicker (marker larger), arrow down key pressed: make it thinner (marker smaller).
+ * left click a line/ marker in the legend to toggle
+ * right click a line/ marker in the legend to bring it to front
+ * left click a line/ marker in the legend while arrow up key pressed: make line thicker (marker larger), arrow down key pressed: make it thinner (marker smaller).
  * left click legend while arrow left key pressed: make legend text smaller, right arrow key pressed: to make it bigger
  * move legend by drag and drop
+ * right click on a line/ marker (not in legend): copy
+ * middle click in a plot: paste the copied line
 
 * *use idxs?* --> If the plot was performed via "plot symbol", a lasso selector is activated (only for x-y plots, not x-y-z scatter plots). If used, the indices and the values of x and y are written to the terminal and the indices can be used to restrict future plots with this button. Press button "use idxs?" in the main window before the next plot.)
 
@@ -196,11 +213,11 @@ It is possible to supply a different config.yml at start-up via the command line
 If this is desired, the path (including file name) needs to be passed as first argument (so before the first file to open)
 preceded by a "-" without a space:
 
-    python3.7 -m NetCDF4viewer -/home/your_home/path_to/config.yml path/to_your/ncfile.nc
+    python3.8 -m NetCDF4viewer -/home/your_home/path_to/config.yml path/to_your/ncfile.nc
 
  ## Nice to have, not implemented yet:
  I collect some ideas here for implementation. Please contact me if you have more suggestions.
- * Assigning a condition on one variable to transform it to a mask to use on other variables: This can now be done indirectly with the "use idxs?" and lasso selector.
- * Make pcolormesh also workable for 4D variables (without the possibility of slicing in the two set axis, mapping decided automatically for those as already done for 3D. This might be useful for map data with height and time dimension.)
+ * Assigning a condition on one variable to transform it to a mask to use on other variables: This can now be done indirectly with the "use idxs?" and lasso selector. This is now explicitly implemented in version 0.0.3
+ * Make pcolormesh also workable for 4D variables (without the possibility of slicing in the two set axis, mapping decided automatically for those as already done for 3D. This might be useful for map data with height and time dimension.) this is now implemented in version 0.0.3
  
 

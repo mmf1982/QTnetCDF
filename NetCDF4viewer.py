@@ -2,6 +2,7 @@ import os
 import sys
 import netCDF4
 import yaml
+import numpy as np
 import pyhdf.error
 import pandas
 import subprocess
@@ -11,7 +12,7 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QKeySequence
 from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWindow, QDockWidget,
                              QTableView, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
                              QSlider, QLabel, QStatusBar, QLineEdit)
-import numpy as np
+
 import matplotlib
 try:
     from .Fastplot import Fast3D, Fast2D, Fast1D, Fast2Dplus
@@ -34,7 +35,7 @@ from numpy import array, arange, squeeze, nansum
 
 CONFIGPATH = ""
 C_LINES = None
-#__version__ = "0.0.1"
+#__version__ = "0.0.3"
 #__author__ = "Martina M. Friedrich"
 
 
@@ -205,6 +206,8 @@ class MyQTreeView(QTreeView):
                 self.master.mdata.yerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath)
             elif event.text() == "e":
                 self.master.mdata.xerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath)
+            elif event.text() == "f":
+                self.master.mdata.flag.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath)
             elif event.text() == "m":
                 if self.master.mdata.misc.datavalue is None:
                     thisdims = tuple([mds for mds in current_pointer.mdata.dimensions if mds != 1])
@@ -696,21 +699,24 @@ class Data(object):
     """
 
     def __init__(self, **kwargs):
-        for key in ["x", "y", "z", "xerr", "yerr", "misc"]:  # , "mask"]:
+        for key in ["x", "y", "z", "xerr", "yerr", "misc", "flag"]:  # , "mask"]:
             if key == "xerr":
                 key2 = "xerr(e)"
             elif key == "yerr":
                 key2 = "yerr(u)"
             elif key == "misc":
                 key2 = "misc(m)"
+            elif key == "flag":
+                key2 = "flag(f)"
             else:
                 key2 = key
             setattr(self, key, MyQLabel(key2, None))
         self.__dict__.update(kwargs)
         self.misc_op = "+"
+        self.flag_op = None
     def copy(self):
         new = Data(x=self.x.copy(), y=self.y.copy(), z=self.z.copy(), xerr=self.xerr.copy(),
-                   yerr=self.yerr.copy(), misc=self.misc.copy())
+                   yerr=self.yerr.copy(), misc=self.misc.copy(), flag=self.flag.copy())
         return new
 
 
@@ -930,6 +936,8 @@ class App(QMainWindow):
         layout.addWidget(self.plot_buttons)
         showtext = QWidget()
         showall = QWidget()
+        flag_widget = QWidget()
+        flag_layout = QHBoxLayout()
         misc_widget = QWidget()
         misc_layout = QHBoxLayout()
         showall_layout = QVBoxLayout()
@@ -940,14 +948,15 @@ class App(QMainWindow):
         xyz = QWidget()
         errs = QWidget()
         for entr in self.mdata.__dict__.keys():
-            if "misc_op" not in entr:
+            if ("misc_op" not in entr) and ("flag_op" not in entr):
                 if "err" in entr:
                     layout_errs.addWidget(self.mdata.__dict__[entr])
                 elif len(entr) == 1:
                     layout_xyz.addWidget(self.mdata.__dict__[entr])
+                elif "flag" in entr:
+                    flag_layout.addWidget(self.mdata.__dict__[entr])
                 else:
                     misc_layout.addWidget(self.mdata.__dict__[entr])
-        entry = QLineEdit()
         def get_number():
             try:
                 try:
@@ -1026,9 +1035,61 @@ class App(QMainWindow):
                     self.mdata.misc.set(mdata, mname, dimension=thisdims)
             except ValueError:
                 pass
+        def get_flag_number():
+            try:
+                num = float(flag_entry.text())
+                
+                mname = self.mdata.flag.name_value+" "+self.mdata.flag_op + str(num)
+                # I need to check x,y,z, for the moment, assume z:
+                if "<" in self.mdata.flag_op:
+                    mdata = self.mdata.flag.datavalue < num
+                else:
+                    mdata = self.mdata.flag.datavalue > num
+                self.mdata.flag.set(mdata, mname)
+                #zdata = np.copy(self.mdata.misc.datavalue)
+                #zdata[~mdata] = np.nan
+                #self.mdata.misc.set(zdata, self.mdata.misc.name_value + " at " + mname)
+            except ValueError:
+                print("no value found")
+        # make flag_layout fields:
+        flag_entry = QLineEdit()
+        flag_entry.returnPressed.connect(get_flag_number)
+        flag_entry.setFixedWidth(40)
+        flag_layout.addWidget(flag_entry)
+        for el in ["<", ">"]:
+            button = QPushButton(el)
+            width = button.fontMetrics().boundingRect(el).width() + 8
+            button.setMaximumWidth(width)
+            flag_layout.addWidget(button)
+            def func_flag(el):
+                self.mdata.flag_op = el
+            button.clicked.connect(lambda state, x=el: func_flag(x))
+        for el in ["on x", "on y", "on z", "on misc"]:
+            button = QPushButton(el)
+            width = button.fontMetrics().boundingRect(el).width() + 8
+            button.setMaximumWidth(width)
+            flag_layout.addWidget(button)
+            def apply_flag(el):
+                my_flag = self.mdata.flag.datavalue
+                name = self.mdata.flag.name_value
+                to_use = el.split()[-1]
+                myval = (np.copy(self.mdata.__dict__[to_use].datavalue)).astype(float)
+                myval[~my_flag] = np.nan
+                my_name = self.mdata.__dict__[to_use].name_value + " only " + self.mdata.flag.name_value
+                self.mdata.__dict__[to_use].set(myval, my_name)
+                #if "x" in el:
+                #    myval = np.copy(self.mdata.x.datavalue)
+                #    myval[~my_flag] = np.nan
+                #    my_name = self.mdata.x.name_value + " only " + self.mdata.flag.name_value
+                #    self.mdata.x.set(myval, my_name)
+            button.clicked.connect(lambda state, x=el: apply_flag(x))
+        flag_widget.setLayout(flag_layout)
+        showall_layout.addWidget(flag_widget)
+        # make misc_layout fieds:
+        entry = QLineEdit()
         entry.returnPressed.connect(get_number)
         entry.setFixedWidth(40)
-        # self.entry.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        ## self.entry.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         misc_layout.addWidget(entry) #, alignment=QtCore.Qt.AlignHCenter)
         for el in ["+", "-", "/", "*", "mean", "median"]:
             button = QPushButton(el)
@@ -1036,6 +1097,7 @@ class App(QMainWindow):
             button.setMaximumWidth(width)
             misc_layout.addWidget(button)
             def func(el):
+                #print(el)
                 self.mdata.misc_op = el
             button.clicked.connect(lambda state, x=el: func(x))
         for use_as in ["as x", "as y", "as z"]:
@@ -1095,9 +1157,10 @@ class App(QMainWindow):
                     self.active1D = temp
                     self.openplots.append(temp)
         button_plot.clicked.connect(plotmisc)
-        #plus_button.resize(plus_button.sizeHint().width(), plus_button.sizeHint().height())
+        ## plus_button.resize(plus_button.sizeHint().width(), plus_button.sizeHint().height())
         misc_widget.setLayout(misc_layout)
         showall_layout.addWidget(misc_widget)
+        # make xyz, xerr and yerr fields:
         xyz.setLayout(layout_xyz)
         errs.setLayout(layout_errs)
         showtext_layout.addWidget(xyz)
