@@ -1075,14 +1075,12 @@ class App(QMainWindow):
                 to_use = el.split()[-1]
                 myval = (np.ma.copy(self.mdata.__dict__[to_use].datavalue))
                 if not isinstance(myval, np.ma.MaskedArray):
-                    print("was not ma")
                     myval = np.ma.masked_array(myval, np.full(myval.shape, False))
                 if not isinstance(myval.mask, np.ndarray):
-                    print("was not full")
                     myval.mask = np.full(myval.shape, False)
                 myval.mask[~my_flag] = True
                 my_name = self.mdata.__dict__[to_use].name_value + " only " + self.mdata.flag.name_value
-                self.mdata.__dict__[to_use].set(myval, my_name)
+                self.mdata.__dict__[to_use].set(myval, my_name, dimension=self.mdata.__dict__[to_use].dimension)
             button.clicked.connect(lambda state, x=el: apply_flag(x))
         flag_widget.setLayout(flag_layout)
         showall_layout.addWidget(flag_widget)
