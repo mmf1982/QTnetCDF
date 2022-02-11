@@ -1043,6 +1043,8 @@ class App(QMainWindow):
                 # I need to check x,y,z, for the moment, assume z:
                 if "<" in self.mdata.flag_op:
                     mdata = self.mdata.flag.datavalue < num
+                elif "=" in self.mdata.flag_op:
+                    mdata = self.mdata.flag.datavalue == num
                 else:
                     mdata = self.mdata.flag.datavalue > num
                 self.mdata.flag.set(mdata, mname)
@@ -1056,7 +1058,7 @@ class App(QMainWindow):
         flag_entry.returnPressed.connect(get_flag_number)
         flag_entry.setFixedWidth(40)
         flag_layout.addWidget(flag_entry)
-        for el in ["<", ">"]:
+        for el in ["<", ">","=="]:
             button = QPushButton(el)
             width = button.fontMetrics().boundingRect(el).width() + 8
             button.setMaximumWidth(width)
