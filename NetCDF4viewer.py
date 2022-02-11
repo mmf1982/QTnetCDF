@@ -1063,6 +1063,7 @@ class App(QMainWindow):
             flag_layout.addWidget(button)
             def func_flag(el):
                 self.mdata.flag_op = el
+                self.mdata.flag.setText(self.mdata.flag.name + ": " + self.mdata.flag.name_value + " " + el)
             button.clicked.connect(lambda state, x=el: func_flag(x))
         for el in ["on x", "on y", "on z", "on misc"]:
             button = QPushButton(el)
