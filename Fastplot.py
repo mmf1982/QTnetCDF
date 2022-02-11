@@ -930,24 +930,32 @@ class Fast2Dplus(Fast2D):
         mydata = mydat.copy()
         allclear = False
         alldims = list(range(mydat.z.datavalue.ndim))
-        if mydata.x.dimension[0] in mydata.z.dimension:
-            x_idx = mydata.z.dimension.index(mydata.x.dimension[0])
-            allclear = True
-            _ = alldims.pop(x_idx)
-        if allclear and (mydata.y.dimension[0] in mydata.z.dimension):
-            y_idx = mydata.z.dimension.index(mydata.y.dimension[0])
-            if y_idx > x_idx:
-                mydata = np.swapaxes(mydata, y_idx, x_idx)
-            _ = alldims.pop(y_idx)
-            extraid = alldims
-        else:
-            allclear = False
+        try:
+            if len(alldims) != len(mydata.x.dimension):
+                print("indeed not equal")
+                print(alldims, mydata.x.dimension)
+            else:
+                print("they are equal")
+            if mydata.x.dimension[0] in mydata.z.dimension:
+                x_idx = mydata.z.dimension.index(mydata.x.dimension[0])
+                allclear = True
+                _ = alldims.pop(x_idx)
+            if allclear and (mydata.y.dimension[0] in mydata.z.dimension):
+                y_idx = mydata.z.dimension.index(mydata.y.dimension[0])
+                if y_idx > x_idx:
+                    mydata = np.swapaxes(mydata, y_idx, x_idx)
+                _ = alldims.pop(y_idx)
+                extraid = alldims
+            else:
+                allclear = False
+        except IndexError:
+            print("could not determine dimensions, no names. Use shape instead")
         if master is None:
             master = QApplication([])
         # Try to figure out which dimension(s) is the extra dimension
         if not allclear:
-            mdims = mydata.z.datavalue.shape
-            different_ones = set(list(mdims))
+            mdims = list(mydata.z.datavalue.shape)
+            different_ones = set(mdims)
             # if there are duplicated dimensions, let the user choose
             if len(different_ones)< len(mdims):
                 extraid, _ = QInputDialog.getText(
@@ -968,6 +976,14 @@ class Fast2Dplus(Fast2D):
                 if yaxis_shouldbe > xaxis_shouldbe:
                     mydata.z.datavalue = np.swapaxes(mydata.z.datavalue, yaxis_shouldbe, xaxis_shouldbe)
                     mydata.z.dimension[yaxis_shouldbe], mydata.z.dimension[xaxis_shouldbe] = mydata.z.dimension[xaxis_shouldbe], mydata.z.dimension[yaxis_shouldbe]
+            else:
+                for xdims in mydata.x.datavalue.shape:
+                    if xdims in mdims:
+                        mdims.remove(xdims)
+                for ydims in mydata.y.datavalue.shape:
+                    if ydims in mdims:
+                        mdims.remove(ydims)
+                extraid = [list(mydata.z.datavalue.shape).index(mdims[0])]
         self.odata = mydata.copy()
         ext_in_dir = []
         reducedim = 0
@@ -982,7 +998,7 @@ class Fast2Dplus(Fast2D):
             elif reducedim == 1:
                 mydata.z.datavalue = mydata.z.datavalue[0]
             else:
-                raise(ValueError("slicing went wrong in line 956"))
+                raise(ValueError("slicing went wrong in line 1001"))
             reducedim = reducedim + 1
         if 2 in extraid:
             ext_in_dir.append(mydata.z.datavalue.shape[2-reducedim])
@@ -991,7 +1007,7 @@ class Fast2Dplus(Fast2D):
             elif reducedim == 1:
                 mydata.z.datavalue = mydata.z.datavalue[:,0]
             else:
-                raise(ValueError("slicing went wrong in line 965"))
+                raise(ValueError("slicing went wrong in line 1010"))
             reducedim = reducedim + 1
         if 3 in extraid:
             ext_in_dir.append(mydata.z.datavalue.shape[3-reducedim])
@@ -1000,7 +1016,7 @@ class Fast2Dplus(Fast2D):
             elif reducedim == 1:
                 mydata.z.datavalue = mydata.z.datavalue[:,0]
             else:
-                raise(ValueError("slicing went wrong in line 974"))
+                raise(ValueError("slicing went wrong in line 1018"))
         super(Fast2Dplus, self).__init__(master, mydata, parent, mname, filename, dark, only_indices, is3dsp=(ext_in_dir, extraid), **kwargs)
         self.master = master
         self.my_ext_dim = extraid
@@ -1393,7 +1409,7 @@ class Fast3D(QMainWindow):
 
 def main():
     """
-    For demonstation purpose only: pltos a 4D array as image with two sliders for the dimension slicing
+    For demonstation purpose only: plots a 4D array as image with two sliders for the dimension slicing
     :return: None
     """
     app = QApplication([])
