@@ -1451,7 +1451,7 @@ class App2(QWidget):
                 HelpWindow(self, "it seems there are no open plot windows that are broadcastable")
 
     def set_same_data(self):
-        for which in ["x", "y", "z", "f(flag)", "xerr(e)", "yerr(u)", "misc(m)"]:
+        for which in ["x", "y", "z", "flag(f)", "xerr(e)", "yerr(u)", "misc(m)"]:
             name = self.windows[0].mdata.__dict__[which.split("(")[0]].name_value
             path = self.windows[0].mdata.__dict__[which.split("(")[0]].path
             for idx in range(1, len(self.windows)):
