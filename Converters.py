@@ -303,11 +303,15 @@ class MFC_type(OrderedDict):
                     anyduplicated = True
                     mdict2[mkey] = {key: var_with_attr(mline.header[key], key) for key in mline.header}
                     mdict2[mkey]["spectrum"] = nd_with_name(mline.spectrum, "spectrum")
+                    mdict2[mkey]["spectrum_averaged"] = nd_with_name(mline.spectrum_av, "spectrum_averaged")
                     mdict2[mkey]["spectrum_corrected"] = nd_with_name(mline.spectrumCorrected, "spectrum_corrected")
+                    mdict2[mkey]["spectrum_corrected_averaged"] = nd_with_name(mline.spectrumCorrected_av, "spectrum_corrected_averaged")
                     continue
                 mdict[mkey] = {key: var_with_attr(mline.header[key], key) for key in mline.header}
                 mdict[mkey]["spectrum"] = nd_with_name(mline.spectrum, "spectrum")
+                mdict[mkey]["spectrum_averaged"] = nd_with_name(mline.spectrum_av, "spectrum_averaged")
                 mdict[mkey]["spectrum_corrected"] = nd_with_name(mline.spectrumCorrected, "spectrum_corrected")
+                mdict[mkey]["spectrum_corrected_averaged"] = nd_with_name(mline.spectrumCorrected_av, "spectrum_corrected_averaged")
             datearray = numpy.array([pandas.to_datetime(mkey, format="%Y-%m-%d %H:%M:%S") for mkey in  mdict.keys()])
             if anyduplicated:
                 datearray2 = numpy.array([pandas.to_datetime(mkey, format="%Y-%m-%d %H:%M:%S") for mkey in  duplicatedtime])
@@ -339,8 +343,12 @@ class MFC_type(OrderedDict):
             mdict["all_data"] = {
                 "spectrum" : nd_with_name(
                     numpy.array([mdict[key]["spectrum"] for key in mdict]), "spectrum"),
+                "spectrum_averaged" : nd_with_name(
+                    numpy.array([mdict[key]["spectrum_averaged"] for key in mdict]), "spectrum_averaged"),
                 "spectrum_corrected": nd_with_name(
                     numpy.array([mdict[key]["spectrum_corrected"] for key in mdict]), "spectrum_corrected"),
+                "spectrum_corrected_averaged": nd_with_name(
+                    numpy.array([mdict[key]["spectrum_corrected_averaged"] for key in mdict]), "spectrum_corrected_averaged"),
                 "datetime": nd_with_name(datearray, "datetime")
                 }
             mdict["all_data"].update(allheaderdict)
@@ -349,8 +357,12 @@ class MFC_type(OrderedDict):
                 mdict["duplicated_data"] = {
                     "spectrum" : nd_with_name(
                         numpy.array([mdict2[key]["spectrum"] for key in mdict2]), "spectrum"),
+                    "spectrum_averaged" : nd_with_name(
+                        numpy.array([mdict2[key]["spectrum_averaged"] for key in mdict2]), "spectrum_averaged"),
                     "spectrum_corrected": nd_with_name(
                         numpy.array([mdict2[key]["spectrum_corrected"] for key in mdict2]), "spectrum_corrected"),
+                    "spectrum_corrected_averaged": nd_with_name(
+                        numpy.array([mdict2[key]["spectrum_corrected_averaged"] for key in mdict2]), "spectrum_corrected_averaged"),
                     "datetime": nd_with_name(datearray2, "datetime")
                     }
                 mdict["duplicated_data"].update(allheaderdict2)
@@ -358,15 +370,11 @@ class MFC_type(OrderedDict):
                 mdict.move_to_end("duplicated_data", last=False)
             mdict.move_to_end("all_data", last=False)
             return mdict
-        correctionFlag = 1
-        averageFlag = 1
-        
         try:
-            temp1 = MFC.MFC_BIRA_ReadSpe(myfile, correctionFlag, 1)
-            temp0 = MFC.MFC_BIRA_ReadSpe(myfile, correctionFlag, 0)
-            both = {"averaged": OrderedDict(makedictformat(temp1)),
-                    "not_averaged": OrderedDict(makedictformat(temp0))}
-            
+            temp1 = MFC.MFC_BIRA_ReadSpe(myfile)
+            both = {"spectra": OrderedDict(makedictformat(temp1[0])),
+                        "offs": OrderedDict(makedictformat(temp1[1])),
+                        "darks": OrderedDict(makedictformat(temp1[2]))}
         except PermissionError:
             print("no permission granted")
             return "no permission granted"
