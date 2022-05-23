@@ -15,7 +15,12 @@ except:
     try:
         import MFC
     except:
-        pass
+        try:
+            import sys
+            sys.path.append("/ae/projects4/FRM4DOAS/programs/tags/validation_02.0/python/tools")
+            import MFC_Format as MFC
+        except:
+            pass
 
 HDFTYPE = {pyhdf.HDF.HC.DFTAG_NDG: "HDF SDS",
            pyhdf.HDF.HC.DFTAG_VH: "HDF Vdata",
