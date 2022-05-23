@@ -23,9 +23,9 @@ try:
 except (ImportError, ModuleNotFoundError):
     from Menues import FileMenu, HelpWindow
 try:
-    from .Converters import Hdf4Object, Table, Representative
+    from .Converters import Hdf4Object, Table, Representative, MFC_type
 except (ImportError, ModuleNotFoundError):
-    from Converters import Hdf4Object, Table, Representative
+    from Converters import Hdf4Object, Table, Representative, MFC_type
 try:
     from .Colorschemes import QDarkPalette, reset_colors
 except:
@@ -1198,18 +1198,31 @@ class App(QMainWindow):
                 self.mfile = Hdf4Object(m_file)
                 self.filetype = "hdf4"
             except pyhdf.error.HDF4Error:
-                HelpWindow(
-                    self, "This seems not to be a valid nc, hdf4 or hdf5 file: " + str(m_file) + "\n" +
-                    "If you believe it is, please report back")
-                return
+                try:
+                    print("here")
+                    self.mfile = MFC_type(m_file)
+                    self.filetype = "mfc"
+                    print("loaded?", self.filetype)
+                except:
+                    HelpWindow(
+                        self, "This seems not to be a valid nc, hdf4 or hdf5 file: " + str(m_file) + "\n" +
+                        "If you believe it is, please report back")
+                    return
         statusbar = QStatusBar()
         statusbar.showMessage(self.name)
         self.setStatusBar(statusbar)
         self.make_design()
         if isinstance(self.mfile, netCDF4._netCDF4.Dataset):
+            print("wrong")
             self.walk_down_netcdf(self.mfile, self.model)
-        else:
+        elif self.filetype == "hdf4":
             self.walk_down_hdf4(self.mfile.struct, self.model)
+        elif self.filetype == "mfc":
+            print("walking down mfc")
+            self.walk_down_mfc(self.mfile, self.model)
+        else:
+            print("hello???")
+            HelpWindow(self, "This seems to be an unknown file format")
 
     def get_data(self, signal):
         try:
@@ -1289,6 +1302,52 @@ class App(QMainWindow):
                 self.openplots.append(temp)
         else:
             HelpWindow(self, "nothing to plot, it seems to be a scalar")
+
+    def walk_down_mfc(self, currentlevel, currentitemlevel):
+        print(currentitemlevel)
+        if isinstance(currentitemlevel, str):
+            currentitemlevel = Pointer(currentlevel, currentitemlevel)
+        else:
+            attrs = ""
+            currentitemlevel.appendRow([
+                self.walk_down_mfc(currentlevel, self.name), QStandardItem(""), QStandardItem(""),
+                QStandardItem(""), QStandardItem(""), QStandardItem(""), QStandardItem(attrs)])
+            return currentitemlevel
+        try:
+            totallist = list(currentlevel.keys())
+        except (KeyError, AttributeError):
+            totallist = []
+        for mkey in totallist:
+            try:
+                attrs = ""
+                try:
+                    ndim = str(currentlevel[mkey].ndim)
+                except (AttributeError, KeyError):
+                    ndim = ""
+                try:
+                    dims = ", ".join([str(dim) for dim in currentlevel[mkey].dimensions])
+                except (AttributeError, KeyError):
+                    dims = ""
+                try:
+                    shape = " x ".join([str(entr) for entr in currentlevel[mkey].shape])
+                except (AttributeError, KeyError):
+                    shape = ""
+                try:
+                    units = str(currentlevel[mkey].units)
+                except (AttributeError, KeyError):
+                    units = ""
+                try:
+                    dtype = str(currentlevel[mkey].dtype)
+                except (AttributeError, KeyError):
+                    dtype = ""
+                last = [self.walk_down_mfc(currentlevel[mkey], mkey), QStandardItem(ndim),
+                        QStandardItem(shape), QStandardItem(dims), QStandardItem(units),
+                        QStandardItem(dtype), QStandardItem(attrs)]
+                currentitemlevel.appendRow(last)
+            except Exception as exs:
+                print("walking down mfc failed ", exs)
+                print(type(exs))
+        return currentitemlevel
 
     def walk_down_netcdf(self, currentlevel, currentitemlevel):
         if isinstance(currentitemlevel, str):

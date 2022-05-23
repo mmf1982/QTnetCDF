@@ -6,6 +6,17 @@ import pyhdf.VS
 import pyhdf.V
 import numpy
 from pyhdf.error import HDF4Error
+from collections import OrderedDict
+import pandas
+
+try:
+    from . import MFC
+except:
+    try:
+        import MFC
+    except:
+        pass
+
 
 HDFTYPE = {pyhdf.HDF.HC.DFTAG_NDG: "HDF SDS",
            pyhdf.HDF.HC.DFTAG_VH: "HDF Vdata",
@@ -234,6 +245,73 @@ class Hdf4Object:
         self.sd.end()
         self.hdf.close()
 
+class nd_with_name(numpy.ndarray):
+    def __new__(cls, input_array, name):
+        '''
+        Constructor of ndarray with name
+
+        Parameters:
+        -----------
+        input_array: array like
+            array that constitutes the LUT
+        name: str
+            name of variable
+        Returns:
+        --------
+        obj: LUT object
+        '''
+        obj = numpy.asarray(input_array).view(cls)
+        obj.name = name
+        return obj
+
+class var_with_attr(numpy.ndarray):
+    '''
+    add the value as the units attribute
+    '''
+    def __new__(cls, data, name):
+        obj = numpy.asarray(data).view(cls)
+        obj.units = data
+        return obj
+
+
+class MFC_type(OrderedDict):
+    def __new__(self, myfile):
+        def makedictformat(temp):
+            mdict = OrderedDict()
+            def makedate(hd):
+                datestring = (str(hd["da_year"]).zfill(4) + "-" +
+                            str(hd["da_month"]).zfill(2) + "-" +
+                            str(hd["da_day"]).zfill(2) + " " +
+                            str(hd["start_ti_hour"]).zfill(2) + ":" +
+                            str(hd["start_ti_min"]).zfill(2) + ":" +
+                            str(hd["start_ti_sec"]).zfill(2))
+                return datestring
+            for mline in temp:
+                mkey = makedate(mline.header)
+                mdict[mkey] = {key: var_with_attr(mline.header[key], key) for key in mline.header}
+                mdict[mkey]["spectrum"] = nd_with_name(mline.spectrum, "spectrum")
+                mdict[mkey]["spectrum_corrected"] = nd_with_name(mline.spectrumCorrected, "spectrum_corrected")
+            datearray = numpy.array([pandas.to_datetime(mkey, format="%Y-%m-%d %H:%M:%S") for mkey in  mdict.keys()])
+            mdict["all_data"] = {
+                "spectrum" : nd_with_name(
+                    numpy.array([mline.spectrum for mline in temp]), "spectrum"),
+                "spectrum_corrected": nd_with_name(
+                    numpy.array([mline.spectrumCorrected for mline in temp]), "spectrum_corrected"),
+                "datetime": nd_with_name(datearray, "datetime")
+                }
+            allheaderdict = {k: [] for k in temp[0].header}
+            for line in temp:
+                for k in allheaderdict:
+                    allheaderdict[k].append(line.header[k])
+            for k in allheaderdict:
+                allheaderdict[k] = nd_with_name(numpy.array(allheaderdict[k]), k)
+            mdict["all_data"].update(allheaderdict)
+            mdict.move_to_end("all_data", last=False)
+            return mdict
+        correctionFlag = 1
+        averageFlag = 1
+        temp = MFC.MFC_BIRA_ReadSpe(myfile, correctionFlag, averageFlag)
+        return OrderedDict(makedictformat(temp))
 
 class Representative:
     def __init__(self, myref, mtype, myfile):
