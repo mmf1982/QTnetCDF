@@ -1199,10 +1199,11 @@ class App(QMainWindow):
                 self.filetype = "hdf4"
             except pyhdf.error.HDF4Error:
                 try:
-                    print("here")
                     self.mfile = MFC_type(m_file)
+                    if isinstance(self.mfile, str):
+                        HelpWindow(self, self.mfile)
+                        return
                     self.filetype = "mfc"
-                    print("loaded?", self.filetype)
                 except:
                     HelpWindow(
                         self, "This seems not to be a valid nc, hdf4 or hdf5 file: " + str(m_file) + "\n" +
@@ -1304,7 +1305,6 @@ class App(QMainWindow):
             HelpWindow(self, "nothing to plot, it seems to be a scalar")
 
     def walk_down_mfc(self, currentlevel, currentitemlevel):
-        print(currentitemlevel)
         if isinstance(currentitemlevel, str):
             currentitemlevel = Pointer(currentlevel, currentitemlevel)
         else:

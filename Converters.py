@@ -17,7 +17,6 @@ except:
     except:
         pass
 
-
 HDFTYPE = {pyhdf.HDF.HC.DFTAG_NDG: "HDF SDS",
            pyhdf.HDF.HC.DFTAG_VH: "HDF Vdata",
            pyhdf.HDF.HC.DFTAG_VG: "HDF Group"}
@@ -278,6 +277,7 @@ class MFC_type(OrderedDict):
     def __new__(self, myfile):
         def makedictformat(temp):
             mdict = OrderedDict()
+            
             def makedate(hd):
                 datestring = (str(hd["da_year"]).zfill(4) + "-" +
                             str(hd["da_month"]).zfill(2) + "-" +
@@ -310,7 +310,11 @@ class MFC_type(OrderedDict):
             return mdict
         correctionFlag = 1
         averageFlag = 1
-        temp = MFC.MFC_BIRA_ReadSpe(myfile, correctionFlag, averageFlag)
+        try:
+            temp = MFC.MFC_BIRA_ReadSpe(myfile, correctionFlag, averageFlag)
+        except PermissionError:
+            print("no permission granted")
+            return "no permission granted"
         return OrderedDict(makedictformat(temp))
 
 class Representative:
