@@ -359,13 +359,18 @@ class MFC_type(OrderedDict):
             mdict.move_to_end("all_data", last=False)
             return mdict
         correctionFlag = 1
-        averageFlag = 0
+        averageFlag = 1
+        
         try:
-            temp = MFC.MFC_BIRA_ReadSpe(myfile, correctionFlag, averageFlag)
+            temp1 = MFC.MFC_BIRA_ReadSpe(myfile, correctionFlag, 1)
+            temp0 = MFC.MFC_BIRA_ReadSpe(myfile, correctionFlag, 0)
+            both = {"averaged": OrderedDict(makedictformat(temp1)),
+                    "not_averaged": OrderedDict(makedictformat(temp0))}
+            
         except PermissionError:
             print("no permission granted")
             return "no permission granted"
-        return OrderedDict(makedictformat(temp))
+        return both
 
 class Representative:
     def __init__(self, myref, mtype, myfile):
