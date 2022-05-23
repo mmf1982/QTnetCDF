@@ -17,8 +17,8 @@ except:
     except:
         try:
             import sys
-            sys.path.append("/ae/projects4/FRM4DOAS/programs/tags/validation_02.0/python/tools")
-            import MFC_Format as MFC
+            sys.path.append("/ae/projects4/FRM4DOAS/programs/tags/validation_02.0/python/")
+            import tools.MFC_Format as MFC
         except:
             pass
 
