@@ -249,7 +249,7 @@ class Hdf4Object:
         self.sd.end()
         self.hdf.close()
 
-class nd_with_name(numpy.ndarray):
+class nd_with_name(numpy.ma.core.MaskedArray):
     def __new__(cls, input_array, name):
         '''
         Constructor of ndarray with name
@@ -264,8 +264,10 @@ class nd_with_name(numpy.ndarray):
         --------
         obj: LUT object
         '''
-        obj = numpy.asarray(input_array).view(cls)
+        obj = numpy.ma.asarray(input_array).view(cls)
         obj.name = name
+        obj.dimensions = ()
+        #obj.mask = numpy.False
         return obj
 
 class var_with_attr(numpy.ndarray):
@@ -282,7 +284,7 @@ class MFC_type(OrderedDict):
     def __new__(self, myfile):
         def makedictformat(temp):
             mdict = OrderedDict()
-            
+            mdict2 = OrderedDict()
             def makedate(hd):
                 datestring = (str(hd["da_year"]).zfill(4) + "-" +
                             str(hd["da_month"]).zfill(2) + "-" +
@@ -293,28 +295,63 @@ class MFC_type(OrderedDict):
                 return datestring
             for mline in temp:
                 mkey = makedate(mline.header)
+                if mkey in mdict:
+                    print(mkey, " duplicated, put in data2")
+                    mdict2[mkey] = {key: var_with_attr(mline.header[key], key) for key in mline.header}
+                    mdict2[mkey]["spectrum"] = nd_with_name(mline.spectrum, "spectrum")
+                    mdict2[mkey]["spectrum_corrected"] = nd_with_name(mline.spectrumCorrected, "spectrum_corrected")
+                    continue
                 mdict[mkey] = {key: var_with_attr(mline.header[key], key) for key in mline.header}
                 mdict[mkey]["spectrum"] = nd_with_name(mline.spectrum, "spectrum")
                 mdict[mkey]["spectrum_corrected"] = nd_with_name(mline.spectrumCorrected, "spectrum_corrected")
             datearray = numpy.array([pandas.to_datetime(mkey, format="%Y-%m-%d %H:%M:%S") for mkey in  mdict.keys()])
-            mdict["all_data"] = {
-                "spectrum" : nd_with_name(
-                    numpy.array([mline.spectrum for mline in temp]), "spectrum"),
-                "spectrum_corrected": nd_with_name(
-                    numpy.array([mline.spectrumCorrected for mline in temp]), "spectrum_corrected"),
-                "datetime": nd_with_name(datearray, "datetime")
-                }
             allheaderdict = {k: [] for k in temp[0].header}
-            for line in temp:
-                for k in allheaderdict:
-                    allheaderdict[k].append(line.header[k])
+            allheaderdict2 = {k: [] for k in temp[0].header}
+            for idx, mkey in enumerate(mdict.keys()):
+                try:
+                    line = mdict[mkey]
+                    for k in allheaderdict:
+                        allheaderdict[k].append(line[k])
+                except:
+                    print(idx)
+                    pdb.set_trace()
             for k in allheaderdict:
                 allheaderdict[k] = nd_with_name(numpy.array(allheaderdict[k]), k)
+            # for some reason all data is twice in the file
+            for idx, mkey in enumerate(mdict2.keys()):
+                try:
+                    line = mdict2[mkey]
+                    for k in allheaderdict2:
+                        allheaderdict2[k].append(line[k])
+                except:
+                    print(idx)
+                    pdb.set_trace()
+            for k in allheaderdict2:
+                allheaderdict2[k] = nd_with_name(numpy.array(allheaderdict2[k]), k)
+            # end for some reason data is twice in the file
+            mdict["all_data"] = {
+                "spectrum" : nd_with_name(
+                    numpy.array([mdict[key]["spectrum"] for key in mdict]), "spectrum"),
+                "spectrum_corrected": nd_with_name(
+                    numpy.array([mdict[key]["spectrum_corrected"] for key in mdict]), "spectrum_corrected"),
+                "datetime": nd_with_name(datearray, "datetime")
+                }
             mdict["all_data"].update(allheaderdict)
+            mdict["all_data"]["index"] = nd_with_name(numpy.arange(len(temp[0].spectrum)), "index")
+            mdict["duplicated_data"] = {
+                "spectrum" : nd_with_name(
+                    numpy.array([mdict2[key]["spectrum"] for key in mdict2]), "spectrum"),
+                "spectrum_corrected": nd_with_name(
+                    numpy.array([mdict2[key]["spectrum_corrected"] for key in mdict2]), "spectrum_corrected"),
+                "datetime": nd_with_name(datearray, "datetime")
+                }
+            mdict["duplicated_data"].update(allheaderdict2)
+            mdict["duplicated_data"]["index"] = nd_with_name(numpy.arange(len(temp[0].spectrum)), "index")
+            mdict.move_to_end("duplicated_data", last=False)
             mdict.move_to_end("all_data", last=False)
             return mdict
         correctionFlag = 1
-        averageFlag = 1
+        averageFlag = 0
         try:
             temp = MFC.MFC_BIRA_ReadSpe(myfile, correctionFlag, averageFlag)
         except PermissionError:
