@@ -267,7 +267,7 @@ class nd_with_name(numpy.ma.core.MaskedArray):
         obj = numpy.ma.asarray(input_array).view(cls)
         obj.name = name
         obj.dimensions = ()
-        #obj.mask = numpy.False
+        obj.mask = False
         return obj
 
 class var_with_attr(numpy.ndarray):

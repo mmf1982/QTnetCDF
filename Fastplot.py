@@ -301,7 +301,6 @@ class MplCanvas(FigureCanvasQTAgg):
         except ValueError:
             pass
         try:
-            
             xx = x.datavalue
             yy = y.datavalue
             cc = z.datavalue
@@ -339,13 +338,15 @@ class MplCanvas(FigureCanvasQTAgg):
                 # this sould mean that both xx and yy are 1D and together form the shape of cc
                 if xx.size in cc.shape:
                     # make xx one longer. Shift outer boundaries by the nearest diff
-                    xdiff = ma.diff(xx)/2
+                    # if xx is an array of timedelta, /2 does not work, but *0.5 does
+                    xdiff = ma.diff(xx)*0.5
                     xxnew = xdiff + xx[:-1]
                     xxnew = ma.concatenate((xx[:1]-xdiff[0], xxnew, xx[-1:]+xdiff[-1]))
                 else:
                     xxnew = xx
                 if yy.size in cc.shape:
-                    ydiff = ma.diff(yy)/2
+                    # if yy is an array of timedelta, /2 does not work, but *0.5 does
+                    ydiff = ma.diff(yy)*0.5
                     yynew = ydiff + yy[:-1]
                     yynew = ma.concatenate((yy[:1]-ydiff[0], yynew, yy[-1:]+ydiff[-1]))
                 else:
