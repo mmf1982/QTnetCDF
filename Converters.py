@@ -372,9 +372,19 @@ class MFC_type(OrderedDict):
             return mdict
         try:
             temp1 = MFC.MFC_BIRA_ReadSpe(myfile)
-            both = {"spectra": OrderedDict(makedictformat(temp1[0])),
+            if len(temp1[1]) > 0 and len(temp1[2]) > 0:
+                both = {"spectra": OrderedDict(makedictformat(temp1[0])),
                         "offs": OrderedDict(makedictformat(temp1[1])),
                         "darks": OrderedDict(makedictformat(temp1[2]))}
+            elif len(temp1[1]) > 0:
+                both = {"spectra": OrderedDict(makedictformat(temp1[0])),
+                        "offs": OrderedDict(makedictformat(temp1[1]))
+                        }
+            elif len(temp1[2]) > 0:
+                both = {"spectra": OrderedDict(makedictformat(temp1[0])),
+                        "darks": OrderedDict(makedictformat(temp1[2]))}
+            else:
+                both = {"spectra": OrderedDict(makedictformat(temp1[0]))}
         except PermissionError:
             print("no permission granted")
             return "no permission granted"
