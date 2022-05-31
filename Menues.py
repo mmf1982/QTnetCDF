@@ -4,7 +4,6 @@ from PyQt5.QtWidgets import QAction, QMenuBar, qApp, QTreeView, QFileSystemModel
 import pathlib
 import os
 
-
 def center(window):
     """
     simple function put the window in the center of the screen
@@ -94,9 +93,12 @@ class FileMenu(QMenuBar):
         file_menu = self.addMenu('&File')
         file_menu.addAction(self.make_exit)
         file_menu.addAction(self.open_file)
-        next_menu = self.addMenu('&previous/ next')
-        next_menu.addAction(self.next)
-        next_menu.addAction(self.previous)
+        previous = self.addAction(self.previous)
+        mnext = self.addAction(self.next)
+        #next_menu = self.addMenu('&previous')
+        #next_menu.addAction(self.previous)
+        #next_menu = self.addMenu('&next')
+        #next_menu.addAction(self.next)
 
     def open_menu(self):
         _ = Files(self.master)
@@ -119,7 +121,7 @@ class FileMenu(QMenuBar):
 
     @property
     def next(self):
-        nextact = QAction(QIcon('next.png'), '&next', self.master)
+        nextact = QAction(QIcon.fromTheme('go-next'), '&next', self.master)
         nextact.setShortcut(QKeySequence.FindNext)
         nextact.setStatusTip('next file')
         nextact.triggered.connect(self.next_file)
@@ -127,7 +129,7 @@ class FileMenu(QMenuBar):
 
     @property
     def previous(self):
-        nextact = QAction(QIcon('previous.png'), '&previous', self.master)
+        nextact = QAction(QIcon.fromTheme('go-previous'), '&previous', self.master)
         nextact.setShortcut(QKeySequence.FindPrevious)
         nextact.setStatusTip('previous file')
         nextact.triggered.connect(self.previous_file)

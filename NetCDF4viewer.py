@@ -1256,6 +1256,7 @@ class App(QMainWindow):
         else:
             print("hello???")
             HelpWindow(self, "This seems to be an unknown file format")
+        self.setWindowTitle(self.name)
 
     def get_data(self, signal):
         try:
