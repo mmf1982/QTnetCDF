@@ -139,7 +139,7 @@ class FileMenu(QMenuBar):
             newp = "."
         allfiles = os.listdir(newp)
         allfiles.sort()
-        old_idx = allfiles.index(self.master.name)
+        old_idx = allfiles.index(os.path.split(self.master.complete_name)[-1])
         if old_idx < len(allfiles) - 1:
             new_idx = old_idx + 1
         else:
@@ -153,7 +153,7 @@ class FileMenu(QMenuBar):
             newp = "."
         allfiles = os.listdir(newp)
         allfiles.sort()
-        old_idx = allfiles.index(self.master.name)
+        old_idx = allfiles.index(os.path.split(self.master.complete_name)[-1])
         if old_idx > 0:
             new_idx = old_idx - 1
         else:

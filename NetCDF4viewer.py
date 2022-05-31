@@ -23,13 +23,17 @@ try:
 except (ImportError, ModuleNotFoundError):
     from Menues import FileMenu, HelpWindow
 try:
-    from .Converters import Hdf4Object, Table, Representative, MFC_type
+    from .Converters import Hdf4Object, Table, Representative, MFC_type, dictgen, read_txt
 except (ImportError, ModuleNotFoundError):
-    from Converters import Hdf4Object, Table, Representative, MFC_type
+    from Converters import Hdf4Object, Table, Representative, MFC_type, dictgen, read_txt
 try:
     from .Colorschemes import QDarkPalette, reset_colors
 except:
     from Colorschemes import QDarkPalette, reset_colors
+try:
+    from .MFC_orig import read_all
+except:
+    from MFC_orig import read_all
 
 from numpy import array, arange, squeeze, nansum
 
@@ -305,7 +309,8 @@ class MyTable(QWidget):
             self.maxidxs = squeeze(data.mdata[:]).shape
         except (AttributeError, IndexError, TypeError):
             self.maxidxs = [1]
-        except:
+        except Exception as exs:
+            print(exs)
             HelpWindow(self, "You tried to open a group in table view or the variable has not data.\n"
                              " This is not possible. Open the group and view variables.")
             return
@@ -736,12 +741,15 @@ class App(QMainWindow):
 
     def __init__(self, this_file):
         super(App, self).__init__()
-        name = os.path.basename(this_file)
+        if isinstance(this_file, str):
+            name = os.path.basename(this_file)
+        else:
+            name = "test"
         self.setWindowTitle(name)
         self.mfile = None
         self.model = None
         self.name = name
-        self.complete_name = this_file
+        self.complete_name = name
         self.view = None
         self.plot_buttons = None
         self.mdata = Data()
@@ -757,6 +765,7 @@ class App(QMainWindow):
             reset_colors(self.config["Colors"])
         try:
             self.dark = "dark" in self.config["Colorscheme"]["App"].lower()
+            print("dark scheme")
         except:
             self.dark = False
         try:
@@ -1183,43 +1192,66 @@ class App(QMainWindow):
             self.view.setColumnWidth(idx, width)
 
     def load_file(self, m_file):
-        self.name = os.path.basename(m_file)
-        self.complete_name = m_file
-        print("loading file: ", m_file)
-        try:
-            self.mfile.close()
-        except AttributeError:
-            pass
-        try:
-            self.mfile = netCDF4.Dataset(m_file)
-            self.filetype = "netcdf4"
-        except (OSError, UnicodeError):
-            try:
-                self.mfile = Hdf4Object(m_file)
-                self.filetype = "hdf4"
-            except pyhdf.error.HDF4Error:
+        if isinstance(m_file, str):
+            self.name = os.path.basename(m_file)
+            self.complete_name = m_file
+            print("loading file: ", m_file)
+            if os.path.isdir(m_file):
+                self.mfile = dictgen(read_all(m_file))
+                self.filetype = "mfc"
+            else:
                 try:
-                    self.mfile = MFC_type(m_file)
-                    if isinstance(self.mfile, str):
-                        HelpWindow(self, self.mfile)
-                        return
-                    self.filetype = "mfc"
-                except:
-                    HelpWindow(
-                        self, "This seems not to be a valid nc, hdf4 or hdf5 file: " + str(m_file) + "\n" +
-                        "If you believe it is, please report back")
-                    return
+                    self.mfile.close()
+                except AttributeError:
+                    pass
+                try:
+                    self.mfile = netCDF4.Dataset(m_file)
+                    self.filetype = "netcdf4"
+                except (OSError, UnicodeError):
+                    try:
+                        self.mfile = Hdf4Object(m_file)
+                        self.filetype = "hdf4"
+                    except pyhdf.error.HDF4Error:
+                        try:
+                            self.mfile = MFC_type(m_file)
+                            if isinstance(self.mfile, str):
+                                HelpWindow(self, self.mfile)
+                                return
+                            self.filetype = "mfc"
+                        except:
+                            try:
+                                self.name = m_file
+                                self.complete_name = m_file
+                                self.filetype = "txt"
+                                self.mfile = dictgen(read_txt(m_file))
+                                if isinstance(self.mfile, str):
+                                    HelpWindow(
+                                    self, "Failed to open " + str(m_file) + "\n")
+                            except:
+                                HelpWindow(
+                                    self, "This seems not to be a valid nc, hdf4 or hdf5 file: " + str(m_file) + "\n" +
+                                    "If you believe it is, please report back")
+                                return
+        else:
+            self.name = "internal"
+            self.complete_name = "internal"
+            self.mfile = dictgen(m_file)
+            self.filetype = "mfc"
         statusbar = QStatusBar()
         statusbar.showMessage(self.name)
         self.setStatusBar(statusbar)
         self.make_design()
         if isinstance(self.mfile, netCDF4._netCDF4.Dataset):
-            print("wrong")
+            print("walking down nc/ hdf5")
             self.walk_down_netcdf(self.mfile, self.model)
         elif self.filetype == "hdf4":
+            print("walking down hdf4")
             self.walk_down_hdf4(self.mfile.struct, self.model)
         elif self.filetype == "mfc":
             print("walking down mfc")
+            self.walk_down_mfc(self.mfile, self.model)
+        elif self.filetype == "txt":
+            print("walking down txt")
             self.walk_down_mfc(self.mfile, self.model)
         else:
             print("hello???")
@@ -1474,6 +1506,23 @@ def main(myfile=None):
     main = App2(myfile)
     sys.exit(my_graphics.exec_())
 
+def showdict(mydict):
+    global CONFIGPATH
+    here = os.path.dirname(os.path.abspath(__file__))
+    CONFIGPATH = os.path.join(here, "config.yml")
+    name = "test"
+    my_graphics = QApplication([name])
+    with open(CONFIGPATH) as fid:
+        config = yaml.load(fid, yaml.Loader)
+    new_font = my_graphics.font()
+    new_font.setPointSize(config["Startingsize"]["Fontsize"])
+    my_graphics.setFont(new_font)
+    main = App(mydict)
+    if "dark" in config["Colorscheme"]["App"]:
+        palette = QDarkPalette()
+        main.setPalette(palette)
+    main.show()
+    my_graphics.exec_()
 
 class App2(QWidget):
     def __init__(self, files):
@@ -1486,8 +1535,8 @@ class App2(QWidget):
         self.ssd.clicked.connect(self.set_same_data)
         self.layout.addWidget(self.plus)
         self.layout.addWidget(self.ssd)
-        for file in files:
-            self.windows.append(App(file))
+        for mfile in files:
+            self.windows.append(App(mfile))
         if len(files) > 1:
             self.setLayout(self.layout)
             self.windows[0].plotaeralayout.addWidget(self)

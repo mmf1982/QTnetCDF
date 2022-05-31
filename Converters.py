@@ -16,8 +16,6 @@ except:
         import MFC
     except:
         try:
-            import sys
-            sys.path.append("/ae/projects4/FRM4DOAS/programs/tags/validation_02.0/python/")
             import tools.MFC_Format as MFC
         except:
             pass
@@ -270,6 +268,29 @@ class nd_with_name(numpy.ma.core.MaskedArray):
         obj.mask = False
         return obj
 
+def read_txt(mpath):
+    failed = True
+    skiprows = 0
+    seps = [None, " ","  ", "   ", ",", ";", "\t"]
+    idx = 0
+    while failed:
+        try:
+            mdata = numpy.loadtxt(mpath, skiprows=skiprows, delimiter=seps[idx])
+            failed = False
+            with open(mpath) as fid:
+                header = fid.readlines(skiprows)
+        except:
+            skiprows = skiprows +1
+            #print("skipped rows: ", skiprows)
+        if skiprows > 60:
+            print("trying separator: ", seps[idx])
+            if idx < len(seps):
+                idx = idx + 1
+                skiprows = 0
+            else:
+                return "failed to open"
+    return {"data": mdata, "header": header}
+
 class var_with_attr(numpy.ndarray):
     '''
     add the value as the units attribute
@@ -279,6 +300,16 @@ class var_with_attr(numpy.ndarray):
         obj.units = data
         return obj
 
+class dictgen(OrderedDict):
+    def __new__(self, mydict):
+        def recursive(current):
+            for k in current:
+                if isinstance(current[k], dict):
+                    recursive(current[k])
+                else:
+                    current[k] = nd_with_name(current[k], k)
+        recursive(mydict)
+        return mydict
 
 class MFC_type(OrderedDict):
     def __new__(self, myfile):
@@ -295,7 +326,15 @@ class MFC_type(OrderedDict):
                             str(hd["start_ti_min"]).zfill(2) + ":" +
                             str(hd["start_ti_sec"]).zfill(2))
                 return datestring
+            dates = []
             for mline in temp:
+                dates.append(makedate(mline.header))
+            #print(dates)
+            midx = numpy.argsort(dates)
+            #print(midx)
+            for idx in midx:
+                mline = temp[idx]
+                #for mline in temp:
                 mkey = makedate(mline.header)
                 if mkey in mdict:
                     print(mkey, " duplicated, put in data2")
