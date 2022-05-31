@@ -278,7 +278,8 @@ def read_txt(mpath):
             mdata = numpy.loadtxt(mpath, skiprows=skiprows, delimiter=seps[idx])
             failed = False
             with open(mpath) as fid:
-                header = fid.readlines(skiprows)
+                header = fid.readlines()
+                header = header[:skiprows]
         except:
             skiprows = skiprows +1
             #print("skipped rows: ", skiprows)
@@ -289,6 +290,7 @@ def read_txt(mpath):
                 skiprows = 0
             else:
                 return "failed to open"
+    print(skiprows)
     return {"data": mdata, "header": header}
 
 class var_with_attr(numpy.ndarray):
