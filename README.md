@@ -1,7 +1,7 @@
 # QTnetCDF
 
 QTnetCDF is a hdf/ netCDF4 viewer with emphasis on plotting. It is implemented in python and uses QT. 
-It can open netCDF4, hdf5 and hdf4 files. For hdf4 files, it tries to remove the vdata that only represents sd variable attributes or dimensions. The functionality for hdf4 files is somewhat reduced. 
+It can open netCDF4, hdf5 and hdf4 files, MFC files and some plain text ascii files (some lucky guesses involved though). For hdf4 files, it tries to remove the vdata that only represents sd variable attributes or dimensions. The functionality for hdf4 files is somewhat reduced. 
 
 It is tested with python3.7, python3.8 and python3.9 (on linux) and python3.8 on windows. Under windows, it works with installing the needed packages via anaconda and python3.8. Under linux, it is recommended to use the setup scripts in conjuction with pip and python3.7 or python3.8, see Quick start below. 
 
@@ -76,6 +76,7 @@ If you received a warning that add_interactivity could not be found, the easiest
     "f" to load to flag. This variable together with "<" or ">" and a value typed in the corresponding field can be used to select only data (for x, y, z or m) for which the flag condition is fullfilled. To use this, first load a specific variable as flag (by pressing flag on a variable), then press either "<" or ">" and then type a value in the field and then press enter. Use this flag on either x,y,z or m. Note: The dimensions must agree. Only those data points for which the flag condition is fulfilled are plotted. Other values of the chosen variable (for x, y, z or m) are set to Nan. Note: This means also that the variable is converted to float for the purpose of plotting. This cannot currently be combined with the lasso selector. Note that "f" is currently not activated on the table view; this means that only "full variables" can be used for flags.
   * Support for matplotlib > 3.4
   * for x-y-z plots, z now also supports 4D data (as before x and y need either to be both 1D or 2D).
+  * support for MFC files and plain text ascii files.
 ## New features in 0.0.2:
   * for x-y-z plots, z now also supports 3D data (as before x and y need either to be both 1D or 2D), but no slicing in other directions is possible. If there are different axis having the same dimensions, a pop-up window requires information on which axis to slice along.
   * for x-y-z plots, nans in the x- and y- variables do not use pcolor any longer and hence there is a speed gain. However, these masked values are "transferred to the z values.
