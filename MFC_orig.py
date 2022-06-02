@@ -1,4 +1,6 @@
-# based on Caro's script to read the bira-mfc files, I try to read the original mfc files. I have the following info:
+'''
+function to load MFC files
+'''
 import struct
 import numpy as np
 import os
@@ -7,6 +9,7 @@ import quick_save as qs
 import pandas as pd
 import astropy.coordinates
 import matplotlib.pyplot as plt
+from add_interactivity import add_interactivity as ai
 
 MFC_fields = ["version", "no_chan", "specpoint", "specname",
               "site_name",
@@ -99,8 +102,6 @@ MFC_headerUnpack = struct.Struct(MFC_headerFmt).unpack_from
          p       char[]          string                                         \n
 '''
 
-
-speFile = "U0259770"
 def get_data(speFile, decoding="ISO 8859-15"):
     def extract_correct_info_from_header(header):
         for k in header:
@@ -124,12 +125,10 @@ def get_data(speFile, decoding="ISO 8859-15"):
         header["stopdate"] = pd.to_datetime(mdate + " " + stoptime,    format="%d.%m.%y %H:%M:%S")
         return header, True
     f = open(speFile,"rb")
-    bytesPacked = f.read(MFC_headerLen)    # read MFC_BIRA_headerLen bytes
-    bytesUnpacked = MFC_headerUnpack(bytesPacked)   # decomposition of the bytes pack according to the format string
-        # Associate the list of header fields with the list of items in s
-    header = dict(zip(MFC_fields, bytesUnpacked))  # map the two lists into a dictionary
+    bytesPacked = f.read(MFC_headerLen)
+    bytesUnpacked = MFC_headerUnpack(bytesPacked)
+    header = dict(zip(MFC_fields, bytesUnpacked))
     header, ok = extract_correct_info_from_header(header)
-    #ok = True
     spectraSize = header["no_chan"] + 1
     spectrum = np.array(
             np.reshape(
@@ -138,33 +137,6 @@ def get_data(speFile, decoding="ISO 8859-15"):
         return {"header": header, "spectrum": spectrum}, True
     else:
         return {"header": header, "spectrum": spectrum}, False
-
-def calculate_solar_angles(lon, lat, mdates):
-    '''
-    mdates: array of datetime or pandas.date_time
-    lon: float 
-    lat: float
-
-    returns
-    -------
-    sza, saa
-    '''
-    szavec = []
-    saavec = []
-    myloc = astropy.coordinates.EarthLocation(
-        lon=lon * astropy.units.deg, lat=lat * astropy.units.deg)
-    for mdatetime in mdates:
-        mytime = astropy.time.Time(
-            mdatetime.strftime("%Y-%m-%d %H:%M:%S"), scale='utc')
-        sun = astropy.coordinates.get_sun(mytime)
-        altaz = astropy.coordinates.AltAz(location=myloc, obstime=mytime)
-        sea = sun.transform_to(altaz).alt.degree
-        sza = 90 -sea
-        saa = sun.transform_to(altaz).az.degree
-        szavec.append(sza)
-        saavec.append(saa)
-    return np.array(szavec).flatten(), np.array(saavec).flatten()
-
 
 def read_all(mpath):
     mlist = glob.glob(mpath+"/U*")
@@ -218,40 +190,3 @@ def read_all(mpath):
             sum(~midx), np.arange(len(midx))[~midx])
         md["other_spectrum"] = otherspec
     return md
-
-
-def check_horizon_scans(md, mstart=500, mend=600):
-    teas = md["header"]["telescope_elevation_aim"]
-    diffs = np.diff(teas)
-    mask = (diffs < 0.5) & (diffs > 0.01)
-    idx1 = (np.arange(len(mask))+1)[mask]
-    idx1p1 = idx1 + 1
-    idx1p2 = idx1 + 2
-    idx1p3 = idx1 + 3
-    idx1m1 = idx1 - 1
-    idx1m2 = idx1 - 2
-    idx1m3 = idx1 - 3
-    idx1m4 = idx1 - 4
-    idx1 = np.concatenate([idx1,idx1p1, idx1m1, idx1p2, idx1p3, idx1m2, idx1m3, idx1m4])
-    idx1 = np.array(list(set(idx1)))
-    mask2 = (-diffs < 0.5) & (-diffs > 0.01)
-    idx2 = (np.arange(len(mask2))+1)[mask2]
-    idx2p1 = idx2 + 1
-    idx2p2 = idx2 + 2
-    idx2p3 = idx2 + 3
-    idx2m1 = idx2 - 1
-    idx2m2 = idx2 -2
-    idx2m3 = idx2 -3
-    idx2m4 = idx2 -4
-    idx2 = np.concatenate([idx2,idx2p1, idx2m1, idx2p2, idx2p3, idx2m2, idx2m3, idx2m4])
-    idx2 = np.array(list(set(idx2)))
-    indices = np.arange(len(teas))
-    #plt.plot(teas)
-    #plt.plot(idx1, teas[idx1],'r.')
-    #plt.plot(idx2, teas[idx2], 'b.')
-    #plt.figure()
-    specs_needed_1 = md["spectrum"][np.array(idx1)]
-    specs_needed_2 = md["spectrum"][np.array(idx2)]
-    plt.plot(teas[idx1], specs_needed_1[:, mstart:mend].sum(axis=1),'.')
-    plt.plot(teas[idx2], specs_needed_2[:, mstart:mend].sum(axis=1),'.')
-             

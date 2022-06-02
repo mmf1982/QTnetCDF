@@ -273,23 +273,26 @@ def read_txt(mpath):
     skiprows = 0
     seps = [None, " ","  ", "   ", ",", ";", "\t"]
     idx = 0
-    while failed:
-        try:
-            mdata = numpy.loadtxt(mpath, skiprows=skiprows, delimiter=seps[idx])
-            failed = False
-            with open(mpath) as fid:
-                header = fid.readlines()
-                header = header[:skiprows]
-        except:
-            skiprows = skiprows +1
-            #print("skipped rows: ", skiprows)
-        if skiprows > 60:
-            print("trying separator: ", seps[idx])
-            if idx < len(seps):
-                idx = idx + 1
-                skiprows = 0
-            else:
-                return "failed to open"
+    dtypes = [float, object]
+    for i in range(2):
+        while failed:
+            try:
+                mdata = numpy.loadtxt(mpath, skiprows=skiprows, delimiter=seps[idx], dtype=object)
+                failed = False
+                with open(mpath) as fid:
+                    header = fid.readlines()
+                    header = header[:skiprows]
+                continue
+            except:
+                skiprows = skiprows +1
+                #print("skipped rows: ", skiprows)
+            if skiprows > 60:
+                print("trying separator: ", seps[idx])
+                if idx < len(seps):
+                    idx = idx + 1
+                    skiprows = 0
+                else:
+                    return "failed to open"
     print(skiprows)
     return {"data": mdata, "header": header}
 
