@@ -75,6 +75,8 @@ class MyQLabel(QLabel):
         self.datavalue = value
         self.name_value = name
         self.dimension = dimension
+        if dimension is None or len(dimension) == 0:
+            self.dimension = np.arange(value.ndim)
         self.path = "/".join([path, self.name_value])
 
     def mousePressEvent(self, event):
@@ -967,9 +969,12 @@ class App(QMainWindow):
                 else:
                     misc_layout.addWidget(self.mdata.__dict__[entr])
         def get_number():
+            print("hello")
             try:
                 try:
                     thisdims = list(self.mdata.misc.dimension)
+                    if len(thisdims) == 0:
+                        raise ValueError()
                 except Exception as exs:
                     thisdims = []
                 num = float(entry.text())
