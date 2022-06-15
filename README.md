@@ -5,6 +5,7 @@ It can open netCDF4, hdf5 and hdf4 files, MFC files and some plain text ascii fi
 
 It is tested with python3.7, python3.8 and python3.9 (on linux) and python3.8 on windows. Under windows, it works with installing the needed packages via anaconda and python3.8. Under linux, it is recommended to use the setup scripts in conjuction with pip and python3.7 or python3.8, see Quick start below. 
 
+For full functionality, also install https://github.com/mmf1982/add_interactivity
 
 ## Quick start for linux
 
