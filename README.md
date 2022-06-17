@@ -219,7 +219,8 @@ preceded by a "-" without a space:
 
  ## Nice to have, not implemented yet:
  I collect some ideas here for implementation. Please contact me if you have more suggestions.
- * Assigning a condition on one variable to transform it to a mask to use on other variables: This can now be done indirectly with the "use idxs?" and lasso selector. This is now explicitly implemented in version 0.0.3
+ * Assigning a condition on one variable to transform it to a mask to use on other variables: This can now be done indirectly with the "use idxs?" and lasso selector. This is now explicitly implemented in version 0.0.3 (with "f")
  * Make pcolormesh also workable for 4D variables (without the possibility of slicing in the two set axis, mapping decided automatically for those as already done for 3D. This might be useful for map data with height and time dimension.) this is now implemented in version 0.0.3
+ * Add support for 5D+. This is currently only done for netCDF and, with the additional requirement to have each a variable for each dimension name of the 5D + variable. Instead of slicing with a slicer, x-axis and y-axis are set via a drop-down menu. The other 5D+x -2 variables have to be set via a drop-down menu for each variable. TODO: write description; make it more generally working (i.e. without the special requirement). Feedback regarding usefriendliness needed. Should all 3D+ plotting be implemented like this? Disadvantage: If 100+ slices not pracitcal. 
  
 
