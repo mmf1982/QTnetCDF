@@ -3,16 +3,21 @@ import os
 import sys
 import matplotlib.pyplot as plt
 import numpy
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSlot
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QApplication, QLabel, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QMessageBox,
-                             QMainWindow, qApp, QSlider, QStatusBar, QLineEdit, QInputDialog)
+                             QMainWindow, qApp, QSlider, QStatusBar, QLineEdit, QInputDialog, QComboBox, QDockWidget)
 from matplotlib.path import Path
 from matplotlib.widgets import LassoSelector
 from numpy import ma
 import numpy as np
 import copy
-
+import sip
+import netCDF4
+try:
+    from .Tables import MyTable
+except: 
+    from Tables import MyTable
 
 try:
     from . import add_interactivity as ai
@@ -55,7 +60,6 @@ class Easyerrorbar(axs.Axes):
 
     def errorbar(self, x, y, yerr=None, xerr=None, **kwargs):
         """
-
         :param x: 1D array like  X coordinates for plot
         :param y: 1D array like Y coordinates for plot
         :param yerr: 1D array like X error for plot
@@ -747,6 +751,309 @@ class DataChooser(QWidget):
                         self.slice_label2.setText("slice = " + str(self.active_index2) + "/ 0-" + str(
                             self.mparent.shape[self.active_dimension2] - 1))
 
+class Fast2D_select(QMainWindow):
+    def __init__(self, master, mydata, parent=None, mname=None, filename=None, dark=False, only_indices=None, mydata_dims=None, **kwargs):
+        if master is None:
+            master = QApplication([])
+        super(Fast2D_select, self).__init__(parent)
+        self.master = master
+        self.dock_widget = None
+        self.dock_widget2 = None
+        self.mydata = mydata
+        self.mydims = mydata_dims
+        self.is_log = False
+        layout = QVBoxLayout()
+        try:
+            self.shape = mydata.shape
+        except AttributeError:
+            self.shape = mydata.datavalue.shape
+        self.subdata = np.copy(mydata)
+        self.setWindowTitle(mname)
+        self.mname = mname
+        self.table_widget = None
+        self.dimnames = list(mydata_dims.keys())
+        self.showindices = {k: 0 for k in mydata_dims}
+        self.currentdimnames = np.copy(self.mydims)
+        entry_area = QWidget()
+        self.entry_layout = QVBoxLayout()
+        entry_area.setLayout(self.entry_layout)
+        self.entry_labels = {}
+        self.entries = {}
+        buttonarea = QWidget()
+        buttonlayout =QHBoxLayout()
+        buttonarea.setLayout(buttonlayout)
+        self.log_button = QPushButton("plot log")
+        self.log_button.clicked.connect(self.on_log)
+        xyarea = QWidget()
+        xylayout = QVBoxLayout()
+        xyarea.setLayout(xylayout)
+        xarea = QWidget()
+        xlayout = QHBoxLayout()
+        xarea.setLayout(xlayout)
+        yarea = QWidget()
+        ylayout = QHBoxLayout()
+        yarea.setLayout(ylayout)
+        xlabel = QLabel("x-axis")
+        ylabel = QLabel("y-axis")
+        self.xentry = QComboBox()
+        self.xentry.currentIndexChanged.connect(self.removefromlist)
+        self.yentry = QComboBox()
+        self.yentry.currentIndexChanged.connect(self.removefromlist2)
+        #print("UNTIL HERE I SHOULD NOT DO ANYTHING")
+        for dim in self.dimnames:
+            self.xentry.addItem(dim)
+        #    self.yentry.addItem(dim)
+        #print("FINISHED ADDIN ITEMS TO ONE")
+        xlayout.addWidget(xlabel)
+        xlayout.addWidget(self.xentry)
+        ylayout.addWidget(ylabel)
+        ylayout.addWidget(self.yentry)
+        xylayout.addWidget(xarea)
+        xylayout.addWidget(yarea)
+        donebutton = QPushButton("done and plot")
+        xylayout.addWidget(donebutton)
+        savebutton = QPushButton("save")
+        donebutton.clicked.connect(self.makeplot)
+        savebutton.clicked.connect(self.savedata)
+        xylayout.addWidget(savebutton)
+        buttonlayout.addWidget(xyarea)
+        buttonlayout.addWidget(entry_area)
+        #print("current shape is: ", self.subdata.shape)
+        layout.addWidget(buttonarea)
+        xylayout.addWidget(self.log_button)
+        mainwindow = QWidget()
+        mainwindow.setLayout(layout)
+        self.indices = {self.dimnames.index(dim): 0 for dim in self.currentdimnames}
+        self.makeplot()
+        self.setCentralWidget(mainwindow)
+        center(self)
+        if filename is not None:
+            statusbar = QStatusBar()
+            statusbar.showMessage(filename)
+            self.setStatusBar(statusbar)
+        if dark:
+            palette = QDarkPalette()
+            self.setPalette(palette)
+        self.show()
+        # print(self.indices)
+        return
+
+    def on_log(self):
+        if self.is_log:
+            self.is_log = False
+            self.log_button.setText("put log")
+        else:
+            self.is_log = True
+            self.log_button.setText("put lin")
+        worked = self.update_plot(self.is_log, False)
+        if not worked:
+            self.is_log = False
+            self.log_button.setText("put log")
+            _ = self.update_plot(self.is_log, False)
+
+    def savedata(self):
+        newwindow = Savewindow(self)
+        newwindow.show()
+
+    def add_buttons(self):
+        try:
+            for nd in self.this_area:
+                self.entry_layout.removeWidget(self.this_area[nd])
+                sip.delete(self.this_area[nd])
+        except AttributeError:
+            pass
+        self.this_area = {}
+        for midx, nd in enumerate(self.currentdimnames):
+            oidx = self.dimnames.index(nd)
+            self.entry_labels[nd] = QLabel(nd)
+            self.entry_layout.addWidget(self.entry_labels[nd], alignment=Qt.AlignHCenter)
+            self.entries[nd] = QComboBox()
+            slotLambda = lambda i, c=self.currentdimnames[midx]: self.indexChanged_lambda(c, i)
+            for idx in np.arange(self.mydata.shape[oidx]):
+                #self.entries[nd].addItem(str(idx))
+                #print(nd, idx, self.mydims[nd][0])
+                self.entries[nd].addItem(str(self.mydims[nd][idx]))
+            self.entries[nd].currentIndexChanged.connect(slotLambda)
+            self.subdata = self.subdata[...,-1]
+            self.this_area[nd] = QWidget()
+            this_layout = QHBoxLayout()
+            self.this_area[nd].setLayout(this_layout)
+            this_layout.addWidget(self.entry_labels[nd])
+            this_layout.addWidget(self.entries[nd])
+            self.entry_layout.addWidget(self.this_area[nd], alignment=Qt.AlignHCenter)
+
+    def removefromlist2(self, idx):
+        self.subdata = np.copy(self.mydata)
+        #print("before select 2 I have: ", self.currentdimnames)
+        self.currentdimnames = list(np.copy(self.dimnames))
+        try:
+            self.currentdimnames.remove(self.todel)
+        except ValueError:
+            print(exs)
+        todel = self.currentdimnames[idx]
+        #print("right now i have: ", self.currentdimnames)
+        #print("I delete first ", self.todel, " and then ", todel)
+        try:
+            self.currentdimnames.remove(todel)
+        except ValueError:
+            pass
+        #print("after select 2 I have: ", self.currentdimnames)
+        self.add_buttons()
+
+    def removefromlist(self, idx):
+        #print("before select 1 I have: ", self.dimnames)
+        self.subdata = np.copy(self.mydata)
+        self.todel = self.dimnames[idx]
+        for entr in range(self.yentry.count())[::-1]:
+            self.yentry.removeItem(entr)
+        for entr in self.dimnames:
+            #print("     ", entr)
+            if entr != self.todel:
+                self.yentry.addItem(entr)
+                #print("            added")
+        #print("after select 1 ")
+
+    def get_data(self):
+        xdim = self.xentry.currentText()
+        ydim = self.yentry.currentText()
+        self.indices = {self.dimnames.index(dim): self.showindices[dim] for dim in self.currentdimnames}
+        self.indices = dict(sorted(self.indices.items())[::-1])
+        self.subdata = np.copy(self.mydata)
+        #print([self.dimnames[idx] + ": " + str(self.indices[idx]) for idx in  self.indices], " in get_data")
+        for idx in self.indices:
+            #print(self.dimnames[idx], self.indices[idx])
+            self.subdata = self.subdata.take(indices=self.indices[idx], axis=idx)
+        self.istransposed = False
+        if self.dimnames.index(xdim)< self.dimnames.index(ydim):
+            self.subdata = self.subdata.T
+            self.istransposed = True
+        #print("shape is: ", self.subdata.shape)
+        stacking = Qt.Horizontal
+        location = Qt.TopDockWidgetArea
+        self.newname = self.mname+"_"+ "_".join(
+            [dim +":"+self.entries[dim].currentText() for dim in self.mydims if dim not in [xdim, ydim] ])
+        if self.dock_widget2 is not None:
+            last_tab = self.dock_widget2
+        else:
+            last_tab = None
+        self.dock_widget2 = QDockWidget(self.newname)
+        if self.master.dark:
+            self.dock_widget2.setPalette(QDarkPalette())
+        self.addDockWidget(location, self.dock_widget2, stacking)
+        self.table_widget = MyTable(self, self.subdata, self.mname)
+        self.dock_widget2.setWidget(self.table_widget)
+        if last_tab is not None:
+            self.tabifyDockWidget(last_tab, self.dock_widget2)
+
+    def makeplot(self):
+        self.get_data()
+        self.update_plot()
+
+    @pyqtSlot(str)
+    def indexChanged_lambda(self, c, i):
+        #print ("I changed index", c, " to ", i)
+        self.indices[self.dimnames.index(c)] = i
+        self.showindices[c] = i
+
+    def update_plot(self, is_log=False, isnew=True):
+        xdim = self.mydims[self.xentry.currentText()]
+        ydim = self.mydims[self.yentry.currentText()]
+        if isnew:
+            #newname = self.mname+"_"+ "_".join(
+            #[dim +":"+self.entries[dim].currentText() for dim in self.mydims if dim not in [xdim, ydim] ])
+            layout2 = QVBoxLayout()
+            plotwindow = QWidget()
+            self.myfigure = MplCanvas(parent=self)
+            layout2.addWidget(self.myfigure.toolbar)
+            layout2.addWidget(self.myfigure, stretch=1)
+            plotwindow.setLayout(layout2)
+            if self.dock_widget is not None:
+                last = self.dock_widget
+            else:
+                last = None
+            self.dock_widget = QDockWidget(self.newname)
+            if self.master.dark:
+                self.dock_widget.setPalette(QDarkPalette())
+            self.dock_widget.setWidget(plotwindow)
+            stacking = Qt.Horizontal
+            location = Qt.TopDockWidgetArea
+            self.addDockWidget(location, self.dock_widget, stacking)
+            if last is not None:
+                self.tabifyDockWidget(last, self.dock_widget)
+        self.myfigure.image(self.subdata)
+        self.myfigure.axes.set_title(self.mname)
+        self.myfigure.axes.set_ylabel(self.yentry.currentText())
+        #self.myfigure.axes.xaxis.set_ticks()
+        
+        self.myfigure.axes.xaxis.set_ticks(range(len(xdim)))
+        self.myfigure.axes.xaxis.set_ticklabels(xdim)
+        self.myfigure.axes.xaxis.set_tick_params(rotation=60)
+        self.myfigure.axes.yaxis.set_ticks(range(len(ydim)))
+        self.myfigure.axes.yaxis.set_ticklabels(ydim)
+        self.myfigure.axes.set_xlabel(self.xentry.currentText())
+        self.myfigure.fig.set_tight_layout(True)
+        if is_log:
+            if min(*self.myfigure.im.get_clim()) <= 0:
+                _ = HelpWindow(
+                    self, "it seems there are 0 or negative values.\n "
+                    "Before putting log, adjust limits \nand keep the values. Change back to lin for now.")
+                return False
+            self.myfigure.im.set_norm(LogNorm(*self.myfigure.im.get_clim()))
+        else:
+            self.myfigure.im.set_norm(Normalize(*self.myfigure.im.get_clim()))
+        try:
+            self.myfigure.draw()
+        except (ValueError, ZeroDivisionError):
+            _ = HelpWindow(
+                self, "it seems there are 0 or negative values.\n "
+                "Before putting log, adjust limits \nand keep the values. Change back to lin for now.")
+            return False
+        
+        return True
+
+class Savewindow(QMainWindow):
+    def __init__(self, master):
+        name= "test66.nc"
+        self.master = master
+        super(Savewindow, self).__init__(master)
+        entry_area = QWidget()
+        entry_layout = QVBoxLayout()
+        newname = self.master.master.name
+        self.entry = QLineEdit(newname)
+        self.entry.setFixedWidth(1000)
+        #self.entry.text = self.master.master.name
+        self.entry.editingFinished.connect(self.on_click)
+        entry_layout.addWidget(self.entry, alignment=Qt.AlignHCenter)
+        entry_area.setLayout(entry_layout)
+        self.setCentralWidget(entry_area)
+        self.show()
+    
+    def on_click(self):
+        name = self.entry.text()
+        if self.master.istransposed:
+            savedata = self.master.subdata.T
+        else:
+            savedata = self.master.subdata
+        with netCDF4.Dataset(name, "w") as fid:
+            myshapes = []
+            for dim in self.master.mydims:
+                if dim in [self.master.yentry.currentText(), self.master.xentry.currentText()]:
+                    dimlen = len(self.master.mydims[dim])
+                    fid.createDimension(dim, dimlen)
+                    myshapes.append(dimlen)
+                    #print(dim, self.master.mydims[dim][:])
+                    #print(self.master.mydims[dim].dtype)
+                    var = fid.createVariable(dim, self.master.mydims[dim].dtype, (dim,))
+                    var[:] =  self.master.mydims[dim][:]
+                else:
+                    fid.createDimension(dim, 1)
+                    var = fid.createVariable(dim, self.master.mydims[dim].dtype, (dim,))
+                    var[:] = np.array([self.master.entries[dim].currentText()]).astype(self.master.mydims[dim].dtype)
+            var = fid.createVariable(self.master.mname, self.master.subdata.dtype, tuple(self.master.dimnames))
+            var[:] = savedata.reshape(myshapes)
+        self.close()
+        return
+
 class Fast2D(QMainWindow):  # only_indices does currently not work for 2D x-y-z plot, only for scatter or image.
     def __init__(self, master, mydata, parent=None, mname=None, filename=None, dark=False, only_indices=None, is3dsp=False, mydata_dims=None, **kwargs):
         if master is None:
@@ -1273,7 +1580,7 @@ class Fast3D(QMainWindow):
         :param dark: bool, if True use the color palette defined as QDarkPalette
         :param kwargs: other parameters passed trough to MplCanvas (e.g.
         """
-        self.dimnames =mydata_dims
+        self.dimnames = mydata_dims
         if mydata.ndim == 4:
             self.is4d = True
         else:
