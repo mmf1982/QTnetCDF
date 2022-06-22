@@ -1002,10 +1002,12 @@ class App(QMainWindow):
             return currentitemlevel
         try:
             totallist = list(currentlevel.groups.keys())
+            totallist.sort()
         except KeyError:
             totallist = []
         try:
             totallist.extend(list(currentlevel.variables.keys()))
+            totallist.sort()
         except KeyError:
             pass
         for mkey in totallist:
@@ -1051,6 +1053,7 @@ class App(QMainWindow):
             return currentitemlevel
         try:
             totallist = list(currentlevel.keys())
+            totallist.sort()
         except (KeyError, AttributeError):
             totallist = []
             pass
