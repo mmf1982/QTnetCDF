@@ -73,9 +73,16 @@ If you received a warning that add_interactivity could not be found, the easiest
   * "f" to load to flag. This variable together with "<" or ">" and a value typed in the corresponding field can be used to select only data (for x, y, z or m) for which the flag condition is fullfilled. To use this, first load a specific variable as flag (by pressing flag on a variable), then press either "<" or ">" and then type a value in the field and then press enter. Use this flag on either x,y,z or m. Note: The dimensions must agree. Only those data points for which the flag condition is fulfilled are plotted. Other values of the chosen variable (for x, y, z or m) are set to Nan. Note: This means also that the variable is converted to float for the purpose of plotting.
   
 ## New features in 0.0.4: 
-    * 5D+ data is now supported (activate by double click table and plot), if file is nc and has variables with the names of the dimensions of the data in question, the axis and the tables are labeled with that variable instead of with the indices. However, the plot is an image plot, no colormesh.
-    * If data is plotted in this manner (to achieve this also for 3D and 4D, change *moreDdata/limit_for_sliceplot*  to 2), data can be saved (2D data). The table that is opened can be used, as other tables, to select x-, y-, z- data.
-    * Selecting indices on marker plots opens a save menu. If a file name is entered (the original filename is suggested as starting input) and *return* is pressed, the selection (x, y, possibly z) is saved as nc file. If this is not desired, simply close the window. 
+5D+ data is now supported; activate by double click on the variable creates both a table and plot:
+  ![5D+_plotting](https://user-images.githubusercontent.com/38353016/175058452-26262972-8a8d-495e-a3ac-b3b85b434ff5.png)
+
+if the file is a netCDF4 file and has variables with the names of the dimensions of the data in question, the axis and the tables are labeled with that variable instead of with the indices. However, the plot is an image plot, not a colormesh plot. This means that independently of the spacing of the axis, each entry in the 2D matrix is a square. Labelled are the square centers, not the box edges, since edges are not provided (if the variable has the same dimension as the data, by definition the positions are the centers, not the edges). First, choose the two axis that you want to keep as variable for the selected data (1. and 2. magenta ovals in the image above). For all but these 2 axes, values have to be chosen (values or indices in case no variables with matching dimension names are found in the same or parent groups), see 3. in the image above. In order to display this new data selection, press the button indicated with the orange rectanlge in the image above. 
+  * If data is plotted in this manner (to achieve this also for 3D and 4D, change *moreDdata/limit_for_sliceplot*  to 2), data can be saved (2D data), press the green indicated save button.
+  * The table that is opened can be used, as other tables, to select x-, y-, z- data. (see red rectangles)
+  
+For marker (not line, so produced with button "plot symbol" from the main window) plots, there is one additional feature:
+ 
+  * Selecting indices on marker plots opens a save menu. If a file name is entered (the original filename is suggested as starting input) and *return* is pressed, the selection (x, y, possibly z) is saved as nc file. If this is not desired, simply close the window. 
  
 ## New features in 0.0.3:
   * The just described feature to flag out data with pressing "f" on a variable and setting its limits:
@@ -225,8 +232,11 @@ preceded by a "-" without a space:
 
  ## Nice to have, not implemented yet:
  I collect some ideas here for implementation. Please contact me if you have more suggestions.
+  * incldue a "search" field to find variables in all groups matching a partial name
+  * having the option to use "long names" instead of variable names for e.g. plots.
+ 
+## Implementations done on request:
+ * Add possibility to add country outlines.
  * Assigning a condition on one variable to transform it to a mask to use on other variables: This can now be done indirectly with the "use idxs?" and lasso selector. This is now explicitly implemented in version 0.0.3 (with "f")
  * Make pcolormesh also workable for 4D variables (without the possibility of slicing in the two set axis, mapping decided automatically for those as already done for 3D. This might be useful for map data with height and time dimension.) this is now implemented in version 0.0.3
- * Add support for 5D+. This is currently only done for netCDF and, with the additional requirement to have each a variable for each dimension name of the 5D + variable. Instead of slicing with a slicer, x-axis and y-axis are set via a drop-down menu. The other 5D+x -2 variables have to be set via a drop-down menu for each variable. TODO: write description; make it more generally working (i.e. without the special requirement). Feedback regarding usefriendliness needed. Should all 3D+ plotting be implemented like this? Disadvantage: If 100+ slices not pracitcal. 
- 
-
+ * Add support for 5D+. This is currently only done for netCDF and, with the additional requirement to have each a variable for each dimension name of the 5D + variable. Instead of slicing with a slicer, x-axis and y-axis are set via a drop-down menu. The other 5D+x -2 variables have to be set via a drop-down menu for each variable. 
