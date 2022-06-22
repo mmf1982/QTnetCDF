@@ -61,9 +61,9 @@ If you received a warning that add_interactivity could not be found, the easiest
   ![Expanend group](/images/open_file.png)
   
   The following keys are activated on the tree (always on the entry in the first column, marked with the red oval above!):
-  * double click on variable: plots supported data, supported are 1D, 2D, 3D and 4D variables. 2D, 3D and 4D are plotted as image, 3D with a slider and 4D with two sliders.
+  * double click on variable: plots supported data, supported are 1D, 2D, 3D and 4D variables. 2D, 3D and 4D are plotted as image, 3D with a slider and 4D with two sliders. NEW: Also 5D+ is supported. The double click opens a new type of plot/ table window, see below under 5D+ plotting. This type of plotting can also be achived for 3D and 4D, if the configuration files is changed accordingly configured (set *moreDdata/limit_for_sliceplot* to 3 or 4 to allow slice plots for 3 or 4 dimensions, set it to 2 to directly change to the new plot layout for data of more than 2D). 
   * "d" key is pressed on selected line, attribute information of that group or variable is prited.
-  * "s" key is pressed on selected variable opens it as a detachable table view ![Table view](/images/open_table.png) (for 0D, 1D, 2D, 3D and 4D variables. Higher dimensions are not supported. 4D variables with large grids might cause problems because a complete variable is read into memory). If the variable is 3D it shows slice 0 along the zeroth dimension, This can be changed by a slicer bar and "+"/ "-" buttons and an entry field. If the variable is 4D, the slice is as for 3D and additionally slice 0 along the first dimension. Note that the second slicer always needs to have a dimension at least one higher than the first. Each slicer also has an entry field where the field number can be entered directly (hit enter key to confirm). 
+  * "s" key is pressed on selected variable opens it as a detachable table view ![Table view](/images/open_table.png) (for 0D, 1D, 2D, 3D and 4D variables. Higher dimensions are not supported, see however *double click* above. 4D variables with large grids might cause problems because a complete variable is read into memory). If the variable is 3D it shows slice 0 along the zeroth dimension, This can be changed by a slicer bar and "+"/ "-" buttons and an entry field. If the variable is 4D, the slice is as for 3D and additionally slice 0 along the first dimension. Note that the second slicer always needs to have a dimension at least one higher than the first. Each slicer also has an entry field where the field number can be entered directly (hit enter key to confirm). 
   * "x" data set as x for line/ scatter/ 2D- or 3D pcolormesh plot
   * "y" data set as y for line/scatter/ 2D- or 3D pcolormesh plot
   * "z" data set as z for scatter plot/ 2D- or 3D pcolormesh
@@ -71,6 +71,11 @@ If you received a warning that add_interactivity could not be found, the easiest
   * "u" data set as error on y for line plot
   * "m" to load to misc. Data can then be combined with other data via the "/", "*", "+" and "-" buttons. Note that a+b/c will be calculated as (a+b)/c. The data set here (either as a full 1, 2, 3 or 4 D variable or a 1D or 2D subset) can either be set as x, y or z (*as x* etc) variable or directly plotted (*plot misc*) ![Misc](/images/misc.png)
   * "f" to load to flag. This variable together with "<" or ">" and a value typed in the corresponding field can be used to select only data (for x, y, z or m) for which the flag condition is fullfilled. To use this, first load a specific variable as flag (by pressing flag on a variable), then press either "<" or ">" and then type a value in the field and then press enter. Use this flag on either x,y,z or m. Note: The dimensions must agree. Only those data points for which the flag condition is fulfilled are plotted. Other values of the chosen variable (for x, y, z or m) are set to Nan. Note: This means also that the variable is converted to float for the purpose of plotting.
+  
+## New features in 0.0.4: 
+    * 5D+ data is now supported (activate by double click table and plot), if file is nc and has variables with the names of the dimensions of the data in question, the axis and the tables are labeled with that variable instead of with the indices. However, the plot is an image plot, no colormesh.
+    * If data is plotted in this manner (to achieve this also for 3D and 4D, change *moreDdata/limit_for_sliceplot*  to 2), data can be saved (2D data). The table that is opened can be used, as other tables, to select x-, y-, z- data.
+    * Selecting indices on marker plots opens a save menu. If a file name is entered (the original filename is suggested as starting input) and *return* is pressed, the selection (x, y, possibly z) is saved as nc file. If this is not desired, simply close the window. 
  
 ## New features in 0.0.3:
   * The just described feature to flag out data with pressing "f" on a variable and setting its limits:
@@ -85,7 +90,7 @@ If you received a warning that add_interactivity could not be found, the easiest
   * for double click plots, the information about dimension is shown on the axis and on the sliders.
   * pcolormesh plots can now be overlayed with scatter plots or 1D line plots
 
-## Features added in the previous update:
+## New features added prior to 0.0.2:
   * More than one file can be opened and plots can be made in a common window, this adds two extra buttons to the window of the first file: ![Extra buttons](/images/extra_button.png), one to make the plot window available (*broadcast plot*), the other, *set same data*, see following point.
   * If the same variables (same path to the variables) should be plotted from different files, they only need to be set in the first file (not supported for hdf4) and can then be set for all other windows with the *set same data* button. This is for example usefull if one wants to plot several satellite overpass files in a single plot.
   * A simple country and coast line plot can be overlayed on longitude-latitude plots, button *add country lines* above. This is possible to pcolormesh plots (so if x, y and z are all 2D or if x and y are 1D but z is 2D) and also to scatter plots (so if x, y and z are all 1D):
@@ -110,7 +115,7 @@ If you received a warning that add_interactivity could not be found, the easiest
   Also note the slider which sets the size of the dots in scatter plots. 
   * using misc, it is now possible to add/ subtract/ divide/ multiply a constant factor of a variable: enter a float in the entry field marked red below, choose an operator and then mark a variable and press *m*, as described above under basic functionality. It is also possible to first choose the variable and the operator. In either case, press enter after entering the float in the input field. ![Constant factor](/images/input_field.png) 
   
-## Latest fixes (prior to 0.0.3):
+## bug fixes (prior to 0.0.3):
 * undocked table takes color scheme specified for main window
 * if more than two files are opened at the same time, the title of each window is the name of the respective file
 * windows with x-y-z plots get the name of the z value as title
@@ -120,6 +125,7 @@ If you received a warning that add_interactivity could not be found, the easiest
 * a variable loaded into misc, can be averaged (mean or median, use respective button) along a dimension which needs to be specified in the input field. First, load the data into misc, then press "median" or "mean" button, then type the dimension and press enter. 
 * double click on the group opens the dimensions as variables in the table and dumps the content (dimension names, variable names, etc.) to the console.
 * In a line or symbol plot, right click on a line copies the line and middle click (in a different plotting window) pasts that plot. This also works for windows from different files as long as the files were opened at the same time via the command line.
+
 ## Plotting
 
   The main thing about this tool is the plotting, you can do line/ marker plots, image, pcolormesh or scatter plots. Data is supported up to 4 dimensions.
