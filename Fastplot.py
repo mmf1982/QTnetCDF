@@ -764,6 +764,10 @@ class Fast2D_select(QMainWindow):
         self.dock_widget = None
         self.dock_widget2 = None
         self.mydata = mydata
+        if mydata_dims is None or len(mydata_dims) == 0:
+            mydata_dims = {}
+            for idx, sh in enumerate(mydata.shape):
+                mydata_dims[str(idx)] = np.arange(sh)
         self.mydims = mydata_dims
         self.is_log = False
         layout = QVBoxLayout()
@@ -1667,12 +1671,18 @@ class Fast3D(QMainWindow):
         :param dark: bool, if True use the color palette defined as QDarkPalette
         :param kwargs: other parameters passed trough to MplCanvas (e.g.
         """
+        
         self.dimnames = mydata_dims
         if mydata.ndim == 4:
             self.is4d = True
         else:
             self.is4d = False
-        super(Fast3D, self).__init__(parent)
+        
+        if parent is None:
+            my_graphics = QApplication(["direct"])
+            super(Fast3D, self).__init__()
+        else:
+            super(Fast3D, self).__init__(parent)
         if mname is None:
             mname = '3D Viewer'
         self.setWindowTitle(mname)
