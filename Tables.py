@@ -1,3 +1,4 @@
+"""Module to use with Fastplot and NetCDF4viewer to display tables"""
 from PyQt5 import QtCore
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QKeySequence
 from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWindow, QDockWidget,
@@ -25,7 +26,7 @@ class MyTable(QWidget):
     Variable cannot be higher than 3D
     """
 
-    def __init__(self, master, data, name=None):
+    def __init__(self, master, data, name=None, header=None, headernames=None):
         """
         Initialize table
 
@@ -59,7 +60,11 @@ class MyTable(QWidget):
                         break
             except AttributeError:
                 pass
-        self.table = MyQTableView(self.master, path, fillvalue)
+        if header is not None:
+            hasheader = True
+        else:
+            hasheader = False
+        self.table = MyQTableView(self.master, path, fillvalue, hasheader)
         self.c_idx = 0
         self.c_dim = 0
         self.c_idx2 = 0
@@ -91,7 +96,7 @@ class MyTable(QWidget):
         else:
             self.all_data = np.squeeze(data)
         self.make_design()
-        self.update_table()
+        self.update_table(header, headernames)
 
 
     def make_design(self):
@@ -118,7 +123,7 @@ class MyTable(QWidget):
             HelpWindow(self, "dimensionality of the data is too big, data cannot be displayed in a table")
         self.setLayout(table_layout)
 
-    def make_slicer_layout(self, number=0):
+    def make_slicer_layout(self, number=0, header=None):
         # areas and layouts
         data_selection = QWidget()
         data_selection.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -182,7 +187,7 @@ class MyTable(QWidget):
         data_selection.setLayout(data_selection_layout)
         return data_selection
 
-    def on_click(self):
+    def on_click(self, header=None):
         try:
             idx = int(self.entry.text())
             if idx > self.maxidxs[self.c_dim] - 1:
@@ -190,11 +195,11 @@ class MyTable(QWidget):
                 return
             self.c_idx = idx
             self.sliceinfo.setText("slice " + str(self.c_idx) + "/ 0-" + str(self.maxidxs[self.c_dim] - 1))
-            self.update_table()
+            self.update_table(header)
         except ValueError:
             HelpWindow(self, "You need to type integer values")
 
-    def on_click2(self):
+    def on_click2(self, header=None):
         try:
             idx = int(self.entry2.text())
             if idx > self.maxidxs[self.c_dim2] - 1:
@@ -202,11 +207,11 @@ class MyTable(QWidget):
                 return
             self.c_idx2 = idx
             self.sliceinfo2.setText("slice " + str(self.c_idx2) + "/ 0-" + str(self.maxidxs[self.c_dim] - 1))
-            self.update_table()
+            self.update_table(header)
         except ValueError:
             HelpWindow(self, "You need to type integer values")
 
-    def plus(self):
+    def plus(self, header=None):
         """
         If underlying data is 3D, go on slice up.
         """
@@ -215,9 +220,9 @@ class MyTable(QWidget):
         else:
             self.c_idx = 0
         self.sliceinfo.setText("slice " + str(self.c_idx) + "/ 0-" + str(self.maxidxs[self.c_dim] - 1))
-        self.update_table()
+        self.update_table(header)
 
-    def plus2(self):
+    def plus2(self, header=None):
         """
         If underlying data is 4D, go on slice up on second dim.
         """
@@ -226,9 +231,9 @@ class MyTable(QWidget):
         else:
             self.c_idx2 = 0
         self.sliceinfo2.setText("slice " + str(self.c_idx2) + "/ 0-" + str(self.maxidxs[self.c_dim2] - 1))
-        self.update_table()
+        self.update_table(header)
 
-    def minus(self):
+    def minus(self, header=None):
         """
         If underlying data is 3D, go on slice down.
         """
@@ -237,9 +242,9 @@ class MyTable(QWidget):
         else:
             self.c_idx = 0
         self.sliceinfo.setText("slice " + str(self.c_idx) + "/ 0-" + str(self.maxidxs[self.c_dim] - 1))
-        self.update_table()
+        self.update_table(header)
 
-    def minus2(self):
+    def minus2(self, header=None):
         """
         If underlying data is 3D, go on slice down.
         """
@@ -248,9 +253,9 @@ class MyTable(QWidget):
         else:
             self.c_idx2 = 0
         self.sliceinfo2.setText("slice " + str(self.c_idx2) + "/ 0-" + str(self.maxidxs[self.c_dim2] - 1))
-        self.update_table()
+        self.update_table(header)
 
-    def slicing(self, idx):
+    def slicing(self, idx, header=None):
         """
         If underlying data is 3D, change the slicing dimension
         :param idx: int, which dimension to slice along
@@ -258,9 +263,9 @@ class MyTable(QWidget):
         self.c_dim = idx
         self.diminfo.setText("dim " + str(self.c_dim))
         self.sliceinfo.setText("slice = " + (str(self.c_idx)) + "/ 0-" + str(self.maxidxs[self.c_dim] - 1))
-        self.update_table()
+        self.update_table(header)
 
-    def slicing2(self, idx):
+    def slicing2(self, idx, header=None):
         """
         If underlying data is 4D, change the slicing dimension2
         :param idx: int, which dimension to slice along
@@ -268,9 +273,9 @@ class MyTable(QWidget):
         self.c_dim2 = idx
         self.diminfo2.setText("dim " + str(self.c_dim2))
         self.sliceinfo2.setText("slice = " + (str(self.c_idx2)) + "/ 0-" + str(self.maxidxs[self.c_dim2] - 1))
-        self.update_table()
+        self.update_table(header)
 
-    def update_table(self):
+    def update_table(self, header=None, headernames=None):
         """
         If underlying data is 3D, change the displayed data to the new subset of all_data, depending on c_dim and c_idx
         """
@@ -314,11 +319,14 @@ class MyTable(QWidget):
             name += " slice " + str(self.c_idx) + " in dim " + str(self.c_dim)
         if ndim == 4:
             name += " slice " + str(self.c_idx2) + " in dim " + str(self.c_dim2)
-        try:
-            header = self.all_data.header
-        except:
-            header = None
-        model = TableModel(data[:], name, header)
+        if header is not None:
+            pass
+        else:
+            try:
+                header = self.all_data.header
+            except:
+                header = None
+        model = TableModel(data[:], name, header, headernames)
         self.table.setModel(model)
 
 
@@ -329,8 +337,9 @@ class MyQTableView(QTableView):
     TODO: as for main variables, maybe add functionality of double click to plot data directly? Difficult....
     """
 
-    def __init__(self, master, path, fillvalue):
+    def __init__(self, master, path, fillvalue, hasheader=False):
         super(MyQTableView, self).__init__()
+        self.hasheader = hasheader
         self.fillvalue = fillvalue
         self.path = path
         self.currentData = None
@@ -347,29 +356,29 @@ class MyQTableView(QTableView):
         try:
             if event.text() == "x":
                 try:
-                    self.master.mdata.x.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
+                    self.master.mdata.x.set(self.currentData, ",".join([self.model().name, self.curridx]), self.path)
                 except AttributeError:
-                    self.master.master.mdata.x.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
+                    self.master.master.mdata.x.set(self.currentData, ",".join([self.model().name, self.curridx]), self.path)
             elif event.text() == "y":
                 try:
-                    self.master.mdata.y.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
+                    self.master.mdata.y.set(self.currentData, ",".join([self.model().name, self.curridx]), self.path)
                 except AttributeError:
-                    self.master.master.mdata.y.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
+                    self.master.master.mdata.y.set(self.currentData, ",".join([self.model().name, self.curridx]), self.path)
             elif event.text() == "z":
                 try:
-                    self.master.mdata.z.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
+                    self.master.mdata.z.set(self.currentData, ",".join([self.model().name, self.curridx]), self.path)
                 except AttributeError:
-                    self.master.master.mdata.z.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
+                    self.master.master.mdata.z.set(self.currentData, ",".join([self.model().name, self.curridx]), self.path)
             elif event.text() == "u":
                 try:
-                    self.master.mdata.yerr.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
+                    self.master.mdata.yerr.set(self.currentData, ",".join([self.model().name, self.curridx]), self.path)
                 except:
-                    self.master.master.mdata.yerr.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
+                    self.master.master.mdata.yerr.set(self.currentData, ",".join([self.model().name, self.curridx]), self.path)
             elif event.text() == "e":
                 try:
-                    self.master.mdata.xerr.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
+                    self.master.mdata.xerr.set(self.currentData, ",".join([self.model().name, self.curridx]), self.path)
                 except AttributeError:
-                    self.master.mdata.xerr.set(self.currentData, " ".join([self.model().name, self.curridx]), self.path)
+                    self.master.mdata.xerr.set(self.currentData, ",".join([self.model().name, self.curridx]), self.path)
             elif event.text() == "+":
                 print("adding up ", " ".join([self.model().name, self.curridx]), nansum(self.currentData[self.currentData != self.fillvalue]))
             elif event.text() == "m":
@@ -434,7 +443,12 @@ class MyQTableView(QTableView):
             self.curridx = "cols. " + str(min(cols)) + " - " + str(max(cols))
             print("selected columns " + str(min(cols)) + " - " + str(max(cols)))
         else:
-            self.curridx = "col " + str(index)
+            if self.hasheader:
+                #print(help(self.hd))
+                # TODO: somehow I need to give a label to the headers in the table model (x and y)
+                self.curridx = self.model().headernames["x"]+"="+self.model().header["x"][index]
+            else:
+                self.curridx = "col=" + str(index)
             self.currentData = np.squeeze(self.model()._data[:, index])
         try:
             self.currentData = self.currentData.astype(float)
@@ -452,7 +466,10 @@ class MyQTableView(QTableView):
             self.curridx = "rows. " + str(min(rows)) + " - " + str(max(rows))
             print("selected rows " + str(min(rows)) + " - " + str(max(rows)))
         else:
-            self.curridx = "row " + str(index)
+            if self.hasheader:
+                self.curridx = self.model().headernames["y"]+"="+self.model().header["y"][index]
+            else:
+                self.curridx = "row=" + str(index)
             self.currentData = self.model()._data[index, :]
             print("selected row " + str(index))
         try:
@@ -466,17 +483,23 @@ class TableModel(QtCore.QAbstractTableModel):
     Model of the data displayed in MyQTableView.
     """
 
-    def __init__(self, data, name, header):
+    def __init__(self, data, name, header, headernames={"x": None, "y": None}):
         super(TableModel, self).__init__()
         self._data = data
         self.name = name
         self.header = header
+        self.headernames = headernames
+        #set.setHorizontalHeaderLabels(['a', 'b', 'c', 'd', "e"])
 
     def headerData(self, column, orientation, role=QtCore.Qt.DisplayRole):
         if role == QtCore.Qt.DisplayRole:
-            if orientation == QtCore.Qt.Horizontal and self.header is not None:
-                name = self.header[column]
-                return QtCore.QVariant(name)
+            if self.header is not None:
+                if orientation == QtCore.Qt.Horizontal:
+                    name = self.header["x"][column]
+                    return QtCore.QVariant(name)
+                elif orientation == QtCore.Qt.Vertical:
+                    name = self.header["y"][column]
+                    return QtCore.QVariant(name)
             else:
                 return QtCore.QVariant(str(column))
 

@@ -21,6 +21,10 @@ Startingsize:
   2Dplot:  # in inches
     width: 5
     height: 5
+    dpi: 150  # this influences the size of displayed font size.
+  nDplot:  # in inches
+    width: 20
+    height: 5
     dpi: 150
   3Dplot:  # in inches
     width: 4
@@ -60,5 +64,15 @@ Colors:
 
 Plotsettings:
   scatter_dot_size: 0.5
-  country_line_color: lightgray
-  country_line_thickness: 0.8
+  country_line_color: darkgray
+  country_line_thickness: 1.0
+
+moreDdata:  # settings for the 5D+ window.
+  limit_for_sliceplot: 3   # has to be 1, 2, 3 or 4 set when to switch from view with slicers to drop down menu choice
+  upper_absolute_limit: 10
+  stacking_table: horizontal  # stack the table with the main window in horizontal or vertical
+  stacking_plot: horizontal  # stack the plot horizontal or vertical
+  location_table: top  # top/ bottom for horizontal, left/ right for vertical
+  location_plot: top
+  tabbing_table: True  #open new tables as tabs
+  tabbing_plot: True  # open new plots as tabs

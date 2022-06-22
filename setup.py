@@ -6,7 +6,7 @@ with open("requirements_dev.txt", "r") as fid:
 
 setup(
     name="QTnetCDF",
-    version="0.0.3",
+    version="0.0.4",
     author="Martina M Friedrich",
     author_email="5464@gmx.net",
     description="A package to interactively view netCDF and hdf4/ hdf5 files using QT",

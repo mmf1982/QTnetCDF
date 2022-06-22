@@ -1,4 +1,4 @@
-"""Module to make 2D plots with sliders to view 3D and 4D data faster. Also includes bases for line plots"""
+"""Module to make 2D plots with sliders to view 3D and 4D data faster. Also includes bases for line plots. Can be used individually"""
 import os
 import sys
 import matplotlib.pyplot as plt
@@ -756,6 +756,10 @@ class Fast2D_select(QMainWindow):
         if master is None:
             master = QApplication([])
         super(Fast2D_select, self).__init__(parent)
+        self.plotdict = kwargs
+        self.newname = None
+        self.xname = None
+        self.yname = None
         self.master = master
         self.dock_widget = None
         self.dock_widget2 = None
@@ -799,28 +803,25 @@ class Fast2D_select(QMainWindow):
         self.xentry.currentIndexChanged.connect(self.removefromlist)
         self.yentry = QComboBox()
         self.yentry.currentIndexChanged.connect(self.removefromlist2)
-        #print("UNTIL HERE I SHOULD NOT DO ANYTHING")
         for dim in self.dimnames:
             self.xentry.addItem(dim)
         #    self.yentry.addItem(dim)
-        #print("FINISHED ADDIN ITEMS TO ONE")
-        xlayout.addWidget(xlabel)
-        xlayout.addWidget(self.xentry)
-        ylayout.addWidget(ylabel)
-        ylayout.addWidget(self.yentry)
+        xlayout.addWidget(xlabel) #, alignment=Qt.AlignTop)
+        xlayout.addWidget(self.xentry) #, alignment=Qt.AlignTop)
+        ylayout.addWidget(ylabel)#, alignment=Qt.AlignTop)
+        ylayout.addWidget(self.yentry)#, alignment=Qt.AlignTop)
         xylayout.addWidget(xarea)
         xylayout.addWidget(yarea)
         donebutton = QPushButton("done and plot")
-        xylayout.addWidget(donebutton)
-        savebutton = QPushButton("save")
+        xylayout.addWidget(donebutton) #, alignment=Qt.AlignTop)
+        savebutton = QPushButton("save last selection")
         donebutton.clicked.connect(self.makeplot)
         savebutton.clicked.connect(self.savedata)
-        xylayout.addWidget(savebutton)
-        buttonlayout.addWidget(xyarea)
-        buttonlayout.addWidget(entry_area)
-        #print("current shape is: ", self.subdata.shape)
+        xylayout.addWidget(savebutton)#, alignment=Qt.AlignTop)
+        buttonlayout.addWidget(xyarea, alignment=Qt.AlignBottom)
+        buttonlayout.addWidget(entry_area, alignment=Qt.AlignBottom)
         layout.addWidget(buttonarea)
-        xylayout.addWidget(self.log_button)
+        xylayout.addWidget(self.log_button, alignment=Qt.AlignTop)
         mainwindow = QWidget()
         mainwindow.setLayout(layout)
         self.indices = {self.dimnames.index(dim): 0 for dim in self.currentdimnames}
@@ -835,7 +836,6 @@ class Fast2D_select(QMainWindow):
             palette = QDarkPalette()
             self.setPalette(palette)
         self.show()
-        # print(self.indices)
         return
 
     def on_log(self):
@@ -852,7 +852,7 @@ class Fast2D_select(QMainWindow):
             _ = self.update_plot(self.is_log, False)
 
     def savedata(self):
-        newwindow = Savewindow(self)
+        newwindow = Savewindow(self, name_adding=self.newname)
         newwindow.show()
 
     def add_buttons(self):
@@ -863,24 +863,30 @@ class Fast2D_select(QMainWindow):
         except AttributeError:
             pass
         self.this_area = {}
+        for oidx, nd in enumerate(self.dimnames):
+            if self.mydims[nd] is None:
+                self.mydims[nd] = np.arange(self.mydata.shape[oidx])
         for midx, nd in enumerate(self.currentdimnames):
             oidx = self.dimnames.index(nd)
             self.entry_labels[nd] = QLabel(nd)
-            self.entry_layout.addWidget(self.entry_labels[nd], alignment=Qt.AlignHCenter)
+            self.entry_layout.addWidget(self.entry_labels[nd], alignment=Qt.AlignRight)
             self.entries[nd] = QComboBox()
             slotLambda = lambda i, c=self.currentdimnames[midx]: self.indexChanged_lambda(c, i)
             for idx in np.arange(self.mydata.shape[oidx]):
                 #self.entries[nd].addItem(str(idx))
                 #print(nd, idx, self.mydims[nd][0])
+                #try:
                 self.entries[nd].addItem(str(self.mydims[nd][idx]))
+                #except TypeError:
+                #    self.entries[nd].addItem(str(idx))
             self.entries[nd].currentIndexChanged.connect(slotLambda)
             self.subdata = self.subdata[...,-1]
             self.this_area[nd] = QWidget()
             this_layout = QHBoxLayout()
             self.this_area[nd].setLayout(this_layout)
-            this_layout.addWidget(self.entry_labels[nd])
-            this_layout.addWidget(self.entries[nd])
-            self.entry_layout.addWidget(self.this_area[nd], alignment=Qt.AlignHCenter)
+            this_layout.addWidget(self.entry_labels[nd], alignment=Qt.AlignRight)
+            this_layout.addWidget(self.entries[nd], alignment=Qt.AlignRight)
+            self.entry_layout.addWidget(self.this_area[nd], alignment=Qt.AlignRight)
 
     def removefromlist2(self, idx):
         self.subdata = np.copy(self.mydata)
@@ -915,23 +921,38 @@ class Fast2D_select(QMainWindow):
 
     def get_data(self):
         xdim = self.xentry.currentText()
+        self.xname = xdim
         ydim = self.yentry.currentText()
+        self.yname = ydim
         self.indices = {self.dimnames.index(dim): self.showindices[dim] for dim in self.currentdimnames}
         self.indices = dict(sorted(self.indices.items())[::-1])
         self.subdata = np.copy(self.mydata)
-        #print([self.dimnames[idx] + ": " + str(self.indices[idx]) for idx in  self.indices], " in get_data")
         for idx in self.indices:
-            #print(self.dimnames[idx], self.indices[idx])
             self.subdata = self.subdata.take(indices=self.indices[idx], axis=idx)
         self.istransposed = False
         if self.dimnames.index(xdim)< self.dimnames.index(ydim):
             self.subdata = self.subdata.T
             self.istransposed = True
-        #print("shape is: ", self.subdata.shape)
-        stacking = Qt.Horizontal
-        location = Qt.TopDockWidgetArea
-        self.newname = self.mname+"_"+ "_".join(
-            [dim +":"+self.entries[dim].currentText() for dim in self.mydims if dim not in [xdim, ydim] ])
+        #stacking = Qt.Horizontal
+        #location = Qt.TopDockWidgetArea
+        
+        if "hor" in self.master.config["moreDdata"]["stacking_table"].lower():
+            stacking = Qt.Horizontal
+        else:
+            stacking = Qt.Vertical
+        if "bottom" in self.master.config["moreDdata"]["location_table"].lower():
+            location = Qt.BottomDockWidgetArea
+        elif "top" in self.master.config["moreDdata"]["location_table"].lower():
+            location = Qt.TopDockWidgetArea
+        elif "right" in self.master.config["moreDdata"]["location_table"].lower():
+            location = Qt.RightDockWidgetArea
+        else:
+            location = Qt.LeftDockWidgetArea
+        
+        
+        
+        self.newname = self.mname+","+ ",".join(
+            [dim +"="+self.entries[dim].currentText() for dim in self.mydims if dim not in [xdim, ydim] ])
         if self.dock_widget2 is not None:
             last_tab = self.dock_widget2
         else:
@@ -940,9 +961,17 @@ class Fast2D_select(QMainWindow):
         if self.master.dark:
             self.dock_widget2.setPalette(QDarkPalette())
         self.addDockWidget(location, self.dock_widget2, stacking)
-        self.table_widget = MyTable(self, self.subdata, self.mname)
+        try:
+            xheader = [str(idx) for idx in self.mydims[xdim][:]]
+        except TypeError:
+            xheader = np.arange(self.subdata.shape[1])
+        try:
+            yheader = [str(idx) for idx in self.mydims[ydim][:]]
+        except TypeError:
+            yheader = np.arange(self.subdata.shape[0])
+        self.table_widget = MyTable(self, self.subdata, self.newname, header={"x": xheader, "y": yheader}, headernames={"x": xdim, "y": ydim})
         self.dock_widget2.setWidget(self.table_widget)
-        if last_tab is not None:
+        if last_tab is not None  and self.master.config["moreDdata"]["tabbing_table"]:
             self.tabifyDockWidget(last_tab, self.dock_widget2)
 
     def makeplot(self):
@@ -951,7 +980,6 @@ class Fast2D_select(QMainWindow):
 
     @pyqtSlot(str)
     def indexChanged_lambda(self, c, i):
-        #print ("I changed index", c, " to ", i)
         self.indices[self.dimnames.index(c)] = i
         self.showindices[c] = i
 
@@ -959,11 +987,9 @@ class Fast2D_select(QMainWindow):
         xdim = self.mydims[self.xentry.currentText()]
         ydim = self.mydims[self.yentry.currentText()]
         if isnew:
-            #newname = self.mname+"_"+ "_".join(
-            #[dim +":"+self.entries[dim].currentText() for dim in self.mydims if dim not in [xdim, ydim] ])
             layout2 = QVBoxLayout()
             plotwindow = QWidget()
-            self.myfigure = MplCanvas(parent=self)
+            self.myfigure = MplCanvas(parent=self, **self.plotdict)
             layout2.addWidget(self.myfigure.toolbar)
             layout2.addWidget(self.myfigure, stretch=1)
             plotwindow.setLayout(layout2)
@@ -975,21 +1001,51 @@ class Fast2D_select(QMainWindow):
             if self.master.dark:
                 self.dock_widget.setPalette(QDarkPalette())
             self.dock_widget.setWidget(plotwindow)
-            stacking = Qt.Horizontal
-            location = Qt.TopDockWidgetArea
+            
+            if "hor" in self.master.config["moreDdata"]["stacking_plot"].lower():
+                stacking = Qt.Horizontal
+            else:
+                stacking = Qt.Vertical
+            if "bottom" in self.master.config["moreDdata"]["location_plot"].lower():
+                location = Qt.BottomDockWidgetArea
+            elif "top" in self.master.config["moreDdata"]["location_plot"].lower():
+                location = Qt.TopDockWidgetArea
+            elif "right" in self.master.config["moreDdata"]["location_plot"].lower():
+                location = Qt.RightDockWidgetArea
+            else:
+                location = Qt.LeftDockWidgetArea
             self.addDockWidget(location, self.dock_widget, stacking)
-            if last is not None:
+            if last is not None and self.master.config["moreDdata"]["tabbing_plot"]:
                 self.tabifyDockWidget(last, self.dock_widget)
         self.myfigure.image(self.subdata)
-        self.myfigure.axes.set_title(self.mname)
+        self.myfigure.axes.set_title(self.newname)
         self.myfigure.axes.set_ylabel(self.yentry.currentText())
         #self.myfigure.axes.xaxis.set_ticks()
-        
-        self.myfigure.axes.xaxis.set_ticks(range(len(xdim)))
-        self.myfigure.axes.xaxis.set_ticklabels(xdim)
+        if len(xdim) < 15:
+            self.myfigure.axes.xaxis.set_ticks(range(len(xdim)))
+            self.myfigure.axes.xaxis.set_ticklabels(xdim)
+        elif len(xdim) < 30:
+            self.myfigure.axes.xaxis.set_ticks(range(0, len(xdim), 2))
+            self.myfigure.axes.xaxis.set_ticklabels(xdim[::2])
+        elif len(xdim) < 60:
+            self.myfigure.axes.xaxis.set_ticks(range(0, len(xdim), 4))
+            self.myfigure.axes.xaxis.set_ticklabels(xdim[::4])
+        else:
+            self.myfigure.axes.xaxis.set_ticks(range(0, len(xdim), 10))
+            self.myfigure.axes.xaxis.set_ticklabels(xdim[::10])
         self.myfigure.axes.xaxis.set_tick_params(rotation=60)
-        self.myfigure.axes.yaxis.set_ticks(range(len(ydim)))
-        self.myfigure.axes.yaxis.set_ticklabels(ydim)
+        if len(ydim) < 15:
+            self.myfigure.axes.yaxis.set_ticks(range(len(ydim)))
+            self.myfigure.axes.yaxis.set_ticklabels(ydim)
+        elif len(ydim) < 30:
+            self.myfigure.axes.yaxis.set_ticks(range(0,len(ydim), 2))
+            self.myfigure.axes.yaxis.set_ticklabels(ydim[::2])
+        elif len(ydim) < 60:
+            self.myfigure.axes.yaxis.set_ticks(range(0,len(ydim), 4))
+            self.myfigure.axes.yaxis.set_ticklabels(ydim[::4])
+        else:
+            self.myfigure.axes.yaxis.set_ticks(range(0,len(ydim), 10))
+            self.myfigure.axes.yaxis.set_ticklabels(ydim[::10])
         self.myfigure.axes.set_xlabel(self.xentry.currentText())
         self.myfigure.fig.set_tight_layout(True)
         if is_log:
@@ -1012,13 +1068,15 @@ class Fast2D_select(QMainWindow):
         return True
 
 class Savewindow(QMainWindow):
-    def __init__(self, master):
-        name= "test66.nc"
+    def __init__(self, master, indices=None, name_adding=""):
+        self.add_name = name_adding
+        self.indices = indices
         self.master = master
         super(Savewindow, self).__init__(master)
         entry_area = QWidget()
         entry_layout = QVBoxLayout()
-        newname = self.master.master.name
+        npart = self.master.master.name.split(".")
+        newname = ".".join(npart[:-1])+"_."+npart[-1]
         self.entry = QLineEdit(newname)
         self.entry.setFixedWidth(1000)
         #self.entry.text = self.master.master.name
@@ -1027,30 +1085,65 @@ class Savewindow(QMainWindow):
         entry_area.setLayout(entry_layout)
         self.setCentralWidget(entry_area)
         self.show()
-    
+
     def on_click(self):
         name = self.entry.text()
-        if self.master.istransposed:
-            savedata = self.master.subdata.T
-        else:
-            savedata = self.master.subdata
-        with netCDF4.Dataset(name, "w") as fid:
-            myshapes = []
-            for dim in self.master.mydims:
-                if dim in [self.master.yentry.currentText(), self.master.xentry.currentText()]:
-                    dimlen = len(self.master.mydims[dim])
-                    fid.createDimension(dim, dimlen)
-                    myshapes.append(dimlen)
-                    #print(dim, self.master.mydims[dim][:])
-                    #print(self.master.mydims[dim].dtype)
-                    var = fid.createVariable(dim, self.master.mydims[dim].dtype, (dim,))
-                    var[:] =  self.master.mydims[dim][:]
-                else:
-                    fid.createDimension(dim, 1)
-                    var = fid.createVariable(dim, self.master.mydims[dim].dtype, (dim,))
-                    var[:] = np.array([self.master.entries[dim].currentText()]).astype(self.master.mydims[dim].dtype)
-            var = fid.createVariable(self.master.mname, self.master.subdata.dtype, tuple(self.master.dimnames))
-            var[:] = savedata.reshape(myshapes)
+        try:
+            if self.master.istransposed:
+                savedata = self.master.subdata.T
+            else:
+                savedata = self.master.subdata
+            with netCDF4.Dataset(name, "w") as fid:
+                myshapes = []
+                for dim in self.master.mydims:
+                    if dim in [self.master.yentry.currentText(), self.master.xentry.currentText()]:
+                        dimlen = len(self.master.mydims[dim])
+                        fid.createDimension(dim, dimlen)
+                        myshapes.append(dimlen)
+                        var = fid.createVariable(dim, self.master.mydims[dim].dtype, (dim,))
+                        var[:] =  self.master.mydims[dim][:]
+                    else:
+                        fid.createDimension(dim, 1)
+                        var = fid.createVariable(dim, self.master.mydims[dim].dtype, (dim,))
+                        var[:] = np.array([self.master.entries[dim].currentText()]).astype(self.master.mydims[dim].dtype)
+                var = fid.createVariable(self.master.mname, self.master.subdata.dtype, tuple(self.master.dimnames))
+                var[:] = savedata.reshape(myshapes)
+        except AttributeError:
+            with netCDF4.Dataset(name, "w") as fid:
+                fid.setncattr("source", self.master.master.name)
+                x = self.master.mydata.x
+                y = self.master.mydata.y
+                xname = x.name_value.split(",")[0]
+                xattr = x.name_value.split(",")[1:]
+                yname = y.name_value.split(",")[0]
+                yattr = y.name_value.split(",")[1:]
+                if xname == yname:
+                    xname = "x_" + xname
+                    yname = "y_" + yname
+                fid.createDimension(xname, len(self.indices))
+                var = fid.createVariable(xname, x.datavalue.dtype, (xname,))
+                var[:] = x.datavalue[self.indices]
+                try:
+                    for mattr in xattr:
+                        var.setncattr(*mattr.split("="))
+                        # print("set attribute: ", *mattr.split("="))
+                except TypeError:
+                    pass
+                y = self.master.mydata.y
+                var = fid.createVariable(yname, y.datavalue.dtype, (xname,))
+                var[:] = y.datavalue[self.indices]
+                try:
+                    for mattr in yattr:
+                        var.setncattr(*mattr.split("="))
+                except TypeError:
+                    pass
+                z = self.master.mydata.z
+                try:
+                    var = fid.createVariable(z.name_value, z.datavalue.dtype, (xname,))
+                    var[:] = z.datavaue[self.indices]
+                except AttributeError:
+                    pass  # this means there is no z
+                
         self.close()
         return
 
@@ -1239,11 +1332,6 @@ class Fast2Dplus(Fast2D):
         allclear = False
         alldims = list(range(mydat.z.datavalue.ndim))
         try:
-            if len(alldims) != len(mydata.x.dimension):
-                print("indeed not equal")
-                print(alldims, mydata.x.dimension)
-            else:
-                print("they are equal")
             if mydata.x.dimension[0] in mydata.z.dimension:
                 x_idx = mydata.z.dimension.index(mydata.x.dimension[0])
                 allclear = True
@@ -1328,10 +1416,6 @@ class Fast2Dplus(Fast2D):
         super(Fast2Dplus, self).__init__(master, mydata, parent, mname, filename, dark, only_indices, is3dsp=(ext_in_dir, extraid), **kwargs)
         self.master = master
         self.my_ext_dim = extraid
-        #
-        #extraid = int(extraid)
-        #print("shape of z was: ", mydata.z.datavalue.shape)
-        #temp = Fast2D(master, mydata, parent, mname, filename, dark, only_indices, is3dsp=True, **kwargs)
 
     def update_plot(self, active_index, active_dimension, frozen, is_log, idx2=None, dim2=None):
         print("the indices to use are: ", active_index, idx2)
@@ -1417,6 +1501,7 @@ class Fast1D(QMainWindow):
         super().__init__()
         if mname is None:
             mname = '1D Viewer'
+        self.mydata = mydata
         self.master = master
         self.setWindowTitle(mname)
         self.only_indices = only_indices
@@ -1468,6 +1553,8 @@ class Fast1D(QMainWindow):
             labelx, labely = [entr.strip() for entr in my_hh.split("vs")]
             self.current_idx = np.full(xdata.shape, False)
             self.current_idx[idxs] = True
+            newwindow = Savewindow(self, indices=idxs)
+            newwindow.show()
         return onsel
 
     def update_plot(self, mydata, symbol=False, oi=None):

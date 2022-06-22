@@ -1,3 +1,4 @@
+"""Main module to build data tree for show nc and hdf files"""
 import os
 import sys
 import netCDF4
@@ -43,13 +44,15 @@ from numpy import array, arange, squeeze, nansum
 
 CONFIGPATH = ""
 C_LINES = None
-#__version__ = "0.0.3"
+#__version__ = "0.0.4"
 #__author__ = "Martina M. Friedrich"
 
 
 def dimming():
     '''
     dim screen for .1 second
+    
+    This is was intended to be used to indicate copying, currently not used.
     '''
     get = subprocess.check_output(["xrandr", "--verbose"]).decode("utf-8").split()
     for s in [get[i-1] for i in range(len(get)) if get[i] == "connected"]:
@@ -159,7 +162,7 @@ class MyQTreeView(QTreeView):
                         mdata = Table(attributes[attr], None, attr)
                         interm_pointer = Pointer(mdata, attr)
                         wids.append(self.open_table(interm_pointer))
-                    elif isinstance(attributes[attr], str) and len(attributes[attr]) > 50000:
+                    elif isinstance(attributes[attr], str) and len(attributes[attr]) > 150000:
                         print(attr, ":      is currently not displayed. It is a very long string, "
                                     "likely describing the structure.")
                     elif isinstance(attributes[attr], dict):
@@ -179,7 +182,6 @@ class MyQTreeView(QTreeView):
                             self.master.tabifyDockWidget(one, two)
                 except Exception as exc:
                     pass
-                print(" ")
             elif event.text() == "s":
                 # open tableview
                 last_tab = self.tab
@@ -251,6 +253,9 @@ class MyQTreeView(QTreeView):
         #    self.master.mdata.mask.set(current_pointer.mdata[:], current_pointer.mdata.name)
 
     def open_table(self, current_p):
+        '''
+        open the current variable (located at current_p) as table view
+        '''
         dock_widget = QDockWidget(current_p.name)
         if self.master.dark:
             dock_widget.setPalette(QDarkPalette())
@@ -272,14 +277,13 @@ class MyQTreeView(QTreeView):
         return dock_widget
 
 
-
 class Data(object):
     """
     Data for line plots and 3,4 D pcolor with x, y and xerr and yerr
     """
 
     def __init__(self, **kwargs):
-        for key in ["x", "y", "z", "xerr", "yerr", "misc", "flag"]:  # , "mask"]:
+        for key in ["x", "y", "z", "xerr", "yerr", "misc", "flag"]:
             if key == "xerr":
                 key2 = "xerr(e)"
             elif key == "yerr":
@@ -294,6 +298,7 @@ class Data(object):
         self.__dict__.update(kwargs)
         self.misc_op = "+"
         self.flag_op = None
+
     def copy(self):
         new = Data(x=self.x.copy(), y=self.y.copy(), z=self.z.copy(), xerr=self.xerr.copy(),
                    yerr=self.yerr.copy(), misc=self.misc.copy(), flag=self.flag.copy())
@@ -325,6 +330,8 @@ class App(QMainWindow):
         self.model = None
         self.name = name
         self.complete_name = name
+        print("------------")
+        print(self.complete_name)
         self.view = None
         self.plot_buttons = None
         self.mdata = Data()
@@ -333,7 +340,6 @@ class App(QMainWindow):
         self.active1D = None
         self.openplots = []
         self.plotaeralayout = None
-        # here = os.path.dirname(os.path.abspath(__file__))
         with open(CONFIGPATH) as fid:
             self.config = yaml.load(fid, yaml.Loader)
         if "Colors" in self.config.keys():
@@ -385,7 +391,9 @@ class App(QMainWindow):
                             else:
                                 self.active1D.add_to_plot(self.mdata, symbol=symbol)
                         except TypeError as terr2:
-                            HelpWindow(self, "You try to add to a plot. This caused an error. Maybe that was not what you intended: " + str(terr))
+                            HelpWindow(self,
+                                       "You try to add to a plot. This caused an error. Maybe that was not what you intended: " +
+                                       str(terr))
                 elif self.mdata.z.datavalue.ndim < 1 or self.mdata.z.datavalue.ndim > 3:
                         HelpWindow(self, "dimensionality of z value has to be 1,2,3 for now")
                         self.show()
@@ -542,7 +550,6 @@ class App(QMainWindow):
                 else:
                     misc_layout.addWidget(self.mdata.__dict__[entr])
         def get_number():
-            print("hello")
             try:
                 try:
                     thisdims = list(self.mdata.misc.dimension)
@@ -735,7 +742,6 @@ class App(QMainWindow):
                     self.active1D.update_plot(mdata)
                 else:
                     if self.only_indices:
-                        print("my shape: ", mdata.shape)
                         temp = Fast1D(
                             self, mdata, **self.config["Startingsize"]["1Dplot"], mname=self.mdata.misc.name_value,
                             filename=self.name, dark=self.dark, plotscheme=self.plotscheme, only_indices=self.current_idx)
@@ -832,7 +838,6 @@ class App(QMainWindow):
             print("walking down txt")
             self.walk_down_mfc(self.mfile, self.model)
         else:
-            print("hello???")
             HelpWindow(self, "This seems to be an unknown file format")
         self.setWindowTitle(self.name)
 
@@ -841,14 +846,13 @@ class App(QMainWindow):
             if isinstance(self.model.itemFromIndex(signal).mdata, Representative):
                 mydata = np.squeeze(self.model.itemFromIndex(signal).mdata.get_value())
             else:
-                print(self.model.itemFromIndex(signal).mdata[:].shape)
                 mydata = np.squeeze(self.model.itemFromIndex(signal).mdata[:])
             try:
                 mydata_dims = self.model.itemFromIndex(signal).mdata.dimensions
             except:
                 mydata_dims = None
             thisdata = self.model.itemFromIndex(signal).mdata
-            if mydata.ndim > 7:
+            if mydata.ndim > self.config["moreDdata"]["upper_absolute_limit"]:
                 print("dimensionality of data is too big. Not yet implemented.")
                 return
         except AttributeError:
@@ -862,7 +866,6 @@ class App(QMainWindow):
             return
         except TypeError:
             try:
-                #HelpWindow(self, "No data. Info on this element printed to console, dimensions and variables opened as variables")
                 for dim in self.model.itemFromIndex(signal).mdata.dimensions:
                     temp = Pointer(self.model.itemFromIndex(signal).mdata.dimensions[dim].size, dim)
                     last_tab = self.view.tab
@@ -872,12 +875,12 @@ class App(QMainWindow):
             except Exception as ex:
                 HelpWindow(self, str(ex)+"cannot plot data or display information")
             return
-        if mydata.ndim >= 3 and mydata.ndim <= 4:
+        if mydata.ndim >= 3 and mydata.ndim <= self.config["moreDdata"]["limit_for_sliceplot"]:
             temp = Fast3D(
                 mydata, parent=self, **self.config["Startingsize"]["3Dplot"],
                 mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme, mydata_dims=mydata_dims)
             self.openplots.append(temp)
-        elif mydata.ndim == 2:
+        elif mydata.ndim == 2 and self.config["moreDdata"]["limit_for_sliceplot"]>1:
             if self.only_indices:
                 temp = Fast2D(self,
                     mydata, parent=self, **self.config["Startingsize"]["2Dplot"], **self.config["Plotsettings"],
@@ -912,15 +915,32 @@ class App(QMainWindow):
                         dark=self.dark, plotscheme=self.plotscheme, mydata_dims=mydata_dims)
                 self.active1D = temp
                 self.openplots.append(temp)
-        elif mydata.ndim >= 5:
+        elif mydata.ndim > self.config["moreDdata"]["limit_for_sliceplot"]:
             # I need to find the variables that correspond to the dimension names
+            if isinstance(self.model.itemFromIndex(signal).mdata, Representative):
+                mydata = self.model.itemFromIndex(signal).mdata.get_value()
+            else:
+                mydata = self.model.itemFromIndex(signal).mdata[:]
             mydimdict = {}
-            for dimhere in mydata_dims:
-                print(self.model.itemFromIndex(signal).mdata.group()[dimhere])
-                mydimdict[dimhere] = self.model.itemFromIndex(signal).mdata.group()[dimhere]
-            print("--------------")
+            for midx, dimhere in enumerate(mydata_dims):
+                if dimhere in mydimdict.keys():
+                    dimhere = dimhere+ str(midx)
+                try:
+                    mydimdict[dimhere] = self.model.itemFromIndex(signal).mdata.group()[dimhere]
+                except:
+                    try: 
+                        mydimdict[dimhere] = self.model.itemFromIndex(signal).mdata.group().parent[dimhere]
+                    except:
+                        try:
+                            mydimdict[dimhere] = self.model.itemFromIndex(signal).mdata.group().parent.parent[dimhere]
+                        except:
+                            try:
+                                mydimdict[dimhere] = self.model.itemFromIndex(signal).mdata.group().parent.parent.parent[dimhere]
+                            except:
+                                print("no variable found with dimension name ", dimhere)
+                                mydimdict[dimhere] = None
             temp = Fast2D_select(self,
-                    mydata, parent=self, **self.config["Startingsize"]["2Dplot"], **self.config["Plotsettings"],
+                    mydata, parent=self, **self.config["Startingsize"]["nDplot"], **self.config["Plotsettings"],
                     mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme, mydata_dims=mydimdict)
             self.openplots.append(temp)
         else:
