@@ -74,15 +74,16 @@ If you received a warning that add_interactivity could not be found, the easiest
   
 ## New features in 0.0.4: 
 5D+ data is now supported; activate by double click on the variable creates both a table and plot:
-  ![5D+_plotting](https://user-images.githubusercontent.com/38353016/175058452-26262972-8a8d-495e-a3ac-b3b85b434ff5.png)
+  ![qtnetcdf4](https://user-images.githubusercontent.com/38353016/177121672-7977ea18-2379-4960-b954-2811476cd479.png)
+2-8a8d-495e-a3ac-b3b85b434ff5.png)
 
-if the file is a netCDF4 file and has variables with the names of the dimensions of the data in question, the axis and the tables are labeled with that variable instead of with the indices. However, the plot is an image plot, not a colormesh plot. This means that independently of the spacing of the axis, each entry in the 2D matrix is a square. Labelled are the square centers, not the box edges, since edges are not provided (if the variable has the same dimension as the data, by definition the positions are the centers, not the edges). First, choose the two axis that you want to keep as variable for the selected data (1. and 2. magenta ovals in the image above). For all but these 2 axes, values have to be chosen (values or indices in case no variables with matching dimension names are found in the same or parent groups), see 3. in the image above. In order to display this new data selection, press the button indicated with the orange rectanlge in the image above. 
-  * If data is plotted in this manner (to achieve this also for 2D, 3D and 4D, change *moreDdata/limit_for_sliceplot*  to 1, 2 or 3 ), data can be saved (2D data), press the green indicated save button.
-  * The table that is opened can be used, as other tables, to select x-, y-, z- data. (see red rectangles)
+if the file is a netCDF4 file and has variables with the names of the dimensions of the data in question, the axis and the tables are labeled with that variable instead of with the indices. However, the plot is an image plot, not a colormesh plot. This means that independently of the spacing of the axis, each entry in the 2D matrix is a square. Labelled are the square centers, not the box edges, since edges are not provided (if the variable has the same dimension as the data, by definition the positions are the centers, not the edges). First, choose the two axis that you want to keep as variable for the selected data (indicated by red rectangle). For all but these 2 axes, values have to be chosen (values or indices in case no variables with matching dimension names are found in the same or parent groups), see blue ellipse in the image above. Note that you can either use the drop down menu or the +/- buttons to change the value. In order to display this new data selection. If you have not changed the configuration file (see below), no need to press the button "done and plot", since the update is done immediately. This behaviour can be changed in the configuration file (*moreData: update_plot_immediately: False*)
+  * If data is plotted in this manner (to achieve this also for 2D, 3D and 4D, change *moreDdata/limit_for_sliceplot*  to 1, 2 or 3), data can be saved (2D data), press the "save last selection" button. Note: even if other plots/ tables are shown, only the last selection can be saved.
+  * The table that is opened can be used, as other tables, to select x-, y-, z- data. (see yellow ellipses)
   
 For marker (not line, so produced with button "plot symbol" from the main window) plots, there is one additional feature:
  
-  * Selecting indices on marker plots opens a save menu. If a file name is entered (the original filename is suggested as starting input) and *return* is pressed, the selection (x, y, possibly z) is saved as nc file. If this is not desired, simply close the window. 
+  * Selecting indices on marker plots opens a save menu. If a file name is entered (the original filename is suggested as starting input) and *return* is pressed, the selection (x, y, possibly z) is saved as nc file. If this is not desired, simply close the window (on x).
  
 ## New features in 0.0.3:
   * The just described feature to flag out data with pressing "f" on a variable and setting its limits:
@@ -234,6 +235,12 @@ preceded by a "-" without a space:
  I collect some ideas here for implementation. Please contact me if you have more suggestions.
   * incldue a "search" field to find variables in all groups matching a partial name
   * having the option to use "long names" instead of variable names for e.g. plots.
+  * having a button to change several things from the configuration file "on the fly":
+    - country outline color
+    - whetheror not to open new plot/ table when settings change in the new 5D+ support
+    - whether or not to plot immediately or only on "done and plot" in the new 5D+ support
+    - whether to use the new table/ plot window or the original for 2D -- 4D variables
+  * be able to turn off "save as" pop-up after selecting indices
  
 ## Implementations done on request:
  * Add possibility to add country outlines.
