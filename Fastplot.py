@@ -770,7 +770,7 @@ class Fast2D_select(QMainWindow):
                 mydata_dims[str(idx)] = np.arange(sh)
         self.mydims = mydata_dims
         self.is_log = False
-        layout = QVBoxLayout()
+        self.layout = QVBoxLayout()
         try:
             self.shape = mydata.shape
         except AttributeError:
@@ -824,12 +824,12 @@ class Fast2D_select(QMainWindow):
         xylayout.addWidget(savebutton)#, alignment=Qt.AlignTop)
         buttonlayout.addWidget(xyarea, alignment=Qt.AlignBottom)
         buttonlayout.addWidget(entry_area, alignment=Qt.AlignBottom)
-        layout.addWidget(buttonarea)
+        self.layout.addWidget(buttonarea)
         xylayout.addWidget(self.log_button, alignment=Qt.AlignTop)
         mainwindow = QWidget()
-        mainwindow.setLayout(layout)
+        mainwindow.setLayout(self.layout)
         self.indices = {self.dimnames.index(dim): 0 for dim in self.currentdimnames}
-        self.makeplot()
+        self.makeplot(isnew=True)
         self.setCentralWidget(mainwindow)
         center(self)
         if filename is not None:
@@ -859,37 +859,44 @@ class Fast2D_select(QMainWindow):
         newwindow = Savewindow(self, name_adding=self.newname)
         newwindow.show()
 
+    
     def add_buttons(self):
         try:
             for nd in self.this_area:
                 self.entry_layout.removeWidget(self.this_area[nd])
                 sip.delete(self.this_area[nd])
+            
         except AttributeError:
             pass
         self.this_area = {}
         for oidx, nd in enumerate(self.dimnames):
             if self.mydims[nd] is None:
                 self.mydims[nd] = np.arange(self.mydata.shape[oidx])
+        self.entry_label_button_p = {}   ##
+        self.entry_label_button_m = {}
         for midx, nd in enumerate(self.currentdimnames):
             oidx = self.dimnames.index(nd)
             self.entry_labels[nd] = QLabel(nd)
             self.entry_layout.addWidget(self.entry_labels[nd], alignment=Qt.AlignRight)
+            self.entry_label_button_p[nd] = QPushButton("+")  ## 
+            self.entry_label_button_m[nd] = QPushButton("-")
+            self.entry_label_button_p[nd].clicked.connect(
+                lambda state, x=nd: self.entries[x].setCurrentIndex(self.entries[x].currentIndex()+1))
+            self.entry_label_button_m[nd].clicked.connect(
+                lambda state, x=nd: self.entries[x].setCurrentIndex(self.entries[x].currentIndex()-1))
             self.entries[nd] = QComboBox()
             slotLambda = lambda i, c=self.currentdimnames[midx]: self.indexChanged_lambda(c, i)
             for idx in np.arange(self.mydata.shape[oidx]):
-                #self.entries[nd].addItem(str(idx))
-                #print(nd, idx, self.mydims[nd][0])
-                #try:
                 self.entries[nd].addItem(str(self.mydims[nd][idx]))
-                #except TypeError:
-                #    self.entries[nd].addItem(str(idx))
             self.entries[nd].currentIndexChanged.connect(slotLambda)
             self.subdata = self.subdata[...,-1]
             self.this_area[nd] = QWidget()
             this_layout = QHBoxLayout()
             self.this_area[nd].setLayout(this_layout)
+            this_layout.addWidget(self.entry_label_button_m[nd])
             this_layout.addWidget(self.entry_labels[nd], alignment=Qt.AlignRight)
             this_layout.addWidget(self.entries[nd], alignment=Qt.AlignRight)
+            this_layout.addWidget(self.entry_label_button_p[nd]) 
             self.entry_layout.addWidget(self.this_area[nd], alignment=Qt.AlignRight)
 
     def removefromlist2(self, idx):
@@ -937,9 +944,13 @@ class Fast2D_select(QMainWindow):
         if self.dimnames.index(xdim)< self.dimnames.index(ydim):
             self.subdata = self.subdata.T
             self.istransposed = True
+        self.newname = self.mname+","+ ",".join(
+            [dim +"="+self.entries[dim].currentText() for dim in self.mydims if dim not in [xdim, ydim] ])
         #stacking = Qt.Horizontal
         #location = Qt.TopDockWidgetArea
-        
+        return xdim, ydim
+
+    def update_table(self, xdim, ydim):
         if "hor" in self.master.config["moreDdata"]["stacking_table"].lower():
             stacking = Qt.Horizontal
         else:
@@ -952,12 +963,11 @@ class Fast2D_select(QMainWindow):
             location = Qt.RightDockWidgetArea
         else:
             location = Qt.LeftDockWidgetArea
-        
-        
-        
-        self.newname = self.mname+","+ ",".join(
-            [dim +"="+self.entries[dim].currentText() for dim in self.mydims if dim not in [xdim, ydim] ])
         if self.dock_widget2 is not None:
+            #if self.master.config["moreDdata"]["newplotwindow"] is False:
+            #    self.layout.removeWidget(self.dock_widget2)
+            #    sip.delete(self.dock_widget2)
+            #    self.dock_widget2 = None
             last_tab = self.dock_widget2
         else:
             last_tab = None
@@ -975,22 +985,30 @@ class Fast2D_select(QMainWindow):
             yheader = np.arange(self.subdata.shape[0])
         self.table_widget = MyTable(self, self.subdata, self.newname, header={"x": xheader, "y": yheader}, headernames={"x": xdim, "y": ydim})
         self.dock_widget2.setWidget(self.table_widget)
+        if self.master.config["moreDdata"]["newplotwindow"] is False and last_tab is not None:
+            self.layout.removeWidget(last_tab)
+            sip.delete(last_tab)
+            last_tab = None
         if last_tab is not None  and self.master.config["moreDdata"]["tabbing_table"]:
             self.tabifyDockWidget(last_tab, self.dock_widget2)
 
-    def makeplot(self):
-        self.get_data()
-        self.update_plot()
+    def makeplot(self, isnew=False):
+        xdim, ydim = self.get_data()
+        self.update_plot(isnew=isnew)
+        self.update_table(xdim, ydim)
 
     @pyqtSlot(str)
     def indexChanged_lambda(self, c, i):
+        print(c, i, self.mydims[c][i])
         self.indices[self.dimnames.index(c)] = i
         self.showindices[c] = i
+        if self.master.config["moreDdata"]["update_plot_immediately"]:
+            self.makeplot()
 
-    def update_plot(self, is_log=False, isnew=True):
+    def update_plot(self, is_log=False, isnew=False):
         xdim = self.mydims[self.xentry.currentText()]
         ydim = self.mydims[self.yentry.currentText()]
-        if isnew:
+        if isnew or self.master.config["moreDdata"]["newplotwindow"]:
             layout2 = QVBoxLayout()
             plotwindow = QWidget()
             self.myfigure = MplCanvas(parent=self, **self.plotdict)
@@ -1005,7 +1023,6 @@ class Fast2D_select(QMainWindow):
             if self.master.dark:
                 self.dock_widget.setPalette(QDarkPalette())
             self.dock_widget.setWidget(plotwindow)
-            
             if "hor" in self.master.config["moreDdata"]["stacking_plot"].lower():
                 stacking = Qt.Horizontal
             else:
@@ -1018,6 +1035,7 @@ class Fast2D_select(QMainWindow):
                 location = Qt.RightDockWidgetArea
             else:
                 location = Qt.LeftDockWidgetArea
+            # print(help(self.addDockWidget))
             self.addDockWidget(location, self.dock_widget, stacking)
             if last is not None and self.master.config["moreDdata"]["tabbing_plot"]:
                 self.tabifyDockWidget(last, self.dock_widget)

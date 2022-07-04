@@ -76,3 +76,5 @@ moreDdata:  # settings for the 5D+ window.
   location_plot: top  # top/ bottom for horizontal, left/ right for vertical for the plot
   tabbing_table: True  #open new tables as tabs, recommended
   tabbing_plot: True  # open new plots as tabs, recommended
+  update_plot_immediately: True  # if this is true, a change in the drop down menu makes a new plot immediately
+  newplotwindow: False  # if this is True, each change in plot makes a new plot tab [currently table is always new]
