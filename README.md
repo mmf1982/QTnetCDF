@@ -234,12 +234,12 @@ preceded by a "-" without a space:
  I collect some ideas here for implementation. Please contact me if you have more suggestions.
   * incldue a "search" field to find variables in all groups matching a partial name
   * having the option to use "long names" instead of variable names for e.g. plots.
-  * having a button to change several things from the configuration file "on the fly":
-    - country outline color
-    - whetheror not to open new plot/ table when settings change in the new 5D+ support
-    - whether or not to plot immediately or only on "done and plot" in the new 5D+ support
+  * having a button to change several things from the configuration file "on the fly": --> For testing, this is implemented in the "Menu" bar now. 
+    - country outline color       --> can be changed, need to plot country lines again in order to take effect (also thickness)
+    - whetheror not to open new plot/ table when settings change in the new 5D+ support  --> can be changed, takes effect with next plot
+    - whether or not to plot immediately or only on "done and plot" in the new 5D+ support  --> can be changed, takes effect with newxt plot
     - whether to use the new table/ plot window or the original for 2D -- 4D variables
-  * be able to turn off "save as" pop-up after selecting indices
+  * be able to turn off "save as" pop-up after selecting indices   --> is included in the configuration file now and can be changed by the new Menu item. 
  
 ## Implementations done on request:
  * Add possibility to add country outlines.
