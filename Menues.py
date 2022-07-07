@@ -1,6 +1,9 @@
 from PyQt5 import QtCore
 from PyQt5.QtGui import QIcon, QKeySequence, QFont
-from PyQt5.QtWidgets import QAction, QMenuBar, qApp, QTreeView, QFileSystemModel, QMainWindow, QLabel, QDesktopWidget
+from PyQt5.QtWidgets import (QAction, QMenuBar, qApp, QTreeView,
+                             QFileSystemModel, QMainWindow, QLabel,
+                             QDesktopWidget, QWidget, QVBoxLayout,
+                             QHBoxLayout, QLineEdit)
 import pathlib
 import os
 
@@ -95,10 +98,30 @@ class FileMenu(QMenuBar):
         file_menu.addAction(self.open_file)
         previous = self.addAction(self.previous)
         mnext = self.addAction(self.next)
+        open_config = self.addAction(self.openconfig)
         #next_menu = self.addMenu('&previous')
         #next_menu.addAction(self.previous)
         #next_menu = self.addMenu('&next')
         #next_menu.addAction(self.next)
+
+    @property
+    def openconfig(self):
+        nextact = QAction(QIcon.fromTheme('document-properties'), '&config', self.master)
+        nextact.setStatusTip('open config file')
+        nextact.triggered.connect(self.config_open)
+        return nextact
+
+    def config_open(self):
+        #file_name = self.master.config["this_file"]
+        #if hasattr(os, "startfile"):
+        #    x = os.startfile(file_name)
+        #elif shutil.which("xdg-open"):
+        #    x = subprocess.call(["xdg-open", file_name])
+        #    print("xdk")
+        #elif "EDITOR" in os.environ:
+        #    x = subprocess.call([os.environ["EDITOR"], file_name])
+        #print(x)
+        new = Configchange(self)
 
     def open_menu(self):
         _ = Files(self.master)
@@ -162,3 +185,66 @@ class FileMenu(QMenuBar):
             new_idx = len(allfiles) - 1
         newfile = allfiles[new_idx]
         self.master.load_file(os.path.join(newp, newfile))
+
+class Configchange(QMainWindow):
+    def __init__(self, master):
+        """
+        Open a window to change some settings from teh config
+
+        :param master:  Qt master application which calls this help window
+        """
+        super().__init__(master)
+        self.setStyleSheet("background-color: white")
+        self.master = master
+        mlayout = QVBoxLayout()
+        mwidget = QWidget()
+        newfont = QFont("Mono", 12, QFont.Bold)
+        keylist = ["country_line_color", "country_line_thickness",
+                   "open_save_dialog", "limit_for_sliceplot",
+                   "update_plot_immediately", "newplotwindow"]
+        for key in keylist:
+            mlayoutsub = QHBoxLayout()
+            mlabel = QLabel(key)
+            mlabel.setStyleSheet("color: black")
+            mlabel.setFont(newfont)
+            try:
+                mfield = QLineEdit(str(self.master.master.config["Plotsettings"][key]))
+            except KeyError:
+                mfield = QLineEdit(str(self.master.master.config["moreDdata"][key]))
+            slotLambda = lambda k=key, v=mfield: self.mchange(k, v)
+            mfield.editingFinished.connect(slotLambda)
+            
+            mfield.setFixedWidth(100)
+            mlayoutsub.addWidget(mlabel)
+            mlayoutsub.addWidget(mfield)
+            thiswidget = QWidget()
+            thiswidget.setLayout(mlayoutsub)
+            mlayout.addWidget(thiswidget)
+        mwidget.setLayout(mlayout)
+        self.setCentralWidget(mwidget)
+        self.show()
+        #self.connect(self, Qt.SIGNAL('triggered()'), self.closeEvent)
+    def mchange(self, key, mentry):
+        #print(key, mentry.text())
+        newvalue = mentry.text()
+        #print(type(newvalue))
+        #print(self.master.master.config["Plotsettings"][key])
+        #print(type(self.master.master.config["Plotsettings"][key]))
+        try:
+            newvalue = float(newvalue)
+        except:
+            if newvalue.lower() == "true":
+                newvalue = True
+            elif newvalue.lower() == "false":
+                newvalue = False
+            else:
+                pass
+        if key in self.master.master.config["Plotsettings"]:
+            self.master.master.config["Plotsettings"][key] = newvalue
+        else:
+            self.master.master.config["moreDdata"][key] = newvalue
+        return
+
+    def closeEvent(self, event):
+        self.destroy()
+        event.accept()

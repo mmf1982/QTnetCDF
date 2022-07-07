@@ -1575,8 +1575,9 @@ class Fast1D(QMainWindow):
             labelx, labely = [entr.strip() for entr in my_hh.split("vs")]
             self.current_idx = np.full(xdata.shape, False)
             self.current_idx[idxs] = True
-            newwindow = Savewindow(self, indices=idxs)
-            newwindow.show()
+            if self.master.config["Plotsettings"]["open_save_dialog"]:
+                newwindow = Savewindow(self, indices=idxs)
+                newwindow.show()
         return onsel
 
     def update_plot(self, mydata, symbol=False, oi=None):
