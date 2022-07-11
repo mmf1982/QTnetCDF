@@ -5,7 +5,6 @@ import struct
 import numpy as np
 import os
 import glob
-import quick_save as qs
 import pandas as pd
 import astropy.coordinates
 import matplotlib.pyplot as plt
