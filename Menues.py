@@ -200,7 +200,7 @@ class Configchange(QMainWindow):
         mwidget = QWidget()
         newfont = QFont("Mono", 12, QFont.Bold)
         keylist = ["country_line_color", "country_line_thickness",
-                   "open_save_dialog", "limit_for_sliceplot",
+                    "limit_for_sliceplot",
                    "update_plot_immediately", "newplotwindow"]
         for key in keylist:
             mlayoutsub = QHBoxLayout()
