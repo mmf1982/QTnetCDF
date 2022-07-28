@@ -66,10 +66,9 @@ Plotsettings:
   scatter_dot_size: 0.5
   country_line_color: black
   country_line_thickness: 1.0
-  open_save_dialog: True
 
 moreDdata:  # settings for the 5D+ window.
-  limit_for_sliceplot: 1   # has to be 1, 2, 3 or 4 set when to switch from view with slicers to drop down menu choice
+  limit_for_sliceplot: 3   # has to be 1, 2, 3 or 4 set when to switch from view with slicers to drop down menu choice
   upper_absolute_limit: 10  # don't even try to open data that has a higher dimenionality than this.
   stacking_table: horizontal  # stack the table with the main window in horizontal or vertical
   stacking_plot: horizontal  # stack the plot with the main window in horizontal or vertical

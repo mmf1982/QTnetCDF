@@ -8,11 +8,13 @@ import pyhdf.error
 import pandas
 import subprocess
 import copy
+import datetime
 from PyQt5 import QtCore
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QKeySequence
 from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWindow, QDockWidget,
                              QTableView, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
                              QSlider, QLabel, QStatusBar, QLineEdit)
+from cftime import date2num, num2date
 
 import matplotlib
 try:
@@ -20,13 +22,17 @@ try:
 except (ImportError, ModuleNotFoundError):
     from Fastplot import Fast3D, Fast2D, Fast1D, Fast2Dplus, Fast2D_select
 try:
+    from .helper_tools import check_for_time
+except (ImportError, ModuleNotFoundError):
+    from helper_tools import check_for_time
+try:
     from .Menues import FileMenu, HelpWindow
 except (ImportError, ModuleNotFoundError):
     from Menues import FileMenu, HelpWindow
 try:
-    from .Converters import Hdf4Object, Table, Representative, MFC_type, dictgen, read_txt
+    from .Converters import Hdf4Object, Table, Representative, MFC_type, dictgen, read_txt, Data
 except (ImportError, ModuleNotFoundError):
-    from Converters import Hdf4Object, Table, Representative, MFC_type, dictgen, read_txt
+    from Converters import Hdf4Object, Table, Representative, MFC_type, dictgen, read_txt, Data
 try:
     from .Colorschemes import QDarkPalette, reset_colors
 except:
@@ -62,49 +68,6 @@ def dimming():
         for cmd in [brightness(str(br_data-0.1)), flash, brightness(str(br_data))]:
             subprocess.call(cmd)
 
-class MyQLabel(QLabel):
-    """
-    implements clickable QLabel that performs action on itself: delete text and associated value.
-    """
-    def __init__(self, dataname, datavalue, extra=": "):
-        super(MyQLabel, self).__init__()
-        self.datavalue = datavalue
-        self.setText(dataname.ljust(5) + extra)
-        self.name = dataname.ljust(5)
-        newfont = QFont("Mono", 8, QFont.Normal)
-        self.setFont(newfont)
-        self.name_value = ""
-        self.path = ""
-        self.dimension = None
-
-    def set(self, value, name, path="", dimension=None):
-        self.setText(self.name + ": " + name)
-        self.datavalue = value
-        self.name_value = name
-        self.dimension = dimension
-        if dimension is None or len(dimension) == 0:
-            self.dimension = np.arange(value.ndim)
-        self.path = "/".join([path, self.name_value])
-
-    def mousePressEvent(self, event):
-        self.setText(self.name + ": ")
-        self.datavalue = None
-
-    def copy(self):
-        class Dummy(object):
-            def __init__(self, nme, val, dim):
-                self.name_value = copy.deepcopy(nme)
-                self.datavalue = copy.deepcopy(val)
-                try:
-                    self.dimension = copy.deepcopy(list(dim))
-                except TypeError:
-                    self.dimension = []
-            def copy(self):
-                newobj = Dummy(self.name_value, self.datavalue, self.dimension)
-                return newobj
-        newobj = Dummy(self.name_value, self.datavalue, self.dimension)
-        return newobj
-
 
 class Pointer(QStandardItem):
     """
@@ -138,9 +101,22 @@ class MyQTreeView(QTreeView):
         current_pointer = self.model().itemFromIndex(idx)
         try:
             try:
+                mydata, unit = check_for_time(current_pointer.mdata)
+            except Exception as err:
+                mydata = current_pointer.mdata
+                unit = ""
+                if event.text() != "d":
+                    raise err
+            print("unit to set is: ", unit)
+            try:
                 mypath = current_pointer.mdata.group().path
             except:
                 mypath = ""
+            #try:
+            #    unit = current_pointer.mdata.units
+            #except Exception as err:
+            #    print("no unit? ", err)
+            #    unit = ""
             if event.text() == "d":
                 print("   ")
                 print("     INFO on ", current_pointer.name)
@@ -192,7 +168,7 @@ class MyQTreeView(QTreeView):
                 if isinstance(current_pointer, Representative):
                     tocopy = squeeze(current_pointer.mdata.get_value())
                 else:
-                    tocopy = squeeze(current_pointer.mdata[:])
+                    tocopy = squeeze(mydata)
                 try:
                     (pandas.DataFrame(tocopy)).to_clipboard(index=False, header=False)
                     dimming()
@@ -206,35 +182,37 @@ class MyQTreeView(QTreeView):
                         print(ecxs)
                         print("cannot copy")
             elif event.text() == "x":
-                self.master.mdata.x.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath,
-                                        dimension=current_pointer.mdata.dimensions)
+                self.master.mdata.x.set(squeeze(mydata), current_pointer.mdata.name, mypath,
+                                        dimension=current_pointer.mdata.dimensions, units=unit)
             elif event.text() == "y":
-                self.master.mdata.y.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath,
-                                        dimension=current_pointer.mdata.dimensions)
+                print("The unit that is set is: , ", unit)
+                self.master.mdata.y.set(squeeze(mydata), current_pointer.mdata.name, mypath,
+                                        dimension=current_pointer.mdata.dimensions, units=unit)
+                print(self.master.mdata.y.units)
             elif event.text() == "z":
-                self.master.mdata.z.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath,
-                                        dimension=current_pointer.mdata.dimensions)
+                self.master.mdata.z.set(squeeze(mydata), current_pointer.mdata.name, mypath,
+                                        dimension=current_pointer.mdata.dimensions, units=unit)
             elif event.text() == "u":
-                self.master.mdata.yerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath)
+                self.master.mdata.yerr.set(squeeze(mydata), current_pointer.mdata.name, mypath, units=unit)
             elif event.text() == "e":
-                self.master.mdata.xerr.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath)
+                self.master.mdata.xerr.set(squeeze(mydata), current_pointer.mdata.name, mypath, units=unit)
             elif event.text() == "f":
-                self.master.mdata.flag.set(squeeze(current_pointer.mdata[:]), current_pointer.mdata.name, mypath)
+                self.master.mdata.flag.set(squeeze(mydata), current_pointer.mdata.name, mypath, units=unit)
             elif event.text() == "m":
                 if self.master.mdata.misc.datavalue is None:
                     thisdims = tuple([mds for mds in current_pointer.mdata.dimensions if mds != 1])
                     self.master.mdata.misc.set(
-                        squeeze(current_pointer.mdata[:].astype("float")), current_pointer.mdata.name, dimension=thisdims)
+                        squeeze(mydata.astype("float")), current_pointer.mdata.name, dimension=thisdims, units=unit)
                 else:
                     try:
                         if "+" in self.master.mdata.misc_op:
-                            mdata = self.master.mdata.misc.datavalue + squeeze(current_pointer.mdata[:])
+                            mdata = self.master.mdata.misc.datavalue + squeeze(mydata)
                         elif "-" in self.master.mdata.misc_op:
-                            mdata = self.master.mdata.misc.datavalue - squeeze(current_pointer.mdata[:])
+                            mdata = self.master.mdata.misc.datavalue - squeeze(mydata)
                         elif "/" in self.master.mdata.misc_op:
-                            mdata = self.master.mdata.misc.datavalue / squeeze(current_pointer.mdata[:])
+                            mdata = self.master.mdata.misc.datavalue / squeeze(mydata)
                         elif "*" in self.master.mdata.misc_op:
-                            mdata = self.master.mdata.misc.datavalue * squeeze(current_pointer.mdata[:])
+                            mdata = self.master.mdata.misc.datavalue * squeeze(mydata)
                         mname = self.master.mdata.misc.name_value+self.master.mdata.misc_op+current_pointer.mdata.name
                         self.master.mdata.misc.set(mdata, mname)
                     except ValueError as verr:
@@ -248,10 +226,6 @@ class MyQTreeView(QTreeView):
             HelpWindow(self.master, str(err)+
                        "something went wrong. Possibly you did not click in the first column of a variable\n"
                        " when clicking x,y,u,e or d. You have to be in the 'name' column when clicking.")
-
-        # elif event.text() == "m":
-        #    self.master.mdata.mask.set(current_pointer.mdata[:], current_pointer.mdata.name)
-
     def open_table(self, current_p):
         '''
         open the current variable (located at current_p) as table view
@@ -275,34 +249,6 @@ class MyQTreeView(QTreeView):
             location = QtCore.Qt.LeftDockWidgetArea
         self.master.addDockWidget(location, dock_widget, stacking)
         return dock_widget
-
-
-class Data(object):
-    """
-    Data for line plots and 3,4 D pcolor with x, y and xerr and yerr
-    """
-
-    def __init__(self, **kwargs):
-        for key in ["x", "y", "z", "xerr", "yerr", "misc", "flag"]:
-            if key == "xerr":
-                key2 = "xerr(e)"
-            elif key == "yerr":
-                key2 = "yerr(u)"
-            elif key == "misc":
-                key2 = "misc(m)"
-            elif key == "flag":
-                key2 = "flag(f)"
-            else:
-                key2 = key
-            setattr(self, key, MyQLabel(key2, None))
-        self.__dict__.update(kwargs)
-        self.misc_op = "+"
-        self.flag_op = None
-
-    def copy(self):
-        new = Data(x=self.x.copy(), y=self.y.copy(), z=self.z.copy(), xerr=self.xerr.copy(),
-                   yerr=self.yerr.copy(), misc=self.misc.copy(), flag=self.flag.copy())
-        return new
 
 
 class MyQButton(QPushButton):
@@ -353,6 +299,7 @@ class App(QMainWindow):
             self.plotscheme = self.config["Colorscheme"]["plots"]
         except:
             self.plotscheme = "default"
+        self.config["this_file"] = CONFIGPATH
         self.holdbutton = None
         self.filetype = None
         self.load_file(this_file)
@@ -846,7 +793,15 @@ class App(QMainWindow):
             if isinstance(self.model.itemFromIndex(signal).mdata, Representative):
                 mydata = np.squeeze(self.model.itemFromIndex(signal).mdata.get_value())
             else:
-                mydata = np.squeeze(self.model.itemFromIndex(signal).mdata[:])
+                mydata, unt = np.squeeze(check_for_time(self.model.itemFromIndex(signal).mdata))
+                #mydata = np.squeeze(self.model.itemFromIndex(signal).mdata[:])
+                #if "time" in self.model.itemFromIndex(signal).mdata.name.lower():
+                #    #print("time is in name")
+                #    try:
+                #        unit = self.model.itemFromIndex(signal).mdata.units
+                #        mydata = num2date(mydata, unit, only_use_cftime_datetimes=False)
+                #    except:
+                #        pass
             try:
                 mydata_dims = self.model.itemFromIndex(signal).mdata.dimensions
             except:
@@ -892,14 +847,67 @@ class App(QMainWindow):
             self.openplots.append(temp)
         elif mydata.ndim == 1:
             mdata = Data()
-            mdata.x.set(arange(len(mydata)), "index")
-            mdata.y.set(mydata, thisdata.name)
+            try:
+                dimhere = self.model.itemFromIndex(signal).mdata.dimensions[0]
+                if dimhere == thisdata.name:
+                    xdata = arange(len(mydata))
+                    dimhere = "index"
+                else:
+                    try:
+                        print("searching in: ", self.model.itemFromIndex(signal).mdata.group()[dimhere])
+                        xdata, unt = check_for_time(self.model.itemFromIndex(signal).mdata.group()[dimhere])
+                    except:
+                        try: 
+                            xdata, unt = check_for_time(self.model.itemFromIndex(signal).mdata.group().parent[dimhere])
+                        except:
+                            try:
+                                xdata, unt = check_for_time(self.model.itemFromIndex(signal).mdata.group().parent.parent[dimhere])
+                            except:
+                                try:
+                                    xdata, unt = check_for_time(self.model.itemFromIndex(signal).mdata.group().parent.parent.parent[dimhere])
+                                except:
+                                    xdata = arange(len(mydata))
+                                    unt = ""
+                mdata.x.set(xdata, dimhere, units=unt)
+            except Exception as exc:
+                mdata.x.set(arange(len(mydata)), "index")
+            mpath = ""
+            test = thisdata
+            while hasattr(test, "group"):
+                try:
+                    mpath = test.group().name +"/"+ mpath
+                except KeyError:
+                    mpath = mpath
+                test = test.group()
+            try:
+                mdata.y.set(mydata, mpath +thisdata.name, units=thisdata.units)
+            except Exception as err:
+                print("trying to get unit: ", err)      
+                mdata.y.set(mydata, mpath +thisdata.name)
+            # TODO: The above maybe set via config file if I want the whole path or only the var
             if self.holdon:
                 if isinstance(self.active1D, Fast2D):
                     HelpWindow(self, "hold is on, but no suitable plot open. Plotting in 2D plots only with x or y set")
                 else:
                     if self.active1D is not None:
-                        self.active1D.update_plot(mdata)
+                        if isinstance(self.active1D.mydata.x.datavalue[0],
+                                      datetime.datetime) and not isinstance(mdata.x.datavalue[0], datetime.datetime):
+                            HelpWindow(self, "old axis has datetime x, new x data is not datetime. unselect hold")
+                            return
+                        elif not isinstance(self.active1D.mydata.x.datavalue[0],
+                                      datetime.datetime) and isinstance(mdata.x.datavalue[0], datetime.datetime):
+                            HelpWindow(self, "old axis has not datetime x, new x data is datetime. unselect hold")
+                            return
+                        elif isinstance(self.active1D.mydata.y.datavalue[0],
+                                      datetime.datetime) and not isinstance(mdata.y.datavalue[0], datetime.datetime):
+                            HelpWindow(self, "old axis has datetime y, new y data is not datetime. unselect hold")
+                            return
+                        elif not isinstance(self.active1D.mydata.y.datavalue[0],
+                                      datetime.datetime) and isinstance(mdata.y.datavalue[0], datetime.datetime):
+                            HelpWindow(self, "old axis has not datetime y, new y data is datetime. unselect hold")
+                            return
+                        else:
+                            self.active1D.update_plot(mdata)
                     else:
                         HelpWindow(self, "hold is on, but no suitable plot open")
             else:

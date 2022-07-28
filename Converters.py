@@ -5,10 +5,12 @@ import pyhdf.HDF
 import pyhdf.VS
 import pyhdf.V
 import numpy
+import copy
 from pyhdf.error import HDF4Error
 from collections import OrderedDict
 import pandas
-
+from PyQt5.QtWidgets import QLabel
+from PyQt5.QtGui import QFont
 try:
     from . import MFC
 except:
@@ -43,6 +45,78 @@ DATATYPE = {pyhdf.SD.SDC().COMP_SZIP_RAW: "complex",
             pyhdf.SD.SDC().UCHAR8: "uchar8",
             }
 
+
+class MyQLabel(QLabel):
+    """
+    implements clickable QLabel that performs action on itself: delete text and associated value.
+    """
+    def __init__(self, dataname, datavalue, extra=": "):
+        super(MyQLabel, self).__init__()
+        self.datavalue = datavalue
+        self.setText(dataname.ljust(5) + extra)
+        self.name = dataname.ljust(5)
+        newfont = QFont("Mono", 8, QFont.Normal)
+        self.setFont(newfont)
+        self.name_value = ""
+        self.path = ""
+        self.dimension = None
+
+    def set(self, value, name, path="", dimension=None, units=""):
+        self.setText(self.name + ": " + name)
+        self.datavalue = value
+        self.name_value = name
+        self.units = units
+        self.dimension = dimension
+        if dimension is None or len(dimension) == 0:
+            self.dimension = numpy.arange(value.ndim)
+        self.path = "/".join([path, self.name_value])
+
+    def mousePressEvent(self, event):
+        self.setText(self.name + ": ")
+        self.datavalue = None
+
+    def copy(self):
+        class Dummy(object):
+            def __init__(self, nme, val, dim):
+                self.name_value = copy.deepcopy(nme)
+                self.datavalue = copy.deepcopy(val)
+                try:
+                    self.dimension = copy.deepcopy(list(dim))
+                except TypeError:
+                    self.dimension = []
+            def copy(self):
+                newobj = Dummy(self.name_value, self.datavalue, self.dimension)
+                return newobj
+        newobj = Dummy(self.name_value, self.datavalue, self.dimension)
+        return newobj
+
+
+class Data(object):
+    """
+    Data for line plots and 3,4 D pcolor with x, y and xerr and yerr
+    """
+
+    def __init__(self, **kwargs):
+        for key in ["x", "y", "z", "xerr", "yerr", "misc", "flag"]:
+            if key == "xerr":
+                key2 = "xerr(e)"
+            elif key == "yerr":
+                key2 = "yerr(u)"
+            elif key == "misc":
+                key2 = "misc(m)"
+            elif key == "flag":
+                key2 = "flag(f)"
+            else:
+                key2 = key
+            setattr(self, key, MyQLabel(key2, None))
+        self.__dict__.update(kwargs)
+        self.misc_op = "+"
+        self.flag_op = None
+
+    def copy(self):
+        new = Data(x=self.x.copy(), y=self.y.copy(), z=self.z.copy(), xerr=self.xerr.copy(),
+                   yerr=self.yerr.copy(), misc=self.misc.copy(), flag=self.flag.copy())
+        return new
 
 class Table(numpy.ma.core.MaskedArray):
     """
@@ -274,26 +348,33 @@ def read_txt(mpath):
     seps = [None, " ","  ", "   ", ",", ";", "\t"]
     idx = 0
     dtypes = [float, object]
-    for i in range(2):
-        while failed:
-            try:
-                mdata = numpy.loadtxt(mpath, skiprows=skiprows, delimiter=seps[idx], dtype=object)
-                failed = False
-                with open(mpath) as fid:
-                    header = fid.readlines()
-                    header = header[:skiprows]
-                continue
-            except:
-                skiprows = skiprows +1
-                #print("skipped rows: ", skiprows)
-            if skiprows > 60:
-                print("trying separator: ", seps[idx])
-                if idx < len(seps):
-                    idx = idx + 1
-                    skiprows = 0
-                else:
+    encoding = [None, "latin1"]
+    imx = 0
+    while failed:
+        try:
+            mdata = numpy.loadtxt(mpath, skiprows=skiprows, delimiter=seps[idx], dtype=object, encoding=encoding[imx])
+            failed = False
+            with open(mpath, encoding=encoding[imx]) as fid:
+                header = fid.readlines()
+                header = header[:skiprows]
+            continue
+        except:
+            skiprows = skiprows +1
+        if skiprows > 140:
+            if idx < len(seps)-1:
+                idx = idx + 1
+                skiprows = 0
+                print("   trying separator: ", seps[idx])
+            else:
+                #print("here2 ", imx)
+                imx = imx + 1
+                if imx > 1:
+                    print(imx)
                     return "failed to open"
-    print(skiprows)
+                else:
+                    idx = 0
+                    skiprows = 0
+                    print("trying encoding ", encoding[imx])
     return {"data": mdata, "header": header}
 
 class var_with_attr(numpy.ndarray):

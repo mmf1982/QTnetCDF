@@ -354,7 +354,12 @@ class MyQTableView(QTableView):
 
     def keyPressEvent(self, event):
         try:
-            if event.text() == "x":
+            if event.text() == "f":
+                try:
+                    self.master.mdata.flag.set(self.currentData, ",".join([self.model().name, self.curridx]), self.path)
+                except AttributeError:
+                    self.master.master.mdata.flag.set(self.currentData, ",".join([self.model().name, self.curridx]), self.path)
+            elif event.text() == "x":
                 try:
                     self.master.mdata.x.set(self.currentData, ",".join([self.model().name, self.curridx]), self.path)
                 except AttributeError:

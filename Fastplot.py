@@ -8,12 +8,14 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QApplication, QLabel, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QMessageBox,
                              QMainWindow, qApp, QSlider, QStatusBar, QLineEdit, QInputDialog, QComboBox, QDockWidget)
 from matplotlib.path import Path
+from matplotlib import dates
 from matplotlib.widgets import LassoSelector
 from numpy import ma
 import numpy as np
 import copy
 import sip
 import netCDF4
+import datetime
 try:
     from .Tables import MyTable
 except: 
@@ -29,11 +31,20 @@ except (ModuleNotFoundError, ImportError):
     except (ModuleNotFoundError, ImportError):
         print("add_interactivity is not loaded. This reduces the interactivity"
               "for 1D plots. Check if add_interactivity.py is in the current python path")
+try:
+    from .helper_tools import convert_from_time
+except:
+    from helper_tools import convert_from_time
 
 try:
     from .Colorschemes import QDarkPalette
 except:
     from Colorschemes import QDarkPalette
+try:
+    from .Converters import Data, MyQLabel
+except:
+    from Converters import Data, MyQLabel
+
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 from matplotlib.colors import LogNorm, Normalize
@@ -756,6 +767,7 @@ class Fast2D_select(QMainWindow):
         if master is None:
             master = QApplication([])
         super(Fast2D_select, self).__init__(parent)
+        self.istransposed = False
         self.plotdict = kwargs
         self.newname = None
         self.xname = None
@@ -999,7 +1011,7 @@ class Fast2D_select(QMainWindow):
 
     @pyqtSlot(str)
     def indexChanged_lambda(self, c, i):
-        print(c, i, self.mydims[c][i])
+        #print(c, i, self.mydims[c][i])
         self.indices[self.dimnames.index(c)] = i
         self.showindices[c] = i
         if self.master.config["moreDdata"]["update_plot_immediately"]:
@@ -1052,9 +1064,20 @@ class Fast2D_select(QMainWindow):
         elif len(xdim) < 60:
             self.myfigure.axes.xaxis.set_ticks(range(0, len(xdim), 4))
             self.myfigure.axes.xaxis.set_ticklabels(xdim[::4])
-        else:
+        elif len(xdim) < 150:
             self.myfigure.axes.xaxis.set_ticks(range(0, len(xdim), 10))
             self.myfigure.axes.xaxis.set_ticklabels(xdim[::10])
+        elif len(xdim) < 450:
+            self.myfigure.axes.xaxis.set_ticks(range(0, len(xdim), 30))
+            self.myfigure.axes.xaxis.set_ticklabels(xdim[::30])
+        elif len(xdim) < 1800:
+            self.myfigure.axes.xaxis.set_ticks(range(0, len(xdim), 120))
+            self.myfigure.axes.xaxis.set_ticklabels(xdim[::120])
+        else:
+            self.myfigure.axes.xaxis.set_ticks(range(0, len(xdim), 500))
+            self.myfigure.axes.xaxis.set_ticklabels(xdim[::500])           
+            
+            
         self.myfigure.axes.xaxis.set_tick_params(rotation=60)
         if len(ydim) < 15:
             self.myfigure.axes.yaxis.set_ticks(range(len(ydim)))
@@ -1065,9 +1088,18 @@ class Fast2D_select(QMainWindow):
         elif len(ydim) < 60:
             self.myfigure.axes.yaxis.set_ticks(range(0,len(ydim), 4))
             self.myfigure.axes.yaxis.set_ticklabels(ydim[::4])
-        else:
-            self.myfigure.axes.yaxis.set_ticks(range(0,len(ydim), 10))
+        elif len(ydim) < 150:
+            self.myfigure.axes.yaxis.set_ticks(range(0, len(ydim), 10))
             self.myfigure.axes.yaxis.set_ticklabels(ydim[::10])
+        elif len(ydim) < 450:
+            self.myfigure.axes.yaxis.set_ticks(range(0, len(ydim), 30))
+            self.myfigure.axes.yaxis.set_ticklabels(ydim[::30])
+        elif len(ydim) < 1800:
+            self.myfigure.axes.yaxis.set_ticks(range(0, len(ydim), 120))
+            self.myfigure.axes.yaxis.set_ticklabels(ydim[::120])
+        else:
+            self.myfigure.axes.yaxis.set_ticks(range(0,len(ydim), 500))
+            self.myfigure.axes.yaxis.set_ticklabels(ydim[::500])
         self.myfigure.axes.set_xlabel(self.xentry.currentText())
         self.myfigure.fig.set_tight_layout(True)
         if is_log:
@@ -1094,6 +1126,7 @@ class Savewindow(QMainWindow):
         self.add_name = name_adding
         self.indices = indices
         self.master = master
+        #print("some info: ", type(master), type(master.master), type(master.mydata))
         super(Savewindow, self).__init__(master)
         entry_area = QWidget()
         entry_layout = QVBoxLayout()
@@ -1130,8 +1163,13 @@ class Savewindow(QMainWindow):
                         var[:] = np.array([self.master.entries[dim].currentText()]).astype(self.master.mydims[dim].dtype)
                 var = fid.createVariable(self.master.mname, self.master.subdata.dtype, tuple(self.master.dimnames))
                 var[:] = savedata.reshape(myshapes)
-        except AttributeError:
+        except AttributeError as merr:
+            #print("error: ", merr)
             with netCDF4.Dataset(name, "w") as fid:
+                #print("x is: ", self.master.mydata.x)
+                #print("y is: ", self.master.mydata.y)
+                #print("xunit: ", self.master.mydata.x.units)
+                #print("yunit: ", self.master.mydata.y.units)
                 fid.setncattr("source", self.master.master.name)
                 x = self.master.mydata.x
                 y = self.master.mydata.y
@@ -1139,11 +1177,22 @@ class Savewindow(QMainWindow):
                 xattr = x.name_value.split(",")[1:]
                 yname = y.name_value.split(",")[0]
                 yattr = y.name_value.split(",")[1:]
+                if "time" in xname:
+                    x = convert_from_time(x)
+                if "time" in yname:
+                    y = convert_from_time(y)
                 if xname == yname:
                     xname = "x_" + xname
                     yname = "y_" + yname
+                #try:
+                #    fid.createDimension(
+                #except:
                 fid.createDimension(xname, len(self.indices))
                 var = fid.createVariable(xname, x.datavalue.dtype, (xname,))
+                try:
+                    var.setncattr("units", x.units)
+                except:
+                    pass
                 var[:] = x.datavalue[self.indices]
                 try:
                     for mattr in xattr:
@@ -1153,6 +1202,11 @@ class Savewindow(QMainWindow):
                     pass
                 y = self.master.mydata.y
                 var = fid.createVariable(yname, y.datavalue.dtype, (xname,))
+                try:
+                    var.setncattr("units", y.units)
+                except Exception as err:
+                    pass
+                    #print("unit y couldn't be added:",  err, y.units)
                 var[:] = y.datavalue[self.indices]
                 try:
                     for mattr in yattr:
@@ -1213,6 +1267,7 @@ class Fast2D(QMainWindow):  # only_indices does currently not work for 2D x-y-z 
         #my_slider2 = DataChooser(self, is3d=False, is3dspecial=is3dsp)
         self.active_button = QPushButton("make active")
         self.active_button.clicked.connect(self.make_active)
+        
         mainwindow = QWidget()
         layout = QVBoxLayout()
         layout.addWidget(self.myfigure.toolbar)
@@ -1523,6 +1578,7 @@ class Fast1D(QMainWindow):
         super().__init__()
         if mname is None:
             mname = '1D Viewer'
+        self.istransposed = False
         self.mydata = mydata
         self.master = master
         self.setWindowTitle(mname)
@@ -1534,13 +1590,24 @@ class Fast1D(QMainWindow):
         except:
             pass
         self.lassos = []
+        self.symbol = symbol
         self.current_idx = []
         self.active_button = QPushButton("make active")
         self.active_button.clicked.connect(self.make_active)
+        self.swap_axes_button = QPushButton("swap axes")
+        self.swap_axes_button.clicked.connect(self.swap_axes)
+        self.savethis_button = QPushButton("save selection")
+        self.savethis_button.clicked.connect(self.open_save_dialog)
+        buttonw = QWidget()
+        buttonl = QHBoxLayout()
+        buttonl.addWidget(self.active_button)
+        buttonl.addWidget(self.swap_axes_button)
+        buttonl.addWidget(self.savethis_button)
+        buttonw.setLayout(buttonl)
         mainwindow = QWidget()
         layout = QVBoxLayout()
         layout.addWidget(self.myfigure.toolbar)
-        layout.addWidget(self.active_button)
+        layout.addWidget(buttonw) #self.active_button)
         layout.addWidget(self.myfigure, stretch=1)
         mainwindow.setLayout(layout)
         self.setCentralWidget(mainwindow)
@@ -1549,8 +1616,6 @@ class Fast1D(QMainWindow):
         except ValueError as valerr:
             _ = HelpWindow(
                 self, "Probably you chose to plot x-y with different dimensions? Errormessage: " + str(valerr))
-        self.myfigure.axes.set_xlabel(mydata.x.text().split(":")[1])
-        self.myfigure.axes.set_ylabel(mydata.y.text().split(":")[1])
         center(self)
         if filename is not None:
             statusbar = QStatusBar()
@@ -1562,22 +1627,78 @@ class Fast1D(QMainWindow):
         self.myfigure.fig.set_tight_layout(True)
         self.show()
 
+    def swap_axes(self):
+        ax = self.myfigure.fig.axes[0]
+        linelist = ax.get_lines()
+        maxx = -1e33
+        minx = 1e33
+        maxy = -1e33
+        miny = 1e33
+        for line in linelist:
+            y, x = line.get_data()
+            if isinstance(x[0], datetime.datetime) or isinstance(y[0], datetime.datetime):
+                HelpWindow(self, "datetime axes cannot be swapped")
+                return
+            else:
+                pass
+        for line in linelist:
+            y, x = line.get_data()
+            yname, xname = line.get_label().split(" vs ")
+            xname = xname.strip()
+            yname = yname.strip()
+            #print(yname, xname)
+            ylabel = " vs ".join([xname, yname])
+            xx = MyQLabel("x", x)
+            xx.set(x, xname)
+            yy = MyQLabel("y", y)
+            yy.set(y, yname)
+            self.mydata = Data(x=xx, y=yy)
+            line.remove()
+            self.update_plot(self.mydata, self.symbol, self.only_indices)
+            try: 
+                maxx = max(numpy.nanmax(x), maxx)
+                minx = min(numpy.nanmin(x), minx)
+            except:
+                print(type(x), x)
+            try:
+                maxy = max(numpy.nanmax(y), maxy)
+                miny = min(numpy.nanmin(y), miny)
+            except:
+                print(type(y), y)
+        #print("x: ", minx, maxx)
+        #print("y: ", miny, maxy)
+        ax.set_xlim([minx, maxx])
+        ax.set_ylim([miny, maxy])
+        self.myfigure.draw()
+
+    def open_save_dialog(self):
+        idxs = np.arange(len(self.current_idx))[self.current_idx]
+        newwindow = Savewindow(self, indices=idxs)
+        newwindow.show()
+
     def make_active(self):
         self.master.active1D = self
 
     def onselect(self, hh, xdata, ydata):
         def onsel(verts, my_hh=hh, my_xdata=xdata, my_ydata=ydata):
+            if isinstance(my_ydata[0], datetime.datetime):
+                my_ydata = dates.date2num(my_ydata)
+            if isinstance(my_xdata[0], datetime.datetime):
+                my_xdata = dates.date2num(my_xdata)
             pts = [(xi, yi) for xi, yi in zip(my_xdata, my_ydata)]
             path = Path(verts)
-            idxs = numpy.nonzero(path.contains_points(pts))[0]
-            mask = numpy.full([len(pts), ], fill_value=False)
-            mask[idxs] = True
-            labelx, labely = [entr.strip() for entr in my_hh.split("vs")]
-            self.current_idx = np.full(xdata.shape, False)
-            self.current_idx[idxs] = True
-            if self.master.config["Plotsettings"]["open_save_dialog"]:
-                newwindow = Savewindow(self, indices=idxs)
-                newwindow.show()
+            try:
+                idxs = numpy.nonzero(path.contains_points(pts))[0]
+                mask = numpy.full([len(pts), ], fill_value=False)
+                mask[idxs] = True
+                labelx, labely = [entr.strip() for entr in my_hh.split("vs")]
+                self.current_idx = np.full(xdata.shape, False)
+                self.current_idx[idxs] = True
+                #if self.master.config["Plotsettings"]["open_save_dialog"]:
+                #    newwindow = Savewindow(self, indices=idxs)
+                #    newwindow.show()
+            except Exception as ex:
+                HelpWindow(self, "There was a problem selecting: " + str(ex))
         return onsel
 
     def update_plot(self, mydata, symbol=False, oi=None):
@@ -1652,6 +1773,10 @@ class Fast1D(QMainWindow):
         except Exception as exc:
             print(exc)
             print("it seems that add_interactivity is not loaded. Check if the file is in pythonpath")
+            HelpWindow(self, "either add_interactivity is not loaded, or you try to plot time axis in existing plot")
+            return
+        self.myfigure.axes.set_xlabel(mydata.x.text().split(":")[1])
+        self.myfigure.axes.set_ylabel(mydata.y.text().split(":")[1])
         self.myfigure.draw()
 
     def add_interactivity(self):
