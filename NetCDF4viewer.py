@@ -934,16 +934,16 @@ class App(QMainWindow):
                 if dimhere in mydimdict.keys():
                     dimhere = dimhere+ str(midx)
                 try:
-                    mydimdict[dimhere] = self.model.itemFromIndex(signal).mdata.group()[dimhere]
+                    mydimdict[dimhere], _ = check_for_time(self.model.itemFromIndex(signal).mdata.group()[dimhere])
                 except:
                     try: 
-                        mydimdict[dimhere] = self.model.itemFromIndex(signal).mdata.group().parent[dimhere]
+                        mydimdict[dimhere], _ = check_for_time(self.model.itemFromIndex(signal).mdata.group().parent[dimhere])
                     except:
                         try:
-                            mydimdict[dimhere] = self.model.itemFromIndex(signal).mdata.group().parent.parent[dimhere]
+                            mydimdict[dimhere], _ = check_for_time(self.model.itemFromIndex(signal).mdata.group().parent.parent[dimhere])
                         except:
                             try:
-                                mydimdict[dimhere] = self.model.itemFromIndex(signal).mdata.group().parent.parent.parent[dimhere]
+                                mydimdict[dimhere], _ = check_for_time(self.model.itemFromIndex(signal).mdata.group().parent.parent.parent[dimhere])
                             except:
                                 print("no variable found with dimension name ", dimhere)
                                 mydimdict[dimhere] = None
@@ -1186,7 +1186,8 @@ class App2(QWidget):
             for idx in range(1, len(self.windows)):
                 if len(path)> 0:
                     try:
-                        mdata = self.windows[idx].mfile[path][:]
+                        mdata, unit = check_for_time(self.windows[idx].mfile[path])
+                        #mdata = self.windows[idx].mfile[path][:]
                         thisname = path
                     except TypeError as te:
                         HelpWindow(self, "setting same variables for x, y, z, ... is currently not supported for hdf4")
@@ -1196,36 +1197,46 @@ class App2(QWidget):
                         return
                     except IndexError:
                         try:
-                            thisname, col = path.split(" col ")
-                            mdata = self.windows[idx].mfile[thisname][:, int(col)]
+                            thisname, col = path.split(",col=")
+                            col= int(col)
+                            mdata, unit = check_for_time(self.windows[idx].mfile[thisname])
+                            mdata = mdata[:, int(col)]
+                            #mdata = self.windows[idx].mfile[thisname][:, int(col)]
                         except (ValueError, IndexError):
                             try:
-                                thisname, row = path.split(" row ")
-                                mdata = self.windows[idx].mfile[thisname][int(row), :]
-                            except (IndexError, ValueError):
+                                thisname, row = path.split(",row=")
+                                row = int(row)
+                                mdata, unit = check_for_time(self.windows[idx].mfile[thisname])
+                                mdata = mdata[thisname][int(row), :]
+                                #mdata = self.windows[idx].mfile[thisname][int(row), :]
+                            except (IndexError, ValueError) as err:
+                                print(err)
                                 if "slice" in path:
                                     thisname, rest = path.split(" slice ")
-                                    slice, rest = rest.split(" in dim ")
+                                    mslice, rest = rest.split(" in dim ")
+                                    mdata = self.windows[idx].mfile[thisname]
                                     try:
-                                        dim, row = rest.split(" row ")
+                                        dim, row = rest.split(",row=")
+                                        row = int(row)
                                         if dim == "0":
-                                            mdata = self.windows[idx].mfile[thisname][slice, row, :]
+                                            mdata = mdata[mslice, row, :]
                                         elif dim == "1":
-                                            mdata = self.windows[idx].mfile[thisname][row, slice, :]
+                                            mdata = mdata[row, mslice, :]
                                         elif dim == "2":
-                                            mdata = self.windows[idx].mfile[thisname][row, :, slice]
+                                            mdata = mdata[row, :, mslice]
                                         else:
                                             HelpWindow(self, "currently, set same data only supports base data up to 3 dimensions")
                                             print("not supported right now")
                                             return
                                     except ValueError:
-                                        dim, col = rest.split(" col ")
+                                        dim, col = rest.split(",col=")
+                                        col = int(col)
                                         if dim == "0":
-                                            mdata = self.windows[idx].mfile[thisname][slice, :, col]
+                                            mdata = mdata[mslice, :, col]
                                         elif dim == "1":
-                                            mdata = self.windows[idx].mfile[thisname][:, slice, col]
+                                            mdata = mdata[:, mslice, col]
                                         elif dim == "2":
-                                            mdata = self.windows[idx].mfile[thisname][:, col, slice]
+                                            mdata = mdata[:, col, mslice]
                                         else:
                                             HelpWindow(self, "currently, set same data only supports base data up to 3 dimensions")
                                             print("not supported right now")

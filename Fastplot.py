@@ -32,9 +32,9 @@ except (ModuleNotFoundError, ImportError):
         print("add_interactivity is not loaded. This reduces the interactivity"
               "for 1D plots. Check if add_interactivity.py is in the current python path")
 try:
-    from .helper_tools import convert_from_time
+    from .helper_tools import convert_from_time, check_for_time
 except:
-    from helper_tools import convert_from_time
+    from helper_tools import convert_from_time, check_for_time
 
 try:
     from .Colorschemes import QDarkPalette
@@ -1630,18 +1630,23 @@ class Fast1D(QMainWindow):
     def swap_axes(self):
         ax = self.myfigure.fig.axes[0]
         linelist = ax.get_lines()
+        linelist2 = linelist.copy()
         maxx = -1e33
         minx = 1e33
         maxy = -1e33
         miny = 1e33
         for line in linelist:
             y, x = line.get_data()
-            if isinstance(x[0], datetime.datetime) or isinstance(y[0], datetime.datetime):
-                HelpWindow(self, "datetime axes cannot be swapped")
-                return
-            else:
-                pass
-        for line in linelist:
+            try:
+                if isinstance(x[0], datetime.datetime) or isinstance(y[0], datetime.datetime):    ### x sometimes not indexable?
+                    HelpWindow(self, "datetime axes cannot be swapped")
+                    return
+                else:
+                    pass
+            except IndexError:
+                linelist2.remove(line)
+                line.remove()
+        for line in linelist2:
             y, x = line.get_data()
             yname, xname = line.get_label().split(" vs ")
             xname = xname.strip()
