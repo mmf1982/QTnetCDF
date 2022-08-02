@@ -1,13 +1,15 @@
 # QTnetCDF
 
 QTnetCDF is a hdf/ netCDF4 viewer with emphasis on plotting. It is implemented in python and uses QT. 
-It can open netCDF4, hdf5 and hdf4 files, MFC files and some plain text ascii files (some lucky guesses involved though). For hdf4 files, it tries to remove the vdata that only represents sd variable attributes or dimensions. The functionality for hdf4 files is somewhat reduced. 
+It can open netCDF4, hdf5 and hdf4 files, MFC files and some plain text ascii files (some lucky guesses involved though). For hdf4 files, it tries to remove the vdata that only represents sd variable attributes or dimensions. The functionality for hdf4 files is somewhat limited. hdf5 compount data types are not supported (hdf5 files are read in as netCDF4).
 
-It is tested with python3.7, python3.8 and python3.9 (on linux) and python3.8 on windows. Under windows, it works with installing the needed packages via anaconda and python3.8. Under linux, it is recommended to use the setup scripts in conjuction with pip and python3.7 or python3.8, see Quick start below. 
+It is tested with python3.7, python3.8 and python3.9 (on linux) and python3.8 on windows. Under windows, it works with installing the needed packages via anaconda and python3.8. Under linux, it is recommended to use the setup scripts in conjuction with pip and python3.7, python3.8 or python3.9, see Quick start below. 
 
 For full functionality, also install https://github.com/mmf1982/add_interactivity
 
 ## Quick start for linux
+
+You can, but you do not have to, use a virtual invironment:
 
 Create and activate a virtual environment (only needed if you actually want to run it in the virtual environment, skip otherwise):
 
@@ -36,7 +38,7 @@ You can also try to install a specific version of PyQt5. E.g. by:
     python3.8 -m pip install PyQt5==5.15.1    
 and then redo the installation of QTnetCDF (phython3.8 setup.py install in the QTnetCDF4 directory).
     
-Download for example a h5/ hdf/ nc file from here: https://hdfeos.org/zoo/index_openNSIDC_Examples.php  
+To test your installation, download for example a h5/ hdf/ nc file from here: https://hdfeos.org/zoo/index_openNSIDC_Examples.php  
 
 and then call as 
 
@@ -48,7 +50,7 @@ In case you used the virtual environment, with
     
 you can leave the virtual environment again. Of course you do not need to work within a virual environment in the frist place, but it might be the saver option if you just want to give it a try.
 
-If you received a warning that add_interactivity could not be found, the easiest is maybe to include a softlink inside the QTnetCDF folder to the appropriate file inside add_interactivity. However, if both packages are inside your python path, this should not be necessary.
+If, during testing, you received a warning that add_interactivity could not be found, the easiest is maybe to include a softlink inside the QTnetCDF folder to the appropriate file inside add_interactivity. However, if both packages are inside your python path, this should not be necessary.
 
 ## Basic functionality
 
@@ -61,8 +63,8 @@ If you received a warning that add_interactivity could not be found, the easiest
   ![Expanend group](/images/open_file.png)
   
   The following keys are activated on the tree (always on the entry in the first column, marked with the red oval above!):
-  * double click on variable: plots supported data, supported are 1D, 2D, 3D and 4D variables. 2D, 3D and 4D are plotted as image, 3D with a slider and 4D with two sliders. NEW: Also 5D+ is supported. The double click opens a new type of plot/ table window, see below under 5D+ plotting. This type of plotting can also be achived for 3D and 4D, if the configuration files is changed accordingly configured (set *moreDdata/limit_for_sliceplot* to 3 or 4 to allow slice plots for 3 or 4 dimensions, set it to 2 to directly change to the new plot layout for data of more than 2D). 
-  * "d" key is pressed on selected line, attribute information of that group or variable is prited.
+  * double click on variable: plots supported data, supported are 1D, 2D, 3D and 4D variables. 2D, 3D and 4D are plotted as image, 3D with a slider and 4D with two sliders. NEW: Also 5D+ is supported. The double click opens a new type of plot/ table window, see below under 5D+ plotting. This type of plotting can also be achived for 2D, 3D and 4D, if the configuration files is changed accordingly configured (set *moreDdata/limit_for_sliceplot* to 2, 3 or 4 to allow slice plots for 2, 3 or 4 dimensions, set it to 2 to directly change to the new plot layout for data of more than 2D). If the data is 1D, the x-axis is the dimension. If, in the same or a parent group, a variable of the dimension name exists, the double-clicked variable is plotted over the dimension variable (time with units as "microseconds/ seconds/ minutes/ hours/ days since .." is supported (read via cftime)), otherwise it is plotted over the index.
+  * "d" key is pressed on selected line, attribute information of that group or variable is prited in the terminal.
   * "s" key is pressed on selected variable opens it as a detachable table view ![Table view](/images/open_table.png) (for 0D, 1D, 2D, 3D and 4D variables. Higher dimensions are not supported, see however *double click* above. 4D variables with large grids might cause problems because a complete variable is read into memory). If the variable is 3D it shows slice 0 along the zeroth dimension, This can be changed by a slicer bar and "+"/ "-" buttons and an entry field. If the variable is 4D, the slice is as for 3D and additionally slice 0 along the first dimension. Note that the second slicer always needs to have a dimension at least one higher than the first. Each slicer also has an entry field where the field number can be entered directly (hit enter key to confirm). 
   * "x" data set as x for line/ scatter/ 2D- or 3D pcolormesh plot
   * "y" data set as y for line/scatter/ 2D- or 3D pcolormesh plot
@@ -70,7 +72,7 @@ If you received a warning that add_interactivity could not be found, the easiest
   * "e" data set as error on x for line plot
   * "u" data set as error on y for line plot
   * "m" to load to misc. Data can then be combined with other data via the "/", "*", "+" and "-" buttons. Note that a+b/c will be calculated as (a+b)/c. The data set here (either as a full 1, 2, 3 or 4 D variable or a 1D or 2D subset) can either be set as x, y or z (*as x* etc) variable or directly plotted (*plot misc*) ![Misc](/images/misc.png)
-  * "f" to load to flag. This variable together with "<" or ">" and a value typed in the corresponding field can be used to select only data (for x, y, z or m) for which the flag condition is fullfilled. To use this, first load a specific variable as flag (by pressing flag on a variable), then press either "<" or ">" and then type a value in the field and then press enter. Use this flag on either x,y,z or m. Note: The dimensions must agree. Only those data points for which the flag condition is fulfilled are plotted. Other values of the chosen variable (for x, y, z or m) are set to Nan. Note: This means also that the variable is converted to float for the purpose of plotting.
+  * "f" to load to flag. This variable together with "<" or ">" or "==" and a value typed in the corresponding field can be used to select only data (for x, y, z or m) for which the flag condition is fullfilled. To use this, first load a specific variable as flag (by pressing flag on a variable), then press either "<" or ">" or "==" and then type a value in the field and then press enter. Use this flag on either x,y,z or m. Note: The dimensions must agree. Only those data points for which the flag condition is fulfilled are plotted. Other values of the chosen variable (for x, y, z or m) are set to Nan. Note: This means also that the variable is converted to float for the purpose of plotting.
   
 ## New features in 0.0.4: 
 5D+ data is now supported; activate by double click on the variable creates both a table and plot:
@@ -82,14 +84,16 @@ if the file is a netCDF4 file and has variables with the names of the dimensions
   
 For marker (not line, so produced with button "plot symbol" from the main window) plots, there is one additional feature:
  
-  * Selecting indices on marker plots opens a save menu. If a file name is entered (the original filename is suggested as starting input) and *return* is pressed, the selection (x, y, possibly z) is saved as nc file. If this is not desired, simply close the window (on x).
+  * After selecting indices on marker plots, a save menu can be opened when clicking on "save selection". If a file name is entered (the original filename is suggested as starting input) and *return* is pressed, the selection (x, y, possibly z) is saved as nc file.
  
 ## New features in 0.0.3:
   * The just described feature to flag out data with pressing "f" on a variable and setting its limits:
-    "f" to load to flag. This variable together with "<" or ">" and a value typed in the corresponding field can be used to select only data (for x, y, z or m) for which the flag condition is fullfilled. To use this, first load a specific variable as flag (by pressing flag on a variable), then press either "<" or ">" and then type a value in the field and then press enter. Use this flag on either x,y,z or m. Note: The dimensions must agree. Only those data points for which the flag condition is fulfilled are plotted. Other values of the chosen variable (for x, y, z or m) are set to Nan. Note: This means also that the variable is converted to float for the purpose of plotting. This cannot currently be combined with the lasso selector. Note that "f" is currently not activated on the table view; this means that only "full variables" can be used for flags.
+    "f" to load to flag. This variable together with "<" or ">" or "==" and a value typed in the corresponding field can be used to select only data (for x, y, z or m) for which the flag condition is fullfilled. To use this, first load a specific variable as flag (by pressing flag on a variable), then press either "<" or ">" and then type a value in the field and then press enter. Use this flag on either x,y,z or m. Note: The dimensions must agree. Only those data points for which the flag condition is fulfilled are plotted. Other values of the chosen variable (for x, y, z or m) are set to Nan. Note: This means also that the variable is converted to float for the purpose of plotting. This cannot currently be combined with the lasso selector. Note that "f" is currently not activated on the table view; this means that only "full variables" can be used for flags.
   * Support for matplotlib > 3.4
   * for x-y-z plots, z now also supports 4D data (as before x and y need either to be both 1D or 2D).
   * support for MFC files and plain text ascii files.
+  * if the time unit of a time variable is convertable to datetime using cftime, it is converted to datetime and displayed as such.
+  * line plots can switch axes via button "swap axes" (disabled if one of the variables is "time").
 ## New features in 0.0.2:
   * for x-y-z plots, z now also supports 3D data (as before x and y need either to be both 1D or 2D), but no slicing in other directions is possible. If there are different axis having the same dimensions, a pop-up window requires information on which axis to slice along.
   * for x-y-z plots, nans in the x- and y- variables do not use pcolor any longer and hence there is a speed gain. However, these masked values are "transferred to the z values.
