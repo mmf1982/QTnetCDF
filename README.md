@@ -238,6 +238,7 @@ preceded by a "-" without a space:
  I collect some ideas here for implementation. Please contact me if you have more suggestions.
   * incldue a "search" field to find variables in all groups matching a partial name
   * having the option to use "long names" instead of variable names for e.g. plots.
+  * show the attributes also in a gui pop-up window instead of only in the terminal
   * having a button to change several things from the configuration file "on the fly": --> For testing, this is implemented in the "Menu" bar now:
 ![image](https://user-images.githubusercontent.com/38353016/177938729-833f6394-76f1-4e83-a677-c8ba2def0de2.png)
 
