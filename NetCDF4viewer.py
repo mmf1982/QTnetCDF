@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """Main module to build data tree for show nc and hdf files"""
 import os
 import sys
@@ -7,16 +8,17 @@ import numpy as np
 import pyhdf.error
 import pandas
 import subprocess
-import copy
+# import copy
 import datetime
 from PyQt5 import QtCore
-from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QKeySequence
+from PyQt5.QtGui import QStandardItemModel, QStandardItem, QKeySequence
 from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWindow, QDockWidget,
-                             QTableView, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
-                             QSlider, QLabel, QStatusBar, QLineEdit)
-from cftime import date2num, num2date
+                             QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
+                             QStatusBar, QLineEdit, QLabel, QScrollArea)
+# from cftime import date2num, num2date
 
 import matplotlib
+
 try:
     from .Fastplot import Fast3D, Fast2D, Fast1D, Fast2Dplus, Fast2D_select
 except (ImportError, ModuleNotFoundError):
@@ -43,15 +45,17 @@ except:
     from MFC_orig import read_all
 try:
     from .Tables import MyTable
-except: 
+except:
     from Tables import MyTable
 
-from numpy import array, arange, squeeze, nansum
+from numpy import arange, squeeze
 
 CONFIGPATH = ""
 C_LINES = None
-#__version__ = "0.0.4"
-#__author__ = "Martina M. Friedrich"
+
+
+# __version__ = "0.0.4"
+# __author__ = "Martina M. Friedrich"
 
 
 def dimming():
@@ -61,11 +65,11 @@ def dimming():
     This is was intended to be used to indicate copying, currently not used.
     '''
     get = subprocess.check_output(["xrandr", "--verbose"]).decode("utf-8").split()
-    for s in [get[i-1] for i in range(len(get)) if get[i] == "connected"]:
-        br_data = float(get[get.index("Brightness:")+1])
+    for s in [get[i - 1] for i in range(len(get)) if get[i] == "connected"]:
+        br_data = float(get[get.index("Brightness:") + 1])
         brightness = lambda br: ["xrandr", "--output", s, "--brightness", br]
         flash = ["sleep", "0.1"]
-        for cmd in [brightness(str(br_data-0.1)), flash, brightness(str(br_data))]:
+        for cmd in [brightness(str(br_data - 0.1)), flash, brightness(str(br_data))]:
             subprocess.call(cmd)
 
 
@@ -112,9 +116,9 @@ class MyQTreeView(QTreeView):
                 mypath = current_pointer.mdata.group().path
             except:
                 mypath = ""
-            #try:
+            # try:
             #    unit = current_pointer.mdata.units
-            #except Exception as err:
+            # except Exception as err:
             #    print("no unit? ", err)
             #    unit = ""
             if event.text() == "d":
@@ -138,7 +142,7 @@ class MyQTreeView(QTreeView):
                         mdata = Table(attributes[attr], None, attr)
                         interm_pointer = Pointer(mdata, attr)
                         wids.append(self.open_table(interm_pointer))
-                    elif isinstance(attributes[attr], str) and len(attributes[attr]) > 150000:
+                    elif isinstance(attributes[attr], str) and len(attributes[attr]) > 250000:
                         print(attr, ":      is currently not displayed. It is a very long string, "
                                     "likely describing the structure.")
                     elif isinstance(attributes[attr], dict):
@@ -158,6 +162,10 @@ class MyQTreeView(QTreeView):
                             self.master.tabifyDockWidget(one, two)
                 except Exception as exc:
                     pass
+                last_tab = self.tab
+                self.tab = self.open_infotab(attributes, current_pointer.name)
+                if last_tab is not None and self.master.config["Tableview"]["tabbing"]:
+                    self.master.tabifyDockWidget(last_tab, self.tab)
             elif event.text() == "s":
                 # open tableview
                 last_tab = self.tab
@@ -213,7 +221,7 @@ class MyQTreeView(QTreeView):
                             mdata = self.master.mdata.misc.datavalue / squeeze(mydata)
                         elif "*" in self.master.mdata.misc_op:
                             mdata = self.master.mdata.misc.datavalue * squeeze(mydata)
-                        mname = self.master.mdata.misc.name_value+self.master.mdata.misc_op+current_pointer.mdata.name
+                        mname = self.master.mdata.misc.name_value + self.master.mdata.misc_op + current_pointer.mdata.name
                         self.master.mdata.misc.set(mdata, mname)
                     except ValueError as verr:
                         HelpWindow(self, "likely dimensions that don't fit together: " + str(verr))
@@ -223,13 +231,37 @@ class MyQTreeView(QTreeView):
             HelpWindow(self.master, "likely you clicked a group and pressed x, y, u or e. \n"
                                     "On groups, only d works to show details." + str(te))
         except AttributeError as err:
-            HelpWindow(self.master, str(err)+
+            HelpWindow(self.master, str(err) +
                        "something went wrong. Possibly you did not click in the first column of a variable\n"
                        " when clicking x,y,u,e or d. You have to be in the 'name' column when clicking.")
+
+    def open_infotab(self, mlist, varname):
+        dock_widget = QDockWidget("attributes " + varname)
+        if self.master.dark:
+            dock_widget.setPalette(QDarkPalette())
+        canvas_widget = ScrollLabel()
+        dock_widget.setWidget(canvas_widget)
+        mtext = "\n".join([" " + key + ":\t " + str(mlist[key]) for key in mlist])
+        canvas_widget.setText(mtext)
+        if "hor" in self.master.config["Tableview"]["stacking"].lower():
+            stacking = QtCore.Qt.Horizontal
+        else:
+            stacking = QtCore.Qt.Vertical
+        if "bottom" in self.master.config["Tableview"]["location"].lower():
+            location = QtCore.Qt.BottomDockWidgetArea
+        elif "top" in self.master.config["Tableview"]["location"].lower():
+            location = QtCore.Qt.TopDockWidgetArea
+        elif "right" in self.master.config["Tableview"]["location"].lower():
+            location = QtCore.Qt.RightDockWidgetArea
+        else:
+            location = QtCore.Qt.LeftDockWidgetArea
+        self.master.addDockWidget(location, dock_widget, stacking)
+        return dock_widget
+
     def open_table(self, current_p):
-        '''
+        """
         open the current variable (located at current_p) as table view
-        '''
+        """
         dock_widget = QDockWidget(current_p.name)
         if self.master.dark:
             dock_widget.setPalette(QDarkPalette())
@@ -330,7 +362,7 @@ class App(QMainWindow):
                             self.active1D.update_plot(self.mdata, symbol)
                     except ValueError as valerr:
                         HelpWindow(self, "Probably you chose to plot x-y with different dimensions? Errormessage:" +
-                                str(valerr))
+                                   str(valerr))
                     except TypeError as terr:
                         try:
                             if self.only_indices:
@@ -342,9 +374,9 @@ class App(QMainWindow):
                                        "You try to add to a plot. This caused an error. Maybe that was not what you intended: " +
                                        str(terr))
                 elif self.mdata.z.datavalue.ndim < 1 or self.mdata.z.datavalue.ndim > 3:
-                        HelpWindow(self, "dimensionality of z value has to be 1,2,3 for now")
-                        self.show()
-                        return
+                    HelpWindow(self, "dimensionality of z value has to be 1,2,3 for now")
+                    self.show()
+                    return
                 else:
                     if self.only_indices:
                         self.active1D.add_to_plot(self.mdata, only_indices=self.current_idx)
@@ -360,26 +392,26 @@ class App(QMainWindow):
                         if self.only_indices:
                             try:
                                 temp = Fast2D(self,
-                                    self.mdata, **self.config["Startingsize"]["2Dplot"],
-                                    **self.config["Plotsettings"], mname=self.mdata.z.name_value,
-                                    filename=self.name, dark=self.dark, plotscheme=self.plotscheme,
-                                    only_indices=self.current_idx)
+                                              self.mdata, **self.config["Startingsize"]["2Dplot"],
+                                              **self.config["Plotsettings"], mname=self.mdata.z.name_value,
+                                              filename=self.name, dark=self.dark, plotscheme=self.plotscheme,
+                                              only_indices=self.current_idx)
                             except AttributeError as exdf:
-                                HelpWindow(self, "it seems there are no indices to use"+str(exdf))
+                                HelpWindow(self, "it seems there are no indices to use" + str(exdf))
                                 return
                         else:
                             temp = Fast2D(self,
-                                self.mdata, **self.config["Startingsize"]["2Dplot"],
-                                **self.config["Plotsettings"], mname=self.mdata.z.name_value,
-                                filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
+                                          self.mdata, **self.config["Startingsize"]["2Dplot"],
+                                          **self.config["Plotsettings"], mname=self.mdata.z.name_value,
+                                          filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
                     elif self.mdata.z.datavalue.ndim > 2:
                         temp = Fast2Dplus(self,
-                                self.mdata, **self.config["Startingsize"]["2Dplot"],
-                                **self.config["Plotsettings"], mname=self.mdata.z.name_value,
-                                filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
+                                          self.mdata, **self.config["Startingsize"]["2Dplot"],
+                                          **self.config["Plotsettings"], mname=self.mdata.z.name_value,
+                                          filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
                         self.show()
                     self.openplots.append(temp)
-                    #if self.mdata.z.datavalue.ndim == 1:
+                    # if self.mdata.z.datavalue.ndim == 1:
                     self.active1D = temp
                 else:
                     if self.only_indices:
@@ -388,12 +420,13 @@ class App(QMainWindow):
                             dark=self.dark, plotscheme=self.plotscheme, only_indices=self.current_idx)
                     else:
                         temp = Fast1D(self, self.mdata, symbol, **self.config["Startingsize"]["1Dplot"],
-                              filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
+                                      filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
                     self.openplots.append(temp)
                     self.active1D = temp
-        except AttributeError as  err:
-            HelpWindow(self, str(err)+"It seems you have not set anything to plot. You need to mark row(s) or column(s)\n"
-                             "and then hit at least x or y to have some plottable data. Try again")
+        except AttributeError as err:
+            HelpWindow(self,
+                       str(err) + "It seems you have not set anything to plot. You need to mark row(s) or column(s)\n"
+                                  "and then hit at least x or y to have some plottable data. Try again")
 
     def plotitsymbol(self):
         if self.plotsymbol.symbol in ["o", "x", "<", ">", "*", ".", "^", "v", "1", "2", "3", "p", "h", "H", "D", "+"]:
@@ -419,7 +452,8 @@ class App(QMainWindow):
             try:
                 self.current_idx = self.active1D.current_idx
             except AttributeError:
-                HelpWindow(self, "There is currently no active plot with current idx marked. If it was set before, that one is used.")
+                HelpWindow(self,
+                           "There is currently no active plot with current idx marked. If it was set before, that one is used.")
 
     def plotarea_layout(self):
         plotarea = QWidget()
@@ -452,10 +486,13 @@ class App(QMainWindow):
                 for k in fid.variables:
                     C_LINES.append(fid[k][:])
                     temp = fid[k][:].copy()
-                    temp[:,0] = temp[:,0]+360
+                    temp[:, 0] = temp[:, 0] + 360
                     C_LINES.append(temp)
-                   
-        ln_coll = matplotlib.collections.LineCollection(C_LINES, colors=self.config["Plotsettings"]["country_line_color"], linewidths=self.config["Plotsettings"]["country_line_thickness"])
+
+        ln_coll = matplotlib.collections.LineCollection(C_LINES,
+                                                        colors=self.config["Plotsettings"]["country_line_color"],
+                                                        linewidths=self.config["Plotsettings"][
+                                                            "country_line_thickness"])
         if self.active1D is None:
             self.openplots[-1].myfigure.axes.add_collection(ln_coll)
             self.openplots[-1].myfigure.draw()
@@ -496,6 +533,7 @@ class App(QMainWindow):
                     flag_layout.addWidget(self.mdata.__dict__[entr])
                 else:
                     misc_layout.addWidget(self.mdata.__dict__[entr])
+
         def get_number():
             try:
                 try:
@@ -508,7 +546,7 @@ class App(QMainWindow):
                 if self.mdata.misc.datavalue is None:
                     self.mdata.misc.set(num, str(num))
                 else:
-                    #try:
+                    # try:
                     if "+" in self.mdata.misc_op:
                         mdata = self.mdata.misc.datavalue + num
                     elif "-" in self.mdata.misc_op:
@@ -529,13 +567,13 @@ class App(QMainWindow):
                             if num == 0:
                                 mdata = mdata[self.current_idx]
                             elif num == 1:
-                                mdata = mdata[:, self.current_idx,...]
+                                mdata = mdata[:, self.current_idx, ...]
                             elif num == 2:
-                                mdata = mdata[:, :, self.current_idx,...]
+                                mdata = mdata[:, :, self.current_idx, ...]
                             elif num == 3:
-                                mdata = mdata[:, :, :, self.current_idx,...]
+                                mdata = mdata[:, :, :, self.current_idx, ...]
                             elif num == 4:
-                                mdata = mdata[:, :, :, :, self.current_idx,...]
+                                mdata = mdata[:, :, :, :, self.current_idx, ...]
                             else:
                                 HelpWindow(self, "please choose a number that is smaller than the current dimension")
                                 return
@@ -544,7 +582,7 @@ class App(QMainWindow):
                         else:
                             mdata = np.nanmean(self.mdata.misc.datavalue, axis=num)
                         mdata = np.nanmean(self.mdata.misc.datavalue, axis=num)
-                        num = " along axis "+str(num)
+                        num = " along axis " + str(num)
                     elif "median" in self.mdata.misc_op:
                         num = int(num)
                         try:
@@ -557,13 +595,13 @@ class App(QMainWindow):
                             if num == 0:
                                 mdata = mdata[self.current_idx]
                             elif num == 1:
-                                mdata = mdata[:, self.current_idx,...]
+                                mdata = mdata[:, self.current_idx, ...]
                             elif num == 2:
-                                mdata = mdata[:, :, self.current_idx,...]
+                                mdata = mdata[:, :, self.current_idx, ...]
                             elif num == 3:
-                                mdata = mdata[:, :, :, self.current_idx,...]
+                                mdata = mdata[:, :, :, self.current_idx, ...]
                             elif num == 4:
-                                mdata = mdata[:, :, :, :, self.current_idx,...]
+                                mdata = mdata[:, :, :, :, self.current_idx, ...]
                             else:
                                 HelpWindow(self, "please choose a number that is smaller than the current dimension")
                                 return
@@ -571,16 +609,17 @@ class App(QMainWindow):
                             mdata = np.nanmedian(mdata, axis=num)
                         else:
                             mdata = np.nanmedian(self.mdata.misc.datavalue.data, axis=num)
-                        num = " along axis "+str(num)
-                    mname = self.mdata.misc.name_value+" "+self.mdata.misc_op + str(num)
+                        num = " along axis " + str(num)
+                    mname = self.mdata.misc.name_value + " " + self.mdata.misc_op + str(num)
                     self.mdata.misc.set(mdata, mname, dimension=thisdims)
             except ValueError:
                 pass
+
         def get_flag_number():
             try:
                 num = float(flag_entry.text())
-                
-                mname = self.mdata.flag.name_value+" "+self.mdata.flag_op + str(num)
+
+                mname = self.mdata.flag.name_value + " " + self.mdata.flag_op + str(num)
                 # I need to check x,y,z, for the moment, assume z:
                 if "<" in self.mdata.flag_op:
                     mdata = self.mdata.flag.datavalue < num
@@ -589,30 +628,34 @@ class App(QMainWindow):
                 else:
                     mdata = self.mdata.flag.datavalue > num
                 self.mdata.flag.set(mdata, mname)
-                #zdata = np.copy(self.mdata.misc.datavalue)
-                #zdata[~mdata] = np.nan
-                #self.mdata.misc.set(zdata, self.mdata.misc.name_value + " at " + mname)
+                # zdata = np.copy(self.mdata.misc.datavalue)
+                # zdata[~mdata] = np.nan
+                # self.mdata.misc.set(zdata, self.mdata.misc.name_value + " at " + mname)
             except ValueError:
                 print("no value found")
+
         # make flag_layout fields:
         flag_entry = QLineEdit()
         flag_entry.returnPressed.connect(get_flag_number)
         flag_entry.setFixedWidth(40)
         flag_layout.addWidget(flag_entry)
-        for el in ["<", ">","=="]:
+        for el in ["<", ">", "=="]:
             button = QPushButton(el)
             width = button.fontMetrics().boundingRect(el).width() + 8
             button.setMaximumWidth(width)
             flag_layout.addWidget(button)
+
             def func_flag(el):
                 self.mdata.flag_op = el
                 self.mdata.flag.setText(self.mdata.flag.name + ": " + self.mdata.flag.name_value + " " + el)
+
             button.clicked.connect(lambda state, x=el: func_flag(x))
         for el in ["on x", "on y", "on z", "on misc"]:
             button = QPushButton(el)
             width = button.fontMetrics().boundingRect(el).width() + 8
             button.setMaximumWidth(width)
             flag_layout.addWidget(button)
+
             def apply_flag(el):
                 my_flag = self.mdata.flag.datavalue
                 name = self.mdata.flag.name_value
@@ -625,6 +668,7 @@ class App(QMainWindow):
                 myval.mask[~my_flag] = True
                 my_name = self.mdata.__dict__[to_use].name_value + " only " + self.mdata.flag.name_value
                 self.mdata.__dict__[to_use].set(myval, my_name, dimension=self.mdata.__dict__[to_use].dimension)
+
             button.clicked.connect(lambda state, x=el: apply_flag(x))
         flag_widget.setLayout(flag_layout)
         showall_layout.addWidget(flag_widget)
@@ -633,21 +677,24 @@ class App(QMainWindow):
         entry.returnPressed.connect(get_number)
         entry.setFixedWidth(40)
         ## self.entry.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        misc_layout.addWidget(entry) #, alignment=QtCore.Qt.AlignHCenter)
+        misc_layout.addWidget(entry)  # , alignment=QtCore.Qt.AlignHCenter)
         for el in ["+", "-", "/", "*", "mean", "median"]:
             button = QPushButton(el)
             width = button.fontMetrics().boundingRect(el).width() + 8
             button.setMaximumWidth(width)
             misc_layout.addWidget(button)
+
             def func(el):
-                #print(el)
+                # print(el)
                 self.mdata.misc_op = el
+
             button.clicked.connect(lambda state, x=el: func(x))
         for use_as in ["as x", "as y", "as z"]:
             button = QPushButton(use_as)
             width = button.fontMetrics().boundingRect(use_as).width() + 8
             button.setMaximumWidth(width)
             misc_layout.addWidget(button)
+
             def funcxyz(which):
                 val = self.mdata.misc.datavalue
                 name = self.mdata.misc.name_value
@@ -658,16 +705,19 @@ class App(QMainWindow):
                     self.mdata.y.set(val, name, dimension=dims)
                 elif "z" in which:
                     self.mdata.z.set(val, name, dimension=dims)
+
             button.clicked.connect(lambda state, w=use_as: funcxyz(w))
         button_plot = QPushButton("plot misc")
         width = button_plot.fontMetrics().boundingRect("plot misc").width() + 8
         button_plot.setMaximumWidth(width)
         misc_layout.addWidget(button_plot)
+
         def plotmisc():
             if self.mdata.misc.datavalue.ndim >= 3:
                 temp = Fast3D(self.mdata.misc.datavalue,
-                parent=self, **self.config["Startingsize"]["3Dplot"],
-                mname=self.mdata.misc.name_value, filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
+                              parent=self, **self.config["Startingsize"]["3Dplot"],
+                              mname=self.mdata.misc.name_value, filename=self.name, dark=self.dark,
+                              plotscheme=self.plotscheme)
                 self.openplots.append(temp)
             elif self.mdata.misc.datavalue.ndim == 2:
                 if self.only_indices:
@@ -678,8 +728,9 @@ class App(QMainWindow):
                                   plotscheme=self.plotscheme, only_indices=self.current_idx)
                 else:
                     temp = Fast2D(self, self.mdata.misc.datavalue,
-                        parent=self, **self.config["Startingsize"]["2Dplot"], **self.config["Plotsettings"],
-                        mname=self.mdata.misc.name_value, filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
+                                  parent=self, **self.config["Startingsize"]["2Dplot"], **self.config["Plotsettings"],
+                                  mname=self.mdata.misc.name_value, filename=self.name, dark=self.dark,
+                                  plotscheme=self.plotscheme)
                 self.openplots.append(temp)
             elif self.mdata.misc.datavalue.ndim == 1:
                 mdata = Data()
@@ -691,13 +742,15 @@ class App(QMainWindow):
                     if self.only_indices:
                         temp = Fast1D(
                             self, mdata, **self.config["Startingsize"]["1Dplot"], mname=self.mdata.misc.name_value,
-                            filename=self.name, dark=self.dark, plotscheme=self.plotscheme, only_indices=self.current_idx)
+                            filename=self.name, dark=self.dark, plotscheme=self.plotscheme,
+                            only_indices=self.current_idx)
                     else:
                         temp = Fast1D(
                             self, mdata, **self.config["Startingsize"]["1Dplot"], mname=self.mdata.misc.name_value,
                             filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
                     self.active1D = temp
                     self.openplots.append(temp)
+
         button_plot.clicked.connect(plotmisc)
         ## plus_button.resize(plus_button.sizeHint().width(), plus_button.sizeHint().height())
         misc_widget.setLayout(misc_layout)
@@ -757,11 +810,11 @@ class App(QMainWindow):
                                 self.mfile = dictgen(read_txt(m_file))
                                 if isinstance(self.mfile, str):
                                     HelpWindow(
-                                    self, "Failed to open " + str(m_file) + "\n")
+                                        self, "Failed to open " + str(m_file) + "\n")
                             except:
                                 HelpWindow(
                                     self, "This seems not to be a valid nc, hdf4 or hdf5 file: " + str(m_file) + "\n" +
-                                    "If you believe it is, please report back")
+                                          "If you believe it is, please report back")
                                 return
         else:
             self.name = "internal"
@@ -794,8 +847,8 @@ class App(QMainWindow):
                 mydata = np.squeeze(self.model.itemFromIndex(signal).mdata.get_value())
             else:
                 mydata, unt = np.squeeze(check_for_time(self.model.itemFromIndex(signal).mdata))
-                #mydata = np.squeeze(self.model.itemFromIndex(signal).mdata[:])
-                #if "time" in self.model.itemFromIndex(signal).mdata.name.lower():
+                # mydata = np.squeeze(self.model.itemFromIndex(signal).mdata[:])
+                # if "time" in self.model.itemFromIndex(signal).mdata.name.lower():
                 #    #print("time is in name")
                 #    try:
                 #        unit = self.model.itemFromIndex(signal).mdata.units
@@ -812,7 +865,7 @@ class App(QMainWindow):
                 return
         except AttributeError:
             HelpWindow(self, "you need to click the first column ('name'), \n" +
-                             "not anything else in order to plot a variable or open a group")
+                       "not anything else in order to plot a variable or open a group")
             return
         except KeyError:
             HelpWindow(
@@ -828,22 +881,27 @@ class App(QMainWindow):
                     if last_tab is not None and self.config["Tableview"]["tabbing"]:
                         self.tabifyDockWidget(last_tab, self.view.tab)
             except Exception as ex:
-                HelpWindow(self, str(ex)+"cannot plot data or display information")
+                HelpWindow(self, str(ex) + "cannot plot data or display information")
             return
         if mydata.ndim >= 3 and mydata.ndim <= self.config["moreDdata"]["limit_for_sliceplot"]:
             temp = Fast3D(
                 mydata, parent=self, **self.config["Startingsize"]["3Dplot"],
-                mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme, mydata_dims=mydata_dims)
+                mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme,
+                mydata_dims=mydata_dims)
             self.openplots.append(temp)
-        elif mydata.ndim == 2 and self.config["moreDdata"]["limit_for_sliceplot"]>1:
+        elif mydata.ndim == 2 and self.config["moreDdata"]["limit_for_sliceplot"] > 1:
             if self.only_indices:
                 temp = Fast2D(self,
-                    mydata, parent=self, **self.config["Startingsize"]["2Dplot"], **self.config["Plotsettings"],
-                    mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme, only_indices=self.current_idx, mydata_dims=mydata_dims)
+                              mydata, parent=self, **self.config["Startingsize"]["2Dplot"],
+                              **self.config["Plotsettings"],
+                              mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme,
+                              only_indices=self.current_idx, mydata_dims=mydata_dims)
             else:
                 temp = Fast2D(self,
-                    mydata, parent=self, **self.config["Startingsize"]["2Dplot"], **self.config["Plotsettings"],
-                    mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme, mydata_dims=mydata_dims)
+                              mydata, parent=self, **self.config["Startingsize"]["2Dplot"],
+                              **self.config["Plotsettings"],
+                              mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme,
+                              mydata_dims=mydata_dims)
             self.openplots.append(temp)
         elif mydata.ndim == 1:
             mdata = Data()
@@ -857,14 +915,16 @@ class App(QMainWindow):
                         print("searching in: ", self.model.itemFromIndex(signal).mdata.group()[dimhere])
                         xdata, unt = check_for_time(self.model.itemFromIndex(signal).mdata.group()[dimhere])
                     except:
-                        try: 
+                        try:
                             xdata, unt = check_for_time(self.model.itemFromIndex(signal).mdata.group().parent[dimhere])
                         except:
                             try:
-                                xdata, unt = check_for_time(self.model.itemFromIndex(signal).mdata.group().parent.parent[dimhere])
+                                xdata, unt = check_for_time(
+                                    self.model.itemFromIndex(signal).mdata.group().parent.parent[dimhere])
                             except:
                                 try:
-                                    xdata, unt = check_for_time(self.model.itemFromIndex(signal).mdata.group().parent.parent.parent[dimhere])
+                                    xdata, unt = check_for_time(
+                                        self.model.itemFromIndex(signal).mdata.group().parent.parent.parent[dimhere])
                                 except:
                                     xdata = arange(len(mydata))
                                     unt = ""
@@ -875,15 +935,15 @@ class App(QMainWindow):
             test = thisdata
             while hasattr(test, "group"):
                 try:
-                    mpath = test.group().name +"/"+ mpath
+                    mpath = test.group().name + "/" + mpath
                 except KeyError:
                     mpath = mpath
                 test = test.group()
             try:
-                mdata.y.set(mydata, mpath +thisdata.name, units=thisdata.units)
+                mdata.y.set(mydata, mpath + thisdata.name, units=thisdata.units)
             except Exception as err:
-                print("trying to get unit: ", err)      
-                mdata.y.set(mydata, mpath +thisdata.name)
+                print("trying to get unit: ", err)
+                mdata.y.set(mydata, mpath + thisdata.name)
             # TODO: The above maybe set via config file if I want the whole path or only the var
             if self.holdon:
                 if isinstance(self.active1D, Fast2D):
@@ -895,15 +955,15 @@ class App(QMainWindow):
                             HelpWindow(self, "old axis has datetime x, new x data is not datetime. unselect hold")
                             return
                         elif not isinstance(self.active1D.mydata.x.datavalue[0],
-                                      datetime.datetime) and isinstance(mdata.x.datavalue[0], datetime.datetime):
+                                            datetime.datetime) and isinstance(mdata.x.datavalue[0], datetime.datetime):
                             HelpWindow(self, "old axis has not datetime x, new x data is datetime. unselect hold")
                             return
                         elif isinstance(self.active1D.mydata.y.datavalue[0],
-                                      datetime.datetime) and not isinstance(mdata.y.datavalue[0], datetime.datetime):
+                                        datetime.datetime) and not isinstance(mdata.y.datavalue[0], datetime.datetime):
                             HelpWindow(self, "old axis has datetime y, new y data is not datetime. unselect hold")
                             return
                         elif not isinstance(self.active1D.mydata.y.datavalue[0],
-                                      datetime.datetime) and isinstance(mdata.y.datavalue[0], datetime.datetime):
+                                            datetime.datetime) and isinstance(mdata.y.datavalue[0], datetime.datetime):
                             HelpWindow(self, "old axis has not datetime y, new y data is datetime. unselect hold")
                             return
                         else:
@@ -913,14 +973,15 @@ class App(QMainWindow):
             else:
                 if self.only_indices:
                     temp = Fast1D(self,
-                        mdata, **self.config["Startingsize"]["1Dplot"],
-                        mname=thisdata.name, filename=self.name,
-                        dark=self.dark, plotscheme=self.plotscheme, only_indices=self.current_idx, mydata_dims=mydata_dims)
+                                  mdata, **self.config["Startingsize"]["1Dplot"],
+                                  mname=thisdata.name, filename=self.name,
+                                  dark=self.dark, plotscheme=self.plotscheme, only_indices=self.current_idx,
+                                  mydata_dims=mydata_dims)
                 else:
                     temp = Fast1D(self,
-                        mdata, **self.config["Startingsize"]["1Dplot"],
-                        mname=thisdata.name, filename=self.name,
-                        dark=self.dark, plotscheme=self.plotscheme, mydata_dims=mydata_dims)
+                                  mdata, **self.config["Startingsize"]["1Dplot"],
+                                  mname=thisdata.name, filename=self.name,
+                                  dark=self.dark, plotscheme=self.plotscheme, mydata_dims=mydata_dims)
                 self.active1D = temp
                 self.openplots.append(temp)
         elif mydata.ndim > self.config["moreDdata"]["limit_for_sliceplot"]:
@@ -932,24 +993,29 @@ class App(QMainWindow):
             mydimdict = {}
             for midx, dimhere in enumerate(mydata_dims):
                 if dimhere in mydimdict.keys():
-                    dimhere = dimhere+ str(midx)
+                    dimhere = dimhere + str(midx)
                 try:
                     mydimdict[dimhere], _ = check_for_time(self.model.itemFromIndex(signal).mdata.group()[dimhere])
                 except:
-                    try: 
-                        mydimdict[dimhere], _ = check_for_time(self.model.itemFromIndex(signal).mdata.group().parent[dimhere])
+                    try:
+                        mydimdict[dimhere], _ = check_for_time(
+                            self.model.itemFromIndex(signal).mdata.group().parent[dimhere])
                     except:
                         try:
-                            mydimdict[dimhere], _ = check_for_time(self.model.itemFromIndex(signal).mdata.group().parent.parent[dimhere])
+                            mydimdict[dimhere], _ = check_for_time(
+                                self.model.itemFromIndex(signal).mdata.group().parent.parent[dimhere])
                         except:
                             try:
-                                mydimdict[dimhere], _ = check_for_time(self.model.itemFromIndex(signal).mdata.group().parent.parent.parent[dimhere])
+                                mydimdict[dimhere], _ = check_for_time(
+                                    self.model.itemFromIndex(signal).mdata.group().parent.parent.parent[dimhere])
                             except:
                                 print("no variable found with dimension name ", dimhere)
                                 mydimdict[dimhere] = None
             temp = Fast2D_select(self,
-                    mydata, parent=self, **self.config["Startingsize"]["nDplot"], **self.config["Plotsettings"],
-                    mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme, mydata_dims=mydimdict)
+                                 mydata, parent=self, **self.config["Startingsize"]["nDplot"],
+                                 **self.config["Plotsettings"],
+                                 mname=thisdata.name, filename=self.name, dark=self.dark, plotscheme=self.plotscheme,
+                                 mydata_dims=mydimdict)
             self.openplots.append(temp)
         else:
             HelpWindow(self, "nothing to plot, it seems to be a scalar")
@@ -1123,9 +1189,10 @@ def main(myfile=None):
     new_font = my_graphics.font()
     new_font.setPointSize(config["Startingsize"]["Fontsize"])
     my_graphics.setFont(new_font)
-    #my_graphics.setStyleSheet(os.path.join(here, "qt_stylesheet.css"))
+    # my_graphics.setStyleSheet(os.path.join(here, "qt_stylesheet.css"))
     main = App2(myfile)
     sys.exit(my_graphics.exec_())
+
 
 def showdict(mydict):
     global CONFIGPATH
@@ -1144,6 +1211,7 @@ def showdict(mydict):
         main.setPalette(palette)
     main.show()
     my_graphics.exec_()
+
 
 class App2(QWidget):
     def __init__(self, files):
@@ -1184,31 +1252,33 @@ class App2(QWidget):
             name = self.windows[0].mdata.__dict__[which.split("(")[0]].name_value
             path = self.windows[0].mdata.__dict__[which.split("(")[0]].path
             for idx in range(1, len(self.windows)):
-                if len(path)> 0:
+                if len(path) > 0:
                     try:
                         mdata, unit = check_for_time(self.windows[idx].mfile[path])
-                        #mdata = self.windows[idx].mfile[path][:]
+                        # mdata = self.windows[idx].mfile[path][:]
                         thisname = path
                     except TypeError as te:
                         HelpWindow(self, "setting same variables for x, y, z, ... is currently not supported for hdf4")
                         return
                     except KeyError as ke:
-                        HelpWindow(self, "probably it was tried to set a variable as x,y,z, xerror or yerror that does not exist. The error message is: "+str(ke))
+                        HelpWindow(self,
+                                   "probably it was tried to set a variable as x,y,z, xerror or yerror that does not exist. The error message is: " + str(
+                                       ke))
                         return
                     except IndexError:
                         try:
                             thisname, col = path.split(",col=")
-                            col= int(col)
+                            col = int(col)
                             mdata, unit = check_for_time(self.windows[idx].mfile[thisname])
                             mdata = mdata[:, int(col)]
-                            #mdata = self.windows[idx].mfile[thisname][:, int(col)]
+                            # mdata = self.windows[idx].mfile[thisname][:, int(col)]
                         except (ValueError, IndexError):
                             try:
                                 thisname, row = path.split(",row=")
                                 row = int(row)
                                 mdata, unit = check_for_time(self.windows[idx].mfile[thisname])
                                 mdata = mdata[thisname][int(row), :]
-                                #mdata = self.windows[idx].mfile[thisname][int(row), :]
+                                # mdata = self.windows[idx].mfile[thisname][int(row), :]
                             except (IndexError, ValueError) as err:
                                 print(err)
                                 if "slice" in path:
@@ -1225,7 +1295,8 @@ class App2(QWidget):
                                         elif dim == "2":
                                             mdata = mdata[row, :, mslice]
                                         else:
-                                            HelpWindow(self, "currently, set same data only supports base data up to 3 dimensions")
+                                            HelpWindow(self,
+                                                       "currently, set same data only supports base data up to 3 dimensions")
                                             print("not supported right now")
                                             return
                                     except ValueError:
@@ -1238,13 +1309,32 @@ class App2(QWidget):
                                         elif dim == "2":
                                             mdata = mdata[:, col, mslice]
                                         else:
-                                            HelpWindow(self, "currently, set same data only supports base data up to 3 dimensions")
+                                            HelpWindow(self,
+                                                       "currently, set same data only supports base data up to 3 dimensions")
                                             print("not supported right now")
                                             return
                     self.windows[idx].mdata.__dict__[which.split("(")[0]].set(mdata, name, thisname)
 
+
+class ScrollLabel(QScrollArea):
+    def __init__(self, *args, **kwargs):
+        QScrollArea.__init__(self, *args, **kwargs)
+        self.setWidgetResizable(True)
+        content = QWidget(self)
+        self.setWidget(content)
+        lay = QVBoxLayout(content)
+        self.label = QLabel(content)
+        self.label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+        self.label.setWordWrap(True)
+        lay.addWidget(self.label)
+
+    def setText(self, text):
+        # setting text to the label
+        self.label.setText(text)
+
+
 if __name__ == '__main__':
-    
+
     mfile = sys.argv[1:]
     if len(mfile) > 0:
         main(mfile)

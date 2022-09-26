@@ -500,7 +500,10 @@ class TableModel(QtCore.QAbstractTableModel):
         if role == QtCore.Qt.DisplayRole:
             if self.header is not None:
                 if orientation == QtCore.Qt.Horizontal:
-                    name = self.header["x"][column]
+                    try:
+                        name = self.header["x"][column]
+                    except:
+                        name = str(column)
                     return QtCore.QVariant(name)
                 elif orientation == QtCore.Qt.Vertical:
                     name = self.header["y"][column]
