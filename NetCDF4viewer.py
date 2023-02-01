@@ -8,6 +8,7 @@ import numpy as np
 import pyhdf.error
 import pandas
 import subprocess
+
 # import copy
 import datetime
 from PyQt5 import QtCore
@@ -62,7 +63,7 @@ def dimming():
     '''
     dim screen for .1 second
     
-    This is was intended to be used to indicate copying, currently not used.
+    This was intended to be used to indicate copying, currently not used.
     '''
     get = subprocess.check_output(["xrandr", "--verbose"]).decode("utf-8").split()
     for s in [get[i - 1] for i in range(len(get)) if get[i] == "connected"]:
@@ -109,7 +110,7 @@ class MyQTreeView(QTreeView):
             except Exception as err:
                 mydata = current_pointer.mdata
                 unit = ""
-                if event.text() != "d":
+                if event.text() not in  ["d", "a"]:
                     raise err
             print("unit to set is: ", unit)
             try:
@@ -166,6 +167,23 @@ class MyQTreeView(QTreeView):
                 self.tab = self.open_infotab(attributes, current_pointer.name)
                 if last_tab is not None and self.master.config["Tableview"]["tabbing"]:
                     self.master.tabifyDockWidget(last_tab, self.tab)
+            elif event.text() == "a":
+                print("     INFO on ", current_pointer.name)
+                try:
+                    my_dimensions = {current_pointer.mdata.dimensions[entr].name.ljust(50): 
+                                         current_pointer.mdata.dimensions[entr].size for
+                                         entr in current_pointer.mdata.dimensions}
+                    self.tab = self.open_infotab(my_dimensions, current_pointer.name, which="dimensions ")
+                except:
+                    dimnames = current_pointer.mdata.dimensions
+                    dimsizes = current_pointer.mdata.shape
+                    try:
+                        my_dimensions = {nm: sz for nm, sz in zip(dimnames, dimsizes)}
+                    except Exception as ex:
+                        print(ex)
+                    self.tab = self.open_infotab(my_dimensions, current_pointer.name, which="dimensions ")
+                for nam, val in my_dimensions.items():
+                    print(nam, ":", val)
             elif event.text() == "s":
                 # open tableview
                 last_tab = self.tab
@@ -229,14 +247,14 @@ class MyQTreeView(QTreeView):
                         print("Something wen wrong:", exc)
         except TypeError as te:
             HelpWindow(self.master, "likely you clicked a group and pressed x, y, u or e. \n"
-                                    "On groups, only d works to show details." + str(te))
+                                    "On groups, only d and a works to show details and dimensions, respectively." + str(te))
         except AttributeError as err:
             HelpWindow(self.master, str(err) +
                        "something went wrong. Possibly you did not click in the first column of a variable\n"
                        " when clicking x,y,u,e or d. You have to be in the 'name' column when clicking.")
 
-    def open_infotab(self, mlist, varname):
-        dock_widget = QDockWidget("attributes " + varname)
+    def open_infotab(self, mlist, varname, which="attributes "):
+        dock_widget = QDockWidget(which + varname)
         if self.master.dark:
             dock_widget.setPalette(QDarkPalette())
         canvas_widget = ScrollLabel()
@@ -618,7 +636,6 @@ class App(QMainWindow):
         def get_flag_number():
             try:
                 num = float(flag_entry.text())
-
                 mname = self.mdata.flag.name_value + " " + self.mdata.flag_op + str(num)
                 # I need to check x,y,z, for the moment, assume z:
                 if "<" in self.mdata.flag_op:
@@ -633,6 +650,8 @@ class App(QMainWindow):
                 # self.mdata.misc.set(zdata, self.mdata.misc.name_value + " at " + mname)
             except ValueError:
                 print("no value found")
+            except TypeError:
+                print("maybe no flag chosen?")
 
         # make flag_layout fields:
         flag_entry = QLineEdit()
@@ -665,9 +684,14 @@ class App(QMainWindow):
                     myval = np.ma.masked_array(myval, np.full(myval.shape, False))
                 if not isinstance(myval.mask, np.ndarray):
                     myval.mask = np.full(myval.shape, False)
-                myval.mask[~my_flag] = True
-                my_name = self.mdata.__dict__[to_use].name_value + " only " + self.mdata.flag.name_value
-                self.mdata.__dict__[to_use].set(myval, my_name, dimension=self.mdata.__dict__[to_use].dimension)
+                try:
+                    myval.mask[~my_flag] = True
+                    my_name = self.mdata.__dict__[to_use].name_value + " only " + self.mdata.flag.name_value
+                    self.mdata.__dict__[to_use].set(myval, my_name, dimension=self.mdata.__dict__[to_use].dimension)
+                except IndexError as exc:
+                    HelpWindow(self, "probably flag and x,y have different dimensions: "+str(exc))
+                except TypeError:
+                    HelpWindow(self, "check your flag condition, something went wrong there")
 
             button.clicked.connect(lambda state, x=el: apply_flag(x))
         flag_widget.setLayout(flag_layout)
@@ -1070,9 +1094,10 @@ class App(QMainWindow):
             currentitemlevel = Pointer(currentlevel, currentitemlevel)
         else:
             attrs = ", ".join([str(attr) for attr in currentlevel.ncattrs()])
+            dims = ", ".join([str(dim) for dim in currentlevel.dimensions])
             currentitemlevel.appendRow([
                 self.walk_down_netcdf(currentlevel, self.name), QStandardItem(""), QStandardItem(""),
-                QStandardItem(""), QStandardItem(""), QStandardItem(""), QStandardItem(attrs)])
+                QStandardItem(dims), QStandardItem(""), QStandardItem(""), QStandardItem(attrs)])
             return currentitemlevel
         try:
             totallist = list(currentlevel.groups.keys())

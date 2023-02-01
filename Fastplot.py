@@ -1365,6 +1365,7 @@ class Fast2D(QMainWindow):  # only_indices does currently not work for 2D x-y-z 
         # else:
         if newz.datavalue is None:
             label = newx.name_value + " vs " + newy.name_value
+            # label = newx.path + " vs " + newy.path
             try:
                 if symbol:
                     self.myfigure.axes.plot(newx.datavalue, newy.datavalue, marker=symbol, lw=0, label=label)
@@ -1796,6 +1797,17 @@ class Fast1D(QMainWindow):
                     self.myfigure.axes.plot(row, ydata, label=label)
         else:
             label = mydata.x.text().split(":")[1] + " vs " + mydata.y.text().split(":")[1]
+            try:  # TODO this should be configurable
+                xpath = "/".join(mydata.x.path.split("/")[2:-1])+"/"
+                ypath = "/".join(mydata.y.path.split("/")[2:-1])+"/"
+            except:
+                xpath = "/".join(mydata.x.path.split("/")[1:-1])+"/"
+                ypath = "/".join(mydata.y.path.split("/")[1:-1])+"/"
+            if len(xpath) == 1:
+                xpath = ""
+            if len(ypath) == 1:
+                ypath = ""
+            label = xpath + mydata.x.text().split(": ")[1] + " vs " + ypath + mydata.y.text().split(": ")[1]
             xdata = ma.copy(mydata.x.datavalue)
             ydata = ma.copy(mydata.y.datavalue)
             if oi is not None:

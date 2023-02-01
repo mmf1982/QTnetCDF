@@ -99,10 +99,10 @@ class FileMenu(QMenuBar):
         previous = self.addAction(self.previous)
         mnext = self.addAction(self.next)
         open_config = self.addAction(self.openconfig)
-        #next_menu = self.addMenu('&previous')
-        #next_menu.addAction(self.previous)
-        #next_menu = self.addMenu('&next')
-        #next_menu.addAction(self.next)
+        # next_menu = self.addMenu('&previous')
+        # next_menu.addAction(self.previous)
+        # next_menu = self.addMenu('&next')
+        # next_menu.addAction(self.next)
 
     @property
     def openconfig(self):
@@ -112,15 +112,15 @@ class FileMenu(QMenuBar):
         return nextact
 
     def config_open(self):
-        #file_name = self.master.config["this_file"]
-        #if hasattr(os, "startfile"):
+        # file_name = self.master.config["this_file"]
+        # if hasattr(os, "startfile"):
         #    x = os.startfile(file_name)
-        #elif shutil.which("xdg-open"):
+        # elif shutil.which("xdg-open"):
         #    x = subprocess.call(["xdg-open", file_name])
         #    print("xdk")
-        #elif "EDITOR" in os.environ:
+        # elif "EDITOR" in os.environ:
         #    x = subprocess.call([os.environ["EDITOR"], file_name])
-        #print(x)
+        # print(x)
         new = Configchange(self)
 
     def open_menu(self):
@@ -225,11 +225,7 @@ class Configchange(QMainWindow):
         self.show()
         #self.connect(self, Qt.SIGNAL('triggered()'), self.closeEvent)
     def mchange(self, key, mentry):
-        #print(key, mentry.text())
         newvalue = mentry.text()
-        #print(type(newvalue))
-        #print(self.master.master.config["Plotsettings"][key])
-        #print(type(self.master.master.config["Plotsettings"][key]))
         try:
             newvalue = float(newvalue)
         except:
