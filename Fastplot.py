@@ -1855,6 +1855,13 @@ def make_lasso(xdata, ydata, mfunc, label, axis):
     return LassoSelector(axis, myfunc)
 
 
+class standalone:
+    def __init__(self,mdata):
+        self.app = QApplication([""])
+        self.mw = QMainWindow()
+        self.fast3d = Fast3D(mdata, self.mw)
+        
+
 class Fast3D(QMainWindow):
     def __init__(self, mydata, parent=None, mname=None, filename=None, dark=False, mydata_dims=None, **kwargs):
         """

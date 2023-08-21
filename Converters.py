@@ -21,7 +21,10 @@ except:
         try:
             import tools.MFC_Format as MFC
         except:
-            pass
+            try:
+                import QTnetCDF.MFC as MFC
+            except:
+                pass
 
 HDFTYPE = {pyhdf.HDF.HC.DFTAG_NDG: "HDF SDS",
            pyhdf.HDF.HC.DFTAG_VH: "HDF Vdata",

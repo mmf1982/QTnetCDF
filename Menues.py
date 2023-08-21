@@ -90,7 +90,7 @@ class Files(QMainWindow):
 
 
 class FileMenu(QMenuBar):
-    def __init__(self, my_master):
+    def __init__(self, my_master, forspec=False):
         super().__init__(my_master)
         self.master = my_master
         file_menu = self.addMenu('&File')
@@ -99,6 +99,7 @@ class FileMenu(QMenuBar):
         previous = self.addAction(self.previous)
         mnext = self.addAction(self.next)
         open_config = self.addAction(self.openconfig)
+        self.forspec = forspec
         # next_menu = self.addMenu('&previous')
         # next_menu.addAction(self.previous)
         # next_menu = self.addMenu('&next')
@@ -202,6 +203,8 @@ class Configchange(QMainWindow):
         keylist = ["country_line_color", "country_line_thickness",
                     "limit_for_sliceplot",
                    "update_plot_immediately", "newplotwindow"]
+        if self.master.forspec:
+            keylist = ["manual"]
         for key in keylist:
             mlayoutsub = QHBoxLayout()
             mlabel = QLabel(key)
@@ -210,7 +213,11 @@ class Configchange(QMainWindow):
             try:
                 mfield = QLineEdit(str(self.master.master.config["Plotsettings"][key]))
             except KeyError:
-                mfield = QLineEdit(str(self.master.master.config["moreDdata"][key]))
+                try:
+                    mfield = QLineEdit(str(self.master.master.config["moreDdata"][key]))
+                except KeyError:
+                    key="manual"
+                    mfield = QLineEdit(str(self.master.master.config["settings"]["offset"][key]))
             slotLambda = lambda k=key, v=mfield: self.mchange(k, v)
             mfield.editingFinished.connect(slotLambda)
             
@@ -235,11 +242,14 @@ class Configchange(QMainWindow):
                 newvalue = False
             else:
                 pass
-        if key in self.master.master.config["Plotsettings"]:
-            self.master.master.config["Plotsettings"][key] = newvalue
+        if self.master.forspec:
+            self.master.master.config["settings"]["offset"][key] = int(newvalue)
         else:
-            self.master.master.config["moreDdata"][key] = newvalue
-        return
+            if key in self.master.master.config["Plotsettings"]:
+                self.master.master.config["Plotsettings"][key] = newvalue
+            else:
+                self.master.master.config["moreDdata"][key] = newvalue
+            return
 
     def closeEvent(self, event):
         self.destroy()
