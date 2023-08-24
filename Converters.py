@@ -73,12 +73,16 @@ class MyQLabel(QLabel):
         self.units = units
         self.dimension = dimension
         if dimension is None or len(dimension) == 0:
-            self.dimension = numpy.arange(value.ndim)
+            try:
+                self.dimension = numpy.arange(value.ndim)
+            except:
+                self.dimension = None
         self.path = "/".join([path, self.name_value])
 
     def mousePressEvent(self, event):
         self.setText(self.name + ": ")
         self.datavalue = None
+        self.name_value = None
 
     def copy(self):
         class Dummy(object):
@@ -173,6 +177,7 @@ class Hdf4Object:
 
     def __init__(self, filename: str):
         self.done = []
+        self.myrefdict = {}
         self.sd = pyhdf.SD.SD(filename)
         self.hdf = pyhdf.HDF.HDF(filename)
         self.vs = self.hdf.vstart()
@@ -322,6 +327,7 @@ class Hdf4Object:
                     myobj = Representative(ref, tag, self)
                     name = Text(myobj)
                     mydict[name] = myobj
+                    self.myrefdict[ref] = myobj
                     refsdone.extend([ref])
                 self.done.append(ref)
         return mydict, refsdone

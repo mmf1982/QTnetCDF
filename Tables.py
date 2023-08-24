@@ -33,6 +33,10 @@ class MyTable(QWidget):
         :param master:  Main Window
         :param data:  data handle or ndnp.array
         """
+        #from PyQt5.QtCore import pyqtRemoveInputHook
+        #pyqtRemoveInputHook()
+        #import pdb
+        #pdb.set_trace()
         super(MyTable, self).__init__()
         self.master = master
         try:
@@ -85,6 +89,8 @@ class MyTable(QWidget):
         self.sliceinfo = None
         self.diminfo2 = None
         self.slcieinfo2 = None
+        #pdb.set_trace()
+        
         if hasattr(data, "mdata"):
             if isinstance(data.mdata, Representative):
                 self.all_data = np.squeeze(data.mdata.get_value())
@@ -92,7 +98,7 @@ class MyTable(QWidget):
                 try:
                     self.all_data = np.squeeze(data.mdata[:])
                 except:
-                    self.all_data = np.np.array([data.mdata])
+                    self.all_data = np.array([data.mdata])
         else:
             self.all_data = np.squeeze(data)
         self.make_design()

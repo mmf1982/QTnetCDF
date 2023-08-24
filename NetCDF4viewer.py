@@ -8,7 +8,6 @@ import numpy as np
 import pyhdf.error
 import pandas
 import subprocess
-
 # import copy
 import datetime
 from PyQt5 import QtCore
@@ -19,7 +18,6 @@ from PyQt5.QtWidgets import (QApplication, QTreeView, QAbstractItemView, QMainWi
 # from cftime import date2num, num2date
 
 import matplotlib
-
 try:
     from .Fastplot import Fast3D, Fast2D, Fast1D, Fast2Dplus, Fast2D_select
 except (ImportError, ModuleNotFoundError):
@@ -54,10 +52,8 @@ from numpy import arange, squeeze
 CONFIGPATH = ""
 C_LINES = None
 
-
 # __version__ = "0.0.4"
 # __author__ = "Martina M. Friedrich"
-
 
 def dimming():
     '''
@@ -79,7 +75,7 @@ class Pointer(QStandardItem):
     class to add underlying data to an item in treeview
     """
 
-    def __init__(self, mdata, name):
+    def __init__(self, mdata, name, path=""):
         """
         :param mdata: group of variable handle, underlying data
         :param name: string to be used in QStandardItem constructor
@@ -87,6 +83,7 @@ class Pointer(QStandardItem):
         super(Pointer, self).__init__(name)
         self.mdata = mdata
         self.name = name
+        self.path = path
 
 
 class MyQTreeView(QTreeView):
@@ -112,7 +109,7 @@ class MyQTreeView(QTreeView):
                 unit = ""
                 if event.text() not in  ["d", "a"]:
                     raise err
-            print("unit to set is: ", unit)
+            # print("unit to set is: ", unit)
             try:
                 mypath = current_pointer.mdata.group().path
             except:
@@ -130,7 +127,7 @@ class MyQTreeView(QTreeView):
                     attributes = {key: current_pointer.mdata.getncattr(key) for key in
                                   current_pointer.mdata.ncattrs()}
                 else:
-                    print(current_pointer.mdata)
+                    #print(current_pointer.mdata)
                     print("\n\n\n")
                     try:
                         attributes = current_pointer.name.data.attributes
@@ -224,27 +221,49 @@ class MyQTreeView(QTreeView):
                 self.master.mdata.xerr.set(squeeze(mydata), current_pointer.mdata.name, mypath, units=unit)
             elif event.text() == "f":
                 self.master.mdata.flag.set(squeeze(mydata), current_pointer.mdata.name, mypath, units=unit)
-            elif event.text() == "m":
-                if self.master.mdata.misc.datavalue is None:
-                    thisdims = tuple([mds for mds in current_pointer.mdata.dimensions if mds != 1])
-                    self.master.mdata.misc.set(
-                        squeeze(mydata.astype("float")), current_pointer.mdata.name, dimension=thisdims, units=unit)
+            elif event.text() == "m":  # TODO: what to do for mfc?
+                if self.master.filetype == "hdf4":
+                    mval = "self.mfile.myrefdict[int("+str(current_pointer.mdata.myref)+")].get_value()"
                 else:
-                    try:
-                        if "+" in self.master.mdata.misc_op:
-                            mdata = self.master.mdata.misc.datavalue + squeeze(mydata)
-                        elif "-" in self.master.mdata.misc_op:
-                            mdata = self.master.mdata.misc.datavalue - squeeze(mydata)
-                        elif "/" in self.master.mdata.misc_op:
-                            mdata = self.master.mdata.misc.datavalue / squeeze(mydata)
-                        elif "*" in self.master.mdata.misc_op:
-                            mdata = self.master.mdata.misc.datavalue * squeeze(mydata)
-                        mname = self.master.mdata.misc.name_value + self.master.mdata.misc_op + current_pointer.mdata.name
-                        self.master.mdata.misc.set(mdata, mname)
-                    except ValueError as verr:
-                        HelpWindow(self, "likely dimensions that don't fit together: " + str(verr))
-                    except Exception as exc:
-                        print("Something wen wrong:", exc)
+                    mypath = current_pointer.path
+                    if self.master.filetype == "mfc":
+                        if mypath:
+                            fullpath = "']['".join(mypath.lstrip("/").split("/"))
+                        else:
+                            fullpath = current_pointer.mdata.name
+                    else:
+                        fullpath = mypath+"/"+current_pointer.mdata.name
+                    mval = "self.mfile['"+fullpath+"'][:]"
+                    
+                textshow = current_pointer.mdata.name
+                if self.master.mdata.misc.datavalue is None:
+                    self.master.mdata.misc.set(mval, textshow)
+                else:
+                    textshow = self.master.mdata.misc.name_value+textshow
+                    mval = self.master.mdata.misc.datavalue+mval
+                    self.master.mdata.misc.set(mval, textshow)
+                isold=False
+                if isold:
+                    if self.master.mdata.misc.datavalue is None:
+                        thisdims = tuple([mds for mds in current_pointer.mdata.dimensions if mds != 1])
+                        self.master.mdata.misc.set(
+                            squeeze(mydata.astype("float")), current_pointer.mdata.name, dimension=thisdims, units=unit)
+                    else:
+                        try:
+                            if "+" in self.master.mdata.misc_op:
+                                mdata = self.master.mdata.misc.datavalue + squeeze(mydata)
+                            elif "-" in self.master.mdata.misc_op:
+                                mdata = self.master.mdata.misc.datavalue - squeeze(mydata)
+                            elif "/" in self.master.mdata.misc_op:
+                                mdata = self.master.mdata.misc.datavalue / squeeze(mydata)
+                            elif "*" in self.master.mdata.misc_op:
+                                mdata = self.master.mdata.misc.datavalue * squeeze(mydata)
+                            mname = self.master.mdata.misc.name_value + self.master.mdata.misc_op + current_pointer.mdata.name
+                            self.master.mdata.misc.set(mdata, mname)
+                        except ValueError as verr:
+                            HelpWindow(self, "likely dimensions that don't fit together: " + str(verr))
+                        except Exception as exc:
+                            print("Something wen wrong:", exc)
         except TypeError as te:
             HelpWindow(self.master, "likely you clicked a group and pressed x, y, u or e. \n"
                                     "On groups, only d and a works to show details and dimensions, respectively." + str(te))
@@ -553,14 +572,23 @@ class App(QMainWindow):
                     misc_layout.addWidget(self.mdata.__dict__[entr])
 
         def get_number():
-            try:
+            #try:
                 try:
                     thisdims = list(self.mdata.misc.dimension)
                     if len(thisdims) == 0:
                         raise ValueError()
                 except Exception as exs:
                     thisdims = []
-                num = float(entry.text())
+                previousvalue = self.mdata.misc.datavalue
+                previoustext = self.mdata.misc.name_value
+                newtext = self.mentry.text()
+                self.mentry.clear()
+                if not previoustext: previoustext = ""
+                if not previousvalue: previousvalue = ""
+                self.mdata.misc.set(previousvalue+newtext, previoustext + newtext)
+                return
+                '''
+                num = float(self.mentry.text())
                 if self.mdata.misc.datavalue is None:
                     self.mdata.misc.set(num, str(num))
                 else:
@@ -632,6 +660,7 @@ class App(QMainWindow):
                     self.mdata.misc.set(mdata, mname, dimension=thisdims)
             except ValueError:
                 pass
+            '''
 
         def get_flag_number():
             try:
@@ -669,12 +698,11 @@ class App(QMainWindow):
                 self.mdata.flag.setText(self.mdata.flag.name + ": " + self.mdata.flag.name_value + " " + el)
 
             button.clicked.connect(lambda state, x=el: func_flag(x))
-        for el in ["on x", "on y", "on z", "on misc"]:
+        for el in ["on x", "on y", "on z"]:  #TODO: on misc needs rework, "on misc"
             button = QPushButton(el)
             width = button.fontMetrics().boundingRect(el).width() + 8
             button.setMaximumWidth(width)
             flag_layout.addWidget(button)
-
             def apply_flag(el):
                 my_flag = self.mdata.flag.datavalue
                 name = self.mdata.flag.name_value
@@ -692,89 +720,87 @@ class App(QMainWindow):
                     HelpWindow(self, "probably flag and x,y have different dimensions: "+str(exc))
                 except TypeError:
                     HelpWindow(self, "check your flag condition, something went wrong there")
-
             button.clicked.connect(lambda state, x=el: apply_flag(x))
         flag_widget.setLayout(flag_layout)
         showall_layout.addWidget(flag_widget)
-        # make misc_layout fieds:
-        entry = QLineEdit()
-        entry.returnPressed.connect(get_number)
-        entry.setFixedWidth(40)
+        self.mentry = QLineEdit()
+        self.mentry.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self.mentry.returnPressed.connect(get_number)
+        self.mentry.editingFinished.connect(get_number)
+
         ## self.entry.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        misc_layout.addWidget(entry)  # , alignment=QtCore.Qt.AlignHCenter)
-        for el in ["+", "-", "/", "*", "mean", "median"]:
-            button = QPushButton(el)
-            width = button.fontMetrics().boundingRect(el).width() + 8
-            button.setMaximumWidth(width)
-            misc_layout.addWidget(button)
-
-            def func(el):
-                # print(el)
-                self.mdata.misc_op = el
-
-            button.clicked.connect(lambda state, x=el: func(x))
+        misc_layout.addWidget(self.mentry)  # , alignment=QtCore.Qt.AlignHCenter)
         for use_as in ["as x", "as y", "as z"]:
             button = QPushButton(use_as)
             width = button.fontMetrics().boundingRect(use_as).width() + 8
             button.setMaximumWidth(width)
             misc_layout.addWidget(button)
-
             def funcxyz(which):
-                val = self.mdata.misc.datavalue
+                val = eval(self.mdata.misc.datavalue)
                 name = self.mdata.misc.name_value
-                dims = self.mdata.misc.dimension
                 if "x" in which:
-                    self.mdata.x.set(val, name, dimension=dims)
+                    self.mdata.x.set(val, name)
                 elif "y" in which:
-                    self.mdata.y.set(val, name, dimension=dims)
+                    self.mdata.y.set(val, name)
                 elif "z" in which:
-                    self.mdata.z.set(val, name, dimension=dims)
-
+                    self.mdata.z.set(val, name)
             button.clicked.connect(lambda state, w=use_as: funcxyz(w))
         button_plot = QPushButton("plot misc")
         width = button_plot.fontMetrics().boundingRect("plot misc").width() + 8
         button_plot.setMaximumWidth(width)
         misc_layout.addWidget(button_plot)
-
+        button_table = QPushButton("view misc")
+        width = button_plot.fontMetrics().boundingRect("view misc").width() + 8
+        button_table.setMaximumWidth(width)
+        misc_layout.addWidget(button_table)
+        def misctable():
+            last_tab = self.view.tab
+            datavalue = eval(self.mdata.misc.datavalue)
+            namevalue = self.mdata.misc.name_value
+            mpointer = Pointer(datavalue, namevalue)
+            self.view.tab = self.view.open_table(mpointer)
+            if last_tab is not None and self.config["Tableview"]["tabbing"]:
+                 self.tabifyDockWidget(last_tab, self.view.tab)
+        button_table.clicked.connect(misctable)
         def plotmisc():
-            if self.mdata.misc.datavalue.ndim >= 3:
-                temp = Fast3D(self.mdata.misc.datavalue,
-                              parent=self, **self.config["Startingsize"]["3Dplot"],
-                              mname=self.mdata.misc.name_value, filename=self.name, dark=self.dark,
+            datavalue = eval(self.mdata.misc.datavalue)
+            name = self.mdata.misc.name_value
+            if datavalue.ndim >=3:
+                temp = Fast3D(datavalue, parent=self, **self.config["Startingsize"]["3Dplot"],
+                              mname=name, filename=self.name, dark=self.dark,
                               plotscheme=self.plotscheme)
-                self.openplots.append(temp)
-            elif self.mdata.misc.datavalue.ndim == 2:
+            elif datavalue.ndim == 2:
                 if self.only_indices:
-                    temp = Fast2D(self, self.mdata.misc.datavalue, parent=self,
+                    temp = Fast2D(self, datavalue, parent=self,
                                   **self.config["Startingsize"]["2Dplot"],
-                                  **self.config["Plotsettings"], mname=self.mdata.misc.name_value,
+                                  **self.config["Plotsettings"], mname=name,
                                   filename=self.name, dark=self.dark,
                                   plotscheme=self.plotscheme, only_indices=self.current_idx)
                 else:
-                    temp = Fast2D(self, self.mdata.misc.datavalue,
+                    temp = Fast2D(self, datavalue,
                                   parent=self, **self.config["Startingsize"]["2Dplot"], **self.config["Plotsettings"],
-                                  mname=self.mdata.misc.name_value, filename=self.name, dark=self.dark,
+                                  mname=name, filename=self.name, dark=self.dark,
                                   plotscheme=self.plotscheme)
-                self.openplots.append(temp)
-            elif self.mdata.misc.datavalue.ndim == 1:
+            elif datavalue.ndim ==1:
                 mdata = Data()
-                mdata.x.set(arange(len(self.mdata.misc.datavalue)), "index")
-                mdata.y.set(self.mdata.misc.datavalue, self.mdata.misc.name_value)
+                mdata.x.set(arange(len(datavalue)), "index")
+                mdata.y.set(datavalue, name)
                 if self.holdon:
                     self.active1D.update_plot(mdata)
                 else:
                     if self.only_indices:
                         temp = Fast1D(
-                            self, mdata, **self.config["Startingsize"]["1Dplot"], mname=self.mdata.misc.name_value,
+                            self, mdata, **self.config["Startingsize"]["1Dplot"], mname=name,
                             filename=self.name, dark=self.dark, plotscheme=self.plotscheme,
                             only_indices=self.current_idx)
                     else:
                         temp = Fast1D(
-                            self, mdata, **self.config["Startingsize"]["1Dplot"], mname=self.mdata.misc.name_value,
+                            self, mdata, **self.config["Startingsize"]["1Dplot"], mname=name,
                             filename=self.name, dark=self.dark, plotscheme=self.plotscheme)
                     self.active1D = temp
-                    self.openplots.append(temp)
-
+            else:
+                return
+            self.openplots.append(temp)
         button_plot.clicked.connect(plotmisc)
         ## plus_button.resize(plus_button.sizeHint().width(), plus_button.sizeHint().height())
         misc_widget.setLayout(misc_layout)
@@ -1044,9 +1070,9 @@ class App(QMainWindow):
         else:
             HelpWindow(self, "nothing to plot, it seems to be a scalar")
 
-    def walk_down_mfc(self, currentlevel, currentitemlevel):
+    def walk_down_mfc(self, currentlevel, currentitemlevel, combine=""):
         if isinstance(currentitemlevel, str):
-            currentitemlevel = Pointer(currentlevel, currentitemlevel)
+            currentitemlevel = Pointer(currentlevel, currentitemlevel, path=combine)
         else:
             attrs = ""
             currentitemlevel.appendRow([
@@ -1075,12 +1101,12 @@ class App(QMainWindow):
                 try:
                     units = str(currentlevel[mkey].units)
                 except (AttributeError, KeyError):
-                    units = ""
+                    units = ""  # current_pointer.mdata.attributes
                 try:
                     dtype = str(currentlevel[mkey].dtype)
                 except (AttributeError, KeyError):
                     dtype = ""
-                last = [self.walk_down_mfc(currentlevel[mkey], mkey), QStandardItem(ndim),
+                last = [self.walk_down_mfc(currentlevel[mkey], mkey, combine=combine+"/"+mkey), QStandardItem(ndim),
                         QStandardItem(shape), QStandardItem(dims), QStandardItem(units),
                         QStandardItem(dtype), QStandardItem(attrs)]
                 currentitemlevel.appendRow(last)
@@ -1174,9 +1200,12 @@ class App(QMainWindow):
                 except (AttributeError, KeyError):
                     shape = ""
                 try:
-                    units = str(mkey.data.units)
+                    units = str(mkey.data.units) # current_pointer.mdata.attributes
                 except (AttributeError, KeyError):
-                    units = ""
+                    try:
+                        units = mkey.data.attributes["units"]
+                    except (AttributeError, KeyError):
+                        units = ""
                 try:
                     dtype = str(mkey.data.stype)
                 except (AttributeError, KeyError):
@@ -1207,14 +1236,11 @@ def main(myfile=None):
         CONFIGPATH = os.path.join(here, "config.yml")
     name = os.path.basename(myfile[0])
     my_graphics = QApplication([name])
-    # my_graphics.setStyle("Fusion")   .setStyleSheet("QWidget{font-size:30px;}");
-    # my_graphics.setStyle(QStyleFactory.create('Cleanlooks'))
     with open(CONFIGPATH) as fid:
         config = yaml.load(fid, yaml.Loader)
     new_font = my_graphics.font()
     new_font.setPointSize(config["Startingsize"]["Fontsize"])
     my_graphics.setFont(new_font)
-    # my_graphics.setStyleSheet(os.path.join(here, "qt_stylesheet.css"))
     main = App2(myfile)
     sys.exit(my_graphics.exec_())
 
@@ -1359,7 +1385,6 @@ class ScrollLabel(QScrollArea):
 
 
 if __name__ == '__main__':
-
     mfile = sys.argv[1:]
     if len(mfile) > 0:
         main(mfile)
