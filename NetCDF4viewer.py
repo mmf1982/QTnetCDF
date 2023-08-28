@@ -763,7 +763,15 @@ class App(QMainWindow):
                  self.tabifyDockWidget(last_tab, self.view.tab)
         button_table.clicked.connect(misctable)
         def plotmisc():
-            datavalue = eval(self.mdata.misc.datavalue)
+            try:
+                datavalue = eval(self.mdata.misc.datavalue)
+            except Exception as exc:
+                mtext = ("something went wrong. The expression: " +
+                      self.mdata.misc.datavalue + 
+                      " could not be evaluated. Please check that it is correct." +
+                      "The error reported is: " + str(exc))
+                HelpWindow(self, mtext)
+                return
             name = self.mdata.misc.name_value
             if datavalue.ndim >=3:
                 temp = Fast3D(datavalue, parent=self, **self.config["Startingsize"]["3Dplot"],
@@ -800,7 +808,8 @@ class App(QMainWindow):
                     self.active1D = temp
             else:
                 return
-            self.openplots.append(temp)
+            if not self.holdon:
+                self.openplots.append(temp)
         button_plot.clicked.connect(plotmisc)
         ## plus_button.resize(plus_button.sizeHint().width(), plus_button.sizeHint().height())
         misc_widget.setLayout(misc_layout)
