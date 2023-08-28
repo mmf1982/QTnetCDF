@@ -225,7 +225,7 @@ class MyQTreeView(QTreeView):
                 if self.master.filetype == "hdf4":
                     mval = "self.mfile.myrefdict[int("+str(current_pointer.mdata.myref)+")].get_value()"
                 else:
-                    mypath = current_pointer.path
+                    mypath = current_pointer.mdata.group().path
                     if self.master.filetype == "mfc":
                         if mypath:
                             fullpath = "']['".join(mypath.lstrip("/").split("/"))
