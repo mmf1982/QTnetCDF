@@ -1376,8 +1376,8 @@ class Fast2D(QMainWindow):  # only_indices does currently not work for 2D x-y-z 
                 return
             self.myfigure.draw()
             try:
-                ai.add_interactivity(fig=self.myfigure.fig, ax=self.myfigure.axes, nodrag=False, legsize=7)
                 ai.enable_copy_paste(figs=[self.myfigure.fig], legsize=7)
+                ai.add_interactivity(fig=self.myfigure.fig, ax=self.myfigure.axes, nodrag=False, legsize=7)
                 self.myfigure.draw()
             except:
                 print("it seems that add_interactivity is not loaded. Check if the file is in pythonpath")
@@ -1835,8 +1835,8 @@ class Fast1D(QMainWindow):
             self.myfigure.axes.get_legend().remove()
         except AttributeError:
             pass
-        ai.add_interactivity(fig=self.myfigure.fig, ax=self.myfigure.axes, nodrag=False, legsize=7)
         ai.enable_copy_paste(figs=[self.myfigure.fig])
+        ai.add_interactivity(fig=self.myfigure.fig, ax=self.myfigure.axes, nodrag=False, legsize=7)
         self.myfigure.draw()
 
 

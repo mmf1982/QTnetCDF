@@ -222,6 +222,7 @@ class MyQTreeView(QTreeView):
             elif event.text() == "f":
                 self.master.mdata.flag.set(squeeze(mydata), current_pointer.mdata.name, mypath, units=unit)
             elif event.text() == "m":  # TODO: what to do for mfc?
+                print("here")
                 if self.master.filetype == "hdf4":
                     mval = "self.mfile.myrefdict[int("+str(current_pointer.mdata.myref)+")].get_value()"
                 else:
@@ -239,8 +240,15 @@ class MyQTreeView(QTreeView):
                 if self.master.mdata.misc.datavalue is None:
                     self.master.mdata.misc.set(mval, textshow)
                 else:
-                    textshow = self.master.mdata.misc.name_value+textshow
-                    mval = self.master.mdata.misc.datavalue+mval
+                    if not isinstance(self.master.mdata.misc.datavalue, str):
+                        textshow = self.master.mdata.misc.name_value+textshow
+                        temp = self.master.mdata.misc.datavalue
+                        mval = eval("temp"+self.last_operator+"mval")
+                        self.last_operator = None
+                        
+                    else:
+                        textshow = self.master.mdata.misc.name_value+textshow
+                        mval = self.master.mdata.misc.datavalue+mval
                     self.master.mdata.misc.set(mval, textshow)
                 isold=False
                 if isold:
@@ -583,9 +591,27 @@ class App(QMainWindow):
                 previoustext = self.mdata.misc.name_value
                 newtext = self.mentry.text()
                 self.mentry.clear()
-                if not previoustext: previoustext = ""
-                if not previousvalue: previousvalue = ""
-                self.mdata.misc.set(previousvalue+newtext, previoustext + newtext)
+                try:
+                    if not previoustext: previoustext = ""
+                except ValueError:
+                    pass
+                try:
+                    if not previousvalue: previousvalue = ""
+                except ValueError:
+                    pass
+                try:
+                    self.mdata.misc.set(previousvalue+newtext, previoustext + newtext)
+                except:
+                    temp = previousvalue
+                    try:
+                        self.mdata.misc.set(eval("temp"+newtext), previoustext + newtext)
+                    except:
+                        self.last_operator = newtext
+                        self.mdata.misc.set(temp, previoustext + newtext)
+                        #from PyQt5.QtCore import pyqtRemoveInputHook
+                        #pyqtRemoveInputHook()
+                        #import pdb
+                        #pdb.set_trace()
                 return
                 '''
                 num = float(self.mentry.text())
@@ -736,7 +762,10 @@ class App(QMainWindow):
             button.setMaximumWidth(width)
             misc_layout.addWidget(button)
             def funcxyz(which):
-                val = eval(self.mdata.misc.datavalue)
+                try:
+                    val = eval(self.mdata.misc.datavalue)
+                except:
+                    val = self.mdata.misc.datavalue
                 name = self.mdata.misc.name_value
                 if "x" in which:
                     self.mdata.x.set(val, name)
@@ -905,7 +934,8 @@ class App(QMainWindow):
             if isinstance(self.model.itemFromIndex(signal).mdata, Representative):
                 mydata = np.squeeze(self.model.itemFromIndex(signal).mdata.get_value())
             else:
-                mydata, unt = np.squeeze(check_for_time(self.model.itemFromIndex(signal).mdata))
+                mydata, unt = check_for_time(self.model.itemFromIndex(signal).mdata)
+                mydata = np.squeeze(mydata)
                 # mydata = np.squeeze(self.model.itemFromIndex(signal).mdata[:])
                 # if "time" in self.model.itemFromIndex(signal).mdata.name.lower():
                 #    #print("time is in name")

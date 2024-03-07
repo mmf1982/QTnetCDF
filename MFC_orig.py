@@ -6,7 +6,7 @@ import numpy as np
 import os
 import glob
 import pandas as pd
-import astropy.coordinates
+# import astropy.coordinates
 import matplotlib.pyplot as plt
 from add_interactivity import add_interactivity as ai
 
